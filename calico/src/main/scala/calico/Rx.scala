@@ -24,6 +24,7 @@ import cats.effect.kernel.Resource
 import cats.effect.kernel.Sync
 import cats.effect.kernel.Unique
 import cats.syntax.all.*
+import cats.effect.syntax.all.*
 import cats.~>
 import fs2.Pull
 import fs2.Stream
@@ -66,9 +67,21 @@ private final class RxRef[F[_], A](
       listeners.update(_ + f) *> (value.get.flatMap(f[F](_)))
     } { _ => listeners.update(_ - f) }
 
-  def map[B](f: A => B): Resource[F, Rx[F, B]] = ???
+  def map[B](f: A => B): Resource[F, Rx[F, B]] =
+    value.get.map(f).flatMap(RxRef(_)).toResource.flatTap { rx =>
+      foreach {
+        new:
+          def apply[G[_]](a: A)(using G: Sync[G]) = ???
+      }
+    }
+    ???
 
-  def map2[B, C](that: Rx[F, B])(f: (A, B) => C): Resource[F, Rx[F, C]] = ???
+private object RxRef:
+  def apply[F[_], B](b: B)(using F: Sync[F]): F[RxRef[F, B]] = for
+    value <- Ref.of(b)
+    listeners <- Ref.of(Set.empty[Rx.Foreach[B]])
+    rx <- F.delay(new RxRef(value, listeners))
+  yield rx
 
 object Rx:
   trait Foreach[-A]:
