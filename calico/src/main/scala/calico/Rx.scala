@@ -47,7 +47,7 @@ object Reactive:
 
 trait RxSource[F[_], A]:
   def map[B](f: A => B): Resource[F, RxSource[F, B]]
-  def foreach(f: Rx.Foreach[A]): Resource[F, Unit]
+  def foreach(f: A => F[Unit]): Resource[F, Unit]
 
 trait RxSink[F[_], A]:
   def set(a: A): F[Unit]
@@ -56,33 +56,23 @@ trait Rx[F[_], A] extends RxSource[F, A], RxSink[F, A]
 
 private final class RxRef[F[_], A](
     value: Ref[F, A],
-    listeners: Ref[F, Set[Rx.Foreach[A]]]
+    listeners: Ref[F, Set[A => F[Unit]]]
 )(using F: Sync[F])
     extends Rx[F, A]:
 
   def set(a: A): F[Unit] = value.set(a)
 
-  def foreach(f: Rx.Foreach[A]): Resource[F, Unit] =
+  def foreach(f: A => F[Unit]): Resource[F, Unit] =
     Resource.make {
-      listeners.update(_ + f) *> (value.get.flatMap(f[F](_)))
+      listeners.update(_ + f) *> (value.get >>= f)
     } { _ => listeners.update(_ - f) }
 
   def map[B](f: A => B): Resource[F, Rx[F, B]] =
-    value.get.map(f).flatMap(RxRef(_)).toResource.flatTap { rx =>
-      foreach {
-        new:
-          def apply[G[_]](a: A)(using G: Sync[G]) = ???
-      }
-    }
-    ???
+    value.get.map(f).flatMap(RxRef(_)).toResource.flatTap { rx => foreach(set) }
 
 private object RxRef:
   def apply[F[_], B](b: B)(using F: Sync[F]): F[RxRef[F, B]] = for
     value <- Ref.of(b)
-    listeners <- Ref.of(Set.empty[Rx.Foreach[B]])
+    listeners <- Ref.of(Set.empty[B => F[Unit]])
     rx <- F.delay(new RxRef(value, listeners))
   yield rx
-
-object Rx:
-  trait Foreach[-A]:
-    def apply[G[_]: Sync](a: A): G[Unit]
