@@ -19,13 +19,14 @@ package calico
 import cats.Monad
 import cats.effect.kernel.Ref
 import cats.effect.kernel.Resource
+import cats.effect.kernel.Sync
 import cats.effect.kernel.Unique
 import cats.syntax.all.*
 
 trait Rx[F[_], +A]:
   // def sources: Set[Unique.Token]
 
-  // def foreach(f: A => F[Unit]): Resource[F, Unit]
+  def foreach(f: Rx.Foreach[A]): Resource[F, Unit]
 
   def map[B](f: A => B): Resource[F, Rx[F, B]]
 
@@ -52,4 +53,6 @@ private abstract class AbstractRxRef[F[_], A](
 
   def map2[B, C](that: Rx[F, B])(f: (A, B) => C): Resource[F, Rx[F, C]] = ???
 
-object Rx
+object Rx:
+  trait Foreach[-A]:
+    def apply[G[_]: Sync](a: A): G[Unit]
