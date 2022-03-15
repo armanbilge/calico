@@ -26,6 +26,7 @@ import com.raquo.domtypes.generic.builders.HtmlTagBuilder
 import com.raquo.domtypes.generic.builders.PropBuilder
 import com.raquo.domtypes.generic.builders.ReflectedHtmlAttrBuilder
 import com.raquo.domtypes.generic.codecs.Codec
+import com.raquo.domtypes.jsdom.defs.tags.*
 import org.scalajs.dom
 
 import scala.scalajs.js
@@ -33,7 +34,10 @@ import scala.scalajs.js
 object dsl:
   object io extends Dsl[IO]
 
-  trait Dsl[F[_]] extends HtmlBuilders[F]
+  trait Dsl[F[_]] extends HtmlBuilders[F],
+    DocumentTags[HtmlTag[F, _]],
+    GroupingTags[HtmlTag[F, _]],
+    TextTags[HtmlTag[F, _]]
 
 trait HtmlBuilders[F[_]](using F: Sync[F])
     extends HtmlTagBuilder[HtmlTag[F, _], dom.HTMLElement],

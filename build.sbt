@@ -16,7 +16,7 @@ lazy val calico = project
   .in(file("calico"))
   .enablePlugins(ScalaJSPlugin)
   .settings(
-    name := "woozle-core",
+    name := "calico",
     libraryDependencies ++= Seq(
       "org.typelevel" %%% "cats-core" % "2.7.0",
       "org.typelevel" %%% "cats-effect" % "3.3.7",
@@ -25,3 +25,8 @@ lazy val calico = project
       "org.scala-js" %%% "scalajs-dom" % "2.1.0"
     )
   )
+
+lazy val example = project
+  .in(file("example"))
+  .enablePlugins(ScalaJSPlugin, NoPublishPlugin)
+  .dependsOn(calico)
