@@ -30,13 +30,18 @@ import org.scalajs.dom
 
 import scala.scalajs.js
 
-class HtmlBuilders[F[_]](using F: Sync[F])
-    extends HtmlTagBuilder[HtmlTag[F, _], dom.html.Element],
+object dsl:
+  object io extends Dsl[IO]
+
+  trait Dsl[F[_]] extends HtmlBuilders[F]
+
+trait HtmlBuilders[F[_]](using F: Sync[F])
+    extends HtmlTagBuilder[HtmlTag[F, _], dom.HTMLElement],
       HtmlAttrBuilder[HtmlAttr[F, _]],
       ReflectedHtmlAttrBuilder[Prop[F, _, _]],
       PropBuilder[Prop[F, _, _]]:
 
-  protected def htmlTag[E <: dom.html.Element](tagName: String, void: Boolean) =
+  protected def htmlTag[E <: dom.HTMLElement](tagName: String, void: Boolean) =
     HtmlTag(tagName, void)
 
   protected def htmlAttr[V](key: String, codec: Codec[V, String]) =
@@ -52,8 +57,7 @@ class HtmlBuilders[F[_]](using F: Sync[F])
   protected def prop[V, J](name: String, codec: Codec[V, J]) =
     Prop(name, codec)
 
-object dsl:
-  object io extends HtmlBuilders[IO]
+  def children: HtmlChildren[F] = HtmlChildren[F]
 
 final class HtmlTag[F[_], E] private[calico] (name: String, void: Boolean)(using F: Sync[F]):
   def apply(modifiers: Modifier[F, E]*): Resource[F, E] =
@@ -64,40 +68,46 @@ final class HtmlTag[F[_], E] private[calico] (name: String, void: Boolean)(using
 sealed trait Modifier[F[_], E]:
   def modify(e: E): Resource[F, Unit]
 
+final class HtmlChildren[F[_]] private[calico] (using F: Sync[F]):
+  def :=(children: List[Resource[F, dom.HTMLElement]]): Modifier[F, dom.HTMLElement] =
+    new:
+      def modify(e: dom.HTMLElement) =
+        children.sequence.flatMap(_.traverse_(c => F.delay(e.appendChild(c)).toResource))
+
 final class HtmlAttr[F[_], V] private[calico] (key: String, codec: Codec[V, String])(
     using F: Sync[F]):
 
-  def :=(value: V): Modifier[F, dom.html.Element] =
+  def :=(value: V): Modifier[F, dom.HTMLElement] =
     new:
-      def modify(e: dom.html.Element) = set(e, value).toResource
+      def modify(e: dom.HTMLElement) = set(e, value).toResource
 
-  def <--(rx: Rx[F, V]): Modifier[F, dom.html.Element] =
+  def <--(rx: Rx[F, V]): Modifier[F, dom.HTMLElement] =
     this <-- Resource.pure(rx)
 
-  def <--(rx: Resource[F, Rx[F, V]]): Modifier[F, dom.html.Element] =
+  def <--(rx: Resource[F, Rx[F, V]]): Modifier[F, dom.HTMLElement] =
     new:
-      def modify(e: dom.html.Element) =
+      def modify(e: dom.HTMLElement) =
         rx.flatMap { rx => rx.foreach(set(e, _)) }
 
-  private def set[G[_]](e: dom.html.Element, v: V)(using G: Sync[G]) =
+  private def set[G[_]](e: dom.HTMLElement, v: V)(using G: Sync[G]) =
     G.delay(e.setAttribute(key, codec.encode(v)))
 
 final class Prop[F[_], V, J] private[calico] (name: String, codec: Codec[V, J])(
     using F: Sync[F]):
 
-  def :=(value: V): Modifier[F, dom.html.Element] =
+  def :=(value: V): Modifier[F, dom.HTMLElement] =
     new:
-      def modify(e: dom.html.Element) = set(e, value).toResource
+      def modify(e: dom.HTMLElement) = set(e, value).toResource
 
-  def <--(rx: Rx[F, V]): Modifier[F, dom.html.Element] =
+  def <--(rx: Rx[F, V]): Modifier[F, dom.HTMLElement] =
     this <-- Resource.pure(rx)
 
-  def <--(rx: Resource[F, Rx[F, V]]): Modifier[F, dom.html.Element] =
+  def <--(rx: Resource[F, Rx[F, V]]): Modifier[F, dom.HTMLElement] =
     new:
-      def modify(e: dom.html.Element) =
+      def modify(e: dom.HTMLElement) =
         rx.flatMap { rx => rx.foreach(set(e, _)) }
 
-  private def set[G[_]](e: dom.html.Element, v: V)(using G: Sync[G]) =
+  private def set[G[_]](e: dom.HTMLElement, v: V)(using G: Sync[G]) =
     G.delay {
       e.asInstanceOf[js.Dynamic].updateDynamic(name)(codec.encode(v).asInstanceOf[js.Any])
     }
