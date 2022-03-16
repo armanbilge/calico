@@ -30,3 +30,6 @@ lazy val example = project
   .in(file("example"))
   .enablePlugins(ScalaJSPlugin, NoPublishPlugin)
   .dependsOn(calico)
+  .settings(
+    scalaJSUseMainModuleInitializer := true
+  )

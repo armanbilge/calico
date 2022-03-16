@@ -34,13 +34,19 @@ import scala.scalajs.js
 object dsl:
   object io extends Dsl[IO]
 
-  trait Dsl[F[_]] extends HtmlBuilders[F],
-    DocumentTags[HtmlTag[F, _]],
-    GroupingTags[HtmlTag[F, _]],
-    TextTags[HtmlTag[F, _]]
+  trait Dsl[F[_]]
+      extends HtmlBuilders[F],
+        DocumentTags[HtmlTagT[F]],
+        GroupingTags[HtmlTagT[F]],
+        TextTags[HtmlTagT[F]],
+        FormTags[HtmlTagT[F]],
+        SectionTags[HtmlTagT[F]],
+        EmbedTags[HtmlTagT[F]],
+        TableTags[HtmlTagT[F]],
+        MiscTags[HtmlTagT[F]]
 
 trait HtmlBuilders[F[_]](using F: Sync[F])
-    extends HtmlTagBuilder[HtmlTag[F, _], dom.HTMLElement],
+    extends HtmlTagBuilder[HtmlTagT[F], dom.HTMLElement],
       HtmlAttrBuilder[HtmlAttr[F, _]],
       ReflectedHtmlAttrBuilder[Prop[F, _, _]],
       PropBuilder[Prop[F, _, _]]:
@@ -63,11 +69,16 @@ trait HtmlBuilders[F[_]](using F: Sync[F])
 
   def children: HtmlChildren[F] = HtmlChildren[F]
 
-final class HtmlTag[F[_], E] private[calico] (name: String, void: Boolean)(using F: Sync[F]):
-  def apply(modifiers: Modifier[F, E]*): Resource[F, E] =
-    F.delay(dom.document.createElement(name).asInstanceOf[E]).toResource.flatTap { e =>
-      modifiers.traverse_(_.modify(e))
-    }
+type HtmlTagT[F[_]] = [E <: dom.HTMLElement] =>> HtmlTag[F, E]
+final class HtmlTag[F[_], E <: dom.HTMLElement] private[calico] (name: String, void: Boolean)(
+    using F: Sync[F]):
+  def apply[EE >: E](modifiers: Modifier[F, EE]*): Resource[F, E] =
+    build.toResource.flatTap { e => modifiers.traverse_(_.modify(e)) }
+
+  def apply(text: String): Resource[F, E] =
+    build.flatTap(e => F.delay(e.innerText = text)).toResource
+
+  private def build = F.delay(dom.document.createElement(name).asInstanceOf[E])
 
 sealed trait Modifier[F[_], E]:
   def modify(e: E): Resource[F, Unit]
