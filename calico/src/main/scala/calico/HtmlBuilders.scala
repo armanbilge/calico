@@ -104,8 +104,8 @@ final class HtmlAttr[F[_], V] private[calico] (key: String, codec: Codec[V, Stri
       def modify(e: dom.HTMLElement) =
         rx.flatMap { rx => rx.foreach(set(e, _)) }
 
-  private def set[G[_]](e: dom.HTMLElement, v: V)(using G: Sync[G]) =
-    G.delay(e.setAttribute(key, codec.encode(v)))
+  private def set(e: dom.HTMLElement, v: V) =
+    F.delay(e.setAttribute(key, codec.encode(v)))
 
 final class Prop[F[_], V, J] private[calico] (name: String, codec: Codec[V, J])(
     using F: Sync[F]):
@@ -122,7 +122,7 @@ final class Prop[F[_], V, J] private[calico] (name: String, codec: Codec[V, J])(
       def modify(e: dom.HTMLElement) =
         rx.flatMap { rx => rx.foreach(set(e, _)) }
 
-  private def set[G[_]](e: dom.HTMLElement, v: V)(using G: Sync[G]) =
-    G.delay {
+  private def set(e: dom.HTMLElement, v: V) =
+    F.delay {
       e.asInstanceOf[js.Dynamic].updateDynamic(name)(codec.encode(v).asInstanceOf[js.Any])
     }
