@@ -7,10 +7,11 @@ ThisBuild / developers := List(
 )
 
 ThisBuild / tlSonatypeUseLegacyHost := false
+ThisBuild / tlUntaggedAreSnapshots := false
 
 ThisBuild / crossScalaVersions := Seq("3.1.1")
 
-lazy val root = tlCrossRootProject.aggregate(calico)
+lazy val root = tlCrossRootProject.aggregate(calico, example)
 
 lazy val calico = project
   .in(file("calico"))
