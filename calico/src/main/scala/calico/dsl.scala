@@ -21,18 +21,25 @@ import cats.effect.IO
 import cats.effect.kernel.Async
 import cats.effect.kernel.Resource
 import cats.effect.kernel.Sync
+import cats.effect.std.Dispatcher
 import cats.effect.syntax.all.*
 import cats.syntax.all.*
+import com.raquo.domtypes.generic.builders.EventPropBuilder
 import com.raquo.domtypes.generic.builders.HtmlAttrBuilder
 import com.raquo.domtypes.generic.builders.HtmlTagBuilder
 import com.raquo.domtypes.generic.builders.PropBuilder
 import com.raquo.domtypes.generic.builders.ReflectedHtmlAttrBuilder
 import com.raquo.domtypes.generic.codecs.Codec
+import com.raquo.domtypes.jsdom.defs.eventProps.*
 import com.raquo.domtypes.jsdom.defs.tags.*
+import fs2.INothing
+import fs2.Pipe
 import fs2.Stream
+import fs2.concurrent.Channel
 import org.scalajs.dom
 import shapeless3.deriving.K0
 
+import scala.scalajs.concurrent.QueueExecutionContext
 import scala.scalajs.js
 
 object io extends Dsl[IO]
@@ -46,13 +53,22 @@ trait Dsl[F[_]]
       SectionTags[HtmlTagT[F]],
       EmbedTags[HtmlTagT[F]],
       TableTags[HtmlTagT[F]],
-      MiscTags[HtmlTagT[F]]
+      MiscTags[HtmlTagT[F]],
+      ClipboardEventProps[EventProp[F, _]],
+      ErrorEventProps[EventProp[F, _]],
+      FormEventProps[EventProp[F, _]],
+      KeyboardEventProps[EventProp[F, _]],
+      MediaEventProps[EventProp[F, _]],
+      MiscellaneousEventProps[EventProp[F, _]],
+      MouseEventProps[EventProp[F, _]],
+      PointerEventProps[EventProp[F, _]]
 
 trait HtmlBuilders[F[_]](using F: Async[F])
     extends HtmlTagBuilder[HtmlTagT[F], dom.HTMLElement],
       HtmlAttrBuilder[HtmlAttr[F, _]],
       ReflectedHtmlAttrBuilder[Prop[F, _, _]],
-      PropBuilder[Prop[F, _, _]]:
+      PropBuilder[Prop[F, _, _]],
+      EventPropBuilder[EventProp[F, _], dom.Event]:
 
   protected def htmlTag[E <: dom.HTMLElement](tagName: String, void: Boolean) =
     HtmlTag(tagName, void)
@@ -69,6 +85,9 @@ trait HtmlBuilders[F[_]](using F: Async[F])
 
   protected def prop[V, J](name: String, codec: Codec[V, J]) =
     Prop(name, codec)
+
+  def eventProp[V <: dom.Event](key: String): EventProp[F, V] =
+    EventProp(key)
 
 type HtmlTagT[F[_]] = [E <: dom.HTMLElement] =>> HtmlTag[F, E]
 final class HtmlTag[F[_], E <: dom.HTMLElement] private[calico] (name: String, void: Boolean)(
@@ -105,7 +124,7 @@ final class HtmlAttr[F[_], V] private[calico] (key: String, codec: Codec[V, Stri
     HtmlAttr.Modified(key, codec, vs)
 
 object HtmlAttr:
-  final class Modified[F[_], V] private[calico] (
+  final class Modified[F[_], V] private[HtmlAttr] (
       val key: String,
       val codec: Codec[V, String],
       val values: Stream[Rx[F, *], V]
@@ -130,7 +149,7 @@ final class Prop[F[_], V, J] private[calico] (name: String, codec: Codec[V, J]):
     Prop.Modified(name, codec, vs)
 
 object Prop:
-  final class Modified[F[_], V, J](
+  final class Modified[F[_], V, J] private[Prop] (
       val name: String,
       val codec: Codec[V, J],
       val values: Stream[Rx[F, *], V]
@@ -151,3 +170,29 @@ object Prop:
         .background
         .void
         .mapK(Rx.renderK)
+
+final class EventProp[F[_], E] private[calico] (key: String):
+  def -->(sink: Pipe[F, E, INothing]): EventProp.Modified[F, E] = ???
+
+object EventProp:
+  final class Modified[F[_], E] private[calico] (
+      val key: String,
+      val sink: Pipe[F, E, INothing])
+
+  given [F[_], E <: dom.Element, V](using F: Async[F]): Modifier[F, E, Modified[F, V]] with
+    def modify(prop: Modified[F, V], e: E) = for
+      ch <- Resource.make(Channel.unbounded[F, V])(_.close.void)
+      d <- Dispatcher[F].evalOn(QueueExecutionContext.promises)
+      _ <- Resource.make {
+        F.delay(new dom.AbortController).flatTap { c =>
+          F.delay {
+            e.addEventListener(
+              prop.key,
+              e => d.unsafeRunAndForget(ch.send(e.asInstanceOf[V])),
+              js.Dynamic.literal(signal = c.signal).asInstanceOf[dom.EventListenerOptions]
+            )
+          }
+        }
+      } { c => F.delay(c.abort()) }
+      _ <- ch.stream.through(prop.sink).compile.drain.background
+    yield ()
