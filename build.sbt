@@ -35,3 +35,16 @@ lazy val example = project
   .settings(
     scalaJSUseMainModuleInitializer := true
   )
+
+lazy val jsdocs = project.dependsOn(calico).enablePlugins(ScalaJSPlugin)
+lazy val docs = project
+  .in(file("site"))
+  .enablePlugins(TypelevelSitePlugin)
+  .settings(
+    mdocJS := Some(jsdocs),
+    laikaConfig ~= { _.withRawContent },
+    tlSiteHeliumConfig ~= {
+      // Actually, this *disables* auto-linking, to avoid duplicates with mdoc
+      _.site.autoLinkJS()
+    }
+  )
