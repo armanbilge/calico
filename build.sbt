@@ -46,5 +46,9 @@ lazy val docs = project
     tlSiteHeliumConfig ~= {
       // Actually, this *disables* auto-linking, to avoid duplicates with mdoc
       _.site.autoLinkJS()
-    }
+    },
+    tlSiteRelatedProjects ++= Seq(
+      TypelevelProject.CatsEffect,
+      TypelevelProject.Fs2
+    )
   )
