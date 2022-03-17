@@ -97,7 +97,7 @@ object Modifier:
     def modify(e2: Resource[F, E2], e: E): Resource[F, Unit] =
       e2.evalMap(e2 => F.delay(e.appendChild(e2)))
 
-final class HtmlAttr[F[_]: Async, V] private[calico] (key: String, codec: Codec[V, String]):
+final class HtmlAttr[F[_], V] private[calico] (key: String, codec: Codec[V, String]):
   def :=(v: V): HtmlAttr.Modified[F, V] =
     this <-- Stream.emit(v)
 
@@ -122,7 +122,7 @@ object HtmlAttr:
         .void
         .mapK(Rx.renderK)
 
-final class Prop[F[_]: Async, V, J] private[calico] (name: String, codec: Codec[V, J]):
+final class Prop[F[_], V, J] private[calico] (name: String, codec: Codec[V, J]):
   def :=(v: V): Prop.Modified[F, V, J] =
     this <-- Stream.emit(v)
 
