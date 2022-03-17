@@ -17,6 +17,7 @@
 package calico
 
 import cats.effect.IO
+import cats.effect.kernel.Async
 import cats.effect.kernel.Resource
 import cats.effect.kernel.Sync
 import cats.effect.syntax.all.*
@@ -27,6 +28,7 @@ import com.raquo.domtypes.generic.builders.PropBuilder
 import com.raquo.domtypes.generic.builders.ReflectedHtmlAttrBuilder
 import com.raquo.domtypes.generic.codecs.Codec
 import com.raquo.domtypes.jsdom.defs.tags.*
+import fs2.Stream
 import org.scalajs.dom
 
 import scala.scalajs.js
@@ -45,7 +47,7 @@ object dsl:
         TableTags[HtmlTagT[F]],
         MiscTags[HtmlTagT[F]]
 
-trait HtmlBuilders[F[_]](using F: Sync[F])
+trait HtmlBuilders[F[_]](using F: Async[F])
     extends HtmlTagBuilder[HtmlTagT[F], dom.HTMLElement],
       HtmlAttrBuilder[HtmlAttr[F, _]],
       ReflectedHtmlAttrBuilder[Prop[F, _, _]],
@@ -83,46 +85,42 @@ final class HtmlTag[F[_], E <: dom.HTMLElement] private[calico] (name: String, v
 sealed trait Modifier[F[_], E]:
   def modify(e: E): Resource[F, Unit]
 
-final class HtmlChildren[F[_]] private[calico] (using F: Sync[F]):
+final class HtmlChildren[F[_]] private[calico] (using F: Async[F]):
   def :=(children: List[Resource[F, dom.HTMLElement]]): Modifier[F, dom.HTMLElement] =
     new:
       def modify(e: dom.HTMLElement) =
         children.sequence.flatMap(_.traverse_(c => F.delay(e.appendChild(c)).toResource))
 
-final class HtmlAttr[F[_], V] private[calico] (key: String, codec: Codec[V, String])(
-    using F: Sync[F]):
+final class HtmlAttr[F[_]: Async, V] private[calico] (key: String, codec: Codec[V, String]):
 
-  def :=(value: V): Modifier[F, dom.HTMLElement] =
-    new:
-      def modify(e: dom.HTMLElement) = set(e, value).toResource
+  def :=(v: V): Modifier[F, dom.HTMLElement] =
+    this <-- Stream.emit(v)
 
-  def <--(rx: Rx[F, V]): Modifier[F, dom.HTMLElement] =
-    this <-- Resource.pure(rx)
-
-  def <--(rx: Resource[F, Rx[F, V]]): Modifier[F, dom.HTMLElement] =
+  def <--(vs: Stream[Rx[F, *], V]): Modifier[F, dom.HTMLElement] =
     new:
       def modify(e: dom.HTMLElement) =
-        rx.flatMap { rx => rx.foreach(set(e, _)) }
+        vs.foreach { v =>
+          Rx(e.setAttribute(key, codec.encode(v)))
+        }.compile
+          .drain
+          .background
+          .void
+          .mapK(Rx.renderK)
 
-  private def set(e: dom.HTMLElement, v: V) =
-    F.delay(e.setAttribute(key, codec.encode(v)))
+final class Prop[F[_]: Async, V, J] private[calico] (name: String, codec: Codec[V, J]):
 
-final class Prop[F[_], V, J] private[calico] (name: String, codec: Codec[V, J])(
-    using F: Sync[F]):
+  def :=(v: V): Modifier[F, dom.HTMLElement] =
+    this <-- Stream.emit(v)
 
-  def :=(value: V): Modifier[F, dom.HTMLElement] =
-    new:
-      def modify(e: dom.HTMLElement) = set(e, value).toResource
-
-  def <--(rx: Rx[F, V]): Modifier[F, dom.HTMLElement] =
-    this <-- Resource.pure(rx)
-
-  def <--(rx: Resource[F, Rx[F, V]]): Modifier[F, dom.HTMLElement] =
+  def <--(vs: Stream[Rx[F, *], V]): Modifier[F, dom.HTMLElement] =
     new:
       def modify(e: dom.HTMLElement) =
-        rx.flatMap { rx => rx.foreach(set(e, _)) }
-
-  private def set(e: dom.HTMLElement, v: V) =
-    F.delay {
-      e.asInstanceOf[js.Dynamic].updateDynamic(name)(codec.encode(v).asInstanceOf[js.Any])
-    }
+        vs.foreach { v =>
+          Rx {
+            e.asInstanceOf[js.Dynamic].updateDynamic(name)(codec.encode(v).asInstanceOf[js.Any])
+          }
+        }.compile
+          .drain
+          .background
+          .void
+          .mapK(Rx.renderK)

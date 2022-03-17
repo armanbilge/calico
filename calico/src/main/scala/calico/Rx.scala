@@ -16,63 +16,28 @@
 
 package calico
 
-import cats.Monad
-import cats.effect.IO
-import cats.effect.kernel.Concurrent
-import cats.effect.kernel.Ref
-import cats.effect.kernel.Resource
-import cats.effect.kernel.Sync
-import cats.effect.kernel.Unique
-import cats.syntax.all.*
-import cats.effect.syntax.all.*
 import cats.~>
-import fs2.Pull
-import fs2.Stream
+import cats.effect.kernel.Async
+import cats.effect.kernel.GenConcurrent
+import cats.effect.kernel.Sync
+import cats.Monad
 
-trait Reactive[F[_]]:
+import scala.scalajs.concurrent.QueueExecutionContext
 
-  def rx[A](a: A): F[Rx[F, A]]
+opaque type Rx[F[_], A] = F[A]
+extension [F[_], A](rxa: Rx[F[_], A])
+  def render(using F: Async[F]): F[A] = F.evalOn(rxa, QueueExecutionContext.promises)
 
-  def stream[A](sa: Stream[F, A]): Resource[F, RxSource[F, A]]
+object Rx extends RxLowPriority0:
+  def apply[F[_]: Sync, A](thunk: => A): Rx[F, A] = delay(thunk)
+  def delay[F[_], A](thunk: => A)(using F: Sync[F]): Rx[F, A] = F.delay(thunk)
 
-object Reactive:
-  given Reactive[IO] with
-    def rx[A](a: A): IO[Rx[IO, A]] = ???
+  def renderK[F[_]: Async]: Rx[F, *] ~> F =
+    new:
+      def apply[A](rxa: Rx[F, A]): F[A] = render(rxa)
 
-    def stream[A](sa: Stream[IO, A]): Resource[IO, RxSource[IO, A]] =
-      sa.pull.uncons1.flatMap(Pull.output1).stream.unNone.compile.resource.lastOrError.flatMap {
-        (a, tail) =>
-          Resource.eval(rx(a)).flatTap { rx => tail.foreach(rx.set).compile.resource.drain }
-      }
+  given [F[_], E](using F: GenConcurrent[F, E]): GenConcurrent[Rx[F, *], E] = F
+  
 
-trait RxSource[F[_], A]:
-  def map[B](f: A => B): Resource[F, RxSource[F, B]]
-  def foreach(f: A => F[Unit]): Resource[F, Unit]
-
-trait RxSink[F[_], A]:
-  def set(a: A): F[Unit]
-
-trait Rx[F[_], A] extends RxSource[F, A], RxSink[F, A]
-
-private final class RxRef[F[_], A](
-    value: Ref[F, A],
-    listeners: Ref[F, Set[A => F[Unit]]]
-)(using F: Sync[F])
-    extends Rx[F, A]:
-
-  def set(a: A): F[Unit] = value.set(a)
-
-  def foreach(f: A => F[Unit]): Resource[F, Unit] =
-    Resource.make {
-      listeners.update(_ + f) *> (value.get >>= f)
-    } { _ => listeners.update(_ - f) }
-
-  def map[B](f: A => B): Resource[F, Rx[F, B]] =
-    value.get.map(f).flatMap(RxRef(_)).toResource.flatTap { rx => foreach(set) }
-
-private object RxRef:
-  def apply[F[_], B](b: B)(using F: Sync[F]): F[RxRef[F, B]] = for
-    value <- Ref.of(b)
-    listeners <- Ref.of(Set.empty[B => F[Unit]])
-    rx <- F.delay(new RxRef(value, listeners))
-  yield rx
+private sealed class RxLowPriority0:
+  given [F[_]](using F: Sync[F]): Sync[Rx[F, *]] = F.asInstanceOf[Sync[Rx[F, *]]]
