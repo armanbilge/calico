@@ -118,8 +118,8 @@ trait Modifier[F[_], E, A]:
       def modify(b: B, e: E) = outer.modify(f(b), e)
 
 object Modifier:
-  given forString[F[_], E <: dom.Element](using F: Sync[F]): Modifier[F, E, String] with
-    def modify(s: String, e: E) = F.delay(e.innerText += s).toResource
+  given forString[F[_], E <: dom.Element](using F: Async[F]): Modifier[F, E, String] =
+    forStringStream.contramap(Stream.emit(_))
 
   given forStringStream[F[_], E <: dom.Element](
       using F: Async[F]): Modifier[F, E, Stream[Rx[F, *], String]] with
