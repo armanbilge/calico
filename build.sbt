@@ -22,6 +22,7 @@ lazy val calico = project
       "org.typelevel" %%% "cats-core" % "2.7.0",
       "org.typelevel" %%% "cats-effect" % "3.3.7",
       "co.fs2" %%% "fs2-core" % "3.2.5",
+      "org.typelevel" %%% "shapeless3-deriving" % "3.0.4",
       "com.raquo" %%% "domtypes" % "0.16.0-RC2",
       "org.scala-js" %%% "scalajs-dom" % "2.1.0"
     )

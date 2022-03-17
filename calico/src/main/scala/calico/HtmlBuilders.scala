@@ -30,6 +30,7 @@ import com.raquo.domtypes.generic.codecs.Codec
 import com.raquo.domtypes.jsdom.defs.tags.*
 import fs2.Stream
 import org.scalajs.dom
+import shapeless3.deriving.K0
 
 import scala.scalajs.js
 
@@ -74,18 +75,28 @@ trait HtmlBuilders[F[_]](using F: Async[F])
 type HtmlTagT[F[_]] = [E <: dom.HTMLElement] =>> HtmlTag[F, E]
 final class HtmlTag[F[_], E <: dom.HTMLElement] private[calico] (name: String, void: Boolean)(
     using F: Async[F]):
-  def apply[EE >: E](modifiers: Modifier[F, EE]*): Resource[F, E] =
-    build.toResource.flatTap { e => modifiers.traverse_(_.modify(e)) }
+  // def apply[EE >: E](modifiers: Modifier[F, EE]*): Resource[F, E] =
+  //   build.toResource.flatTap { e => modifiers.traverse_(_.modify(e)) }
 
-  def apply(text: String): Resource[F, E] =
-    apply(Stream.emit(text))
+  // def apply(text: Stream[Rx[F, *], String]): Resource[F, E] =
+  //   build.toResource.flatTap { e =>
+  //     text.foreach(t => Rx(e.innerText = t)).compile.drain.background.mapK(Rx.renderK)
+  //   }
 
-  def apply(text: Stream[Rx[F, *], String]): Resource[F, E] =
-    build.toResource.flatTap { e =>
-      text.foreach(t => Rx(e.innerText = t)).compile.drain.background.mapK(Rx.renderK)
+  def apply[M <: Tuple](mods: M)(
+      using inst: K0.ProductInstances[Mod[F, E, *], M]): Resource[F, E] =
+    inst.foldLeft(mods)(build.toResource) {
+      [a] => (r: Resource[F, E], m: Mod[F, E, a], a: a) => r.flatTap(m.modify(a, _))
     }
 
   private def build = F.delay(dom.document.createElement(name).asInstanceOf[E])
+
+trait Mod[F[_], E, A]:
+  def modify(a: A, e: E): Resource[F, Unit]
+
+object Mod:
+  given [F[_], E <: dom.HTMLElement](using F: Sync[F]): Mod[F, E, String] with
+    def modify(s: String, e: E): Resource[F, Unit] = F.delay(e.innerText = s).toResource
 
 sealed trait Modifier[F[_], E]:
   def modify(e: E): Resource[F, Unit]

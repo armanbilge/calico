@@ -23,7 +23,7 @@ import fs2.Stream
 import scala.concurrent.duration.*
 
 object Example extends IOWebApp:
-  def render = helloBye.flatMap { helloBye => div(children := List(p(helloBye))) }
+  def render = p("hello", "bye")
 
   def helloBye =
     Stream("hello", "bye").repeat.chunkLimit(1).unchunks.debounce[IO](1.second).renderable
