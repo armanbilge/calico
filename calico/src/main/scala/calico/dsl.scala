@@ -30,6 +30,8 @@ import com.raquo.domtypes.generic.builders.HtmlTagBuilder
 import com.raquo.domtypes.generic.builders.PropBuilder
 import com.raquo.domtypes.generic.builders.ReflectedHtmlAttrBuilder
 import com.raquo.domtypes.generic.codecs.Codec
+import com.raquo.domtypes.generic.defs.attrs.*
+import com.raquo.domtypes.generic.defs.reflectedAttrs.*
 import com.raquo.domtypes.jsdom.defs.eventProps.*
 import com.raquo.domtypes.jsdom.defs.tags.*
 import fs2.INothing
@@ -54,6 +56,8 @@ trait Dsl[F[_]]
       EmbedTags[HtmlTagT[F]],
       TableTags[HtmlTagT[F]],
       MiscTags[HtmlTagT[F]],
+      HtmlAttrs[HtmlAttr[F, _]],
+      ReflectedHtmlAttrs[Prop[F, _, _]],
       ClipboardEventProps[EventProp[F, _]],
       ErrorEventProps[EventProp[F, _]],
       FormEventProps[EventProp[F, _]],
@@ -105,15 +109,35 @@ final class HtmlTag[F[_], E <: dom.HTMLElement] private[calico] (name: String, v
   private def build = F.delay(dom.document.createElement(name).asInstanceOf[E])
 
 trait Modifier[F[_], E, A]:
+  outer =>
+
   def modify(a: A, e: E): Resource[F, Unit]
 
-object Modifier:
-  given [F[_], E <: dom.Element](using F: Sync[F]): Modifier[F, E, String] with
-    def modify(s: String, e: E): Resource[F, Unit] = F.delay(e.innerText += s).toResource
+  final def contramap[B](f: B => A): Modifier[F, E, B] =
+    new:
+      def modify(b: B, e: E) = outer.modify(f(b), e)
 
-  given [F[_], E <: dom.Element, E2 <: dom.Element](
+object Modifier:
+  given forString[F[_], E <: dom.Element](using F: Sync[F]): Modifier[F, E, String] with
+    def modify(s: String, e: E) = F.delay(e.innerText += s).toResource
+
+  given forStringStream[F[_], E <: dom.Element](
+      using F: Async[F]): Modifier[F, E, Stream[Rx[F, *], String]] with
+    def modify(s: Stream[Rx[F, *], String], e: E) = for
+      n <- F
+        .delay(dom.document.createTextNode(""))
+        .flatTap(n => F.delay(e.appendChild(n)))
+        .toResource
+      _ <- s.foreach(t => Rx(n.textContent = t)).compile.drain.background.mapK(Rx.renderK)
+    yield ()
+
+  given forResource[F[_], E <: dom.Element, A](
+      using M: Modifier[F, E, A]): Modifier[F, E, Resource[F, A]] with
+    def modify(a: Resource[F, A], e: E) = a.flatMap(M.modify(_, e))
+
+  given forElement[F[_], E <: dom.Element, E2 <: dom.Element](
       using F: Sync[F]): Modifier[F, E, Resource[F, E2]] with
-    def modify(e2: Resource[F, E2], e: E): Resource[F, Unit] =
+    def modify(e2: Resource[F, E2], e: E) =
       e2.evalMap(e2 => F.delay(e.appendChild(e2)))
 
 final class HtmlAttr[F[_], V] private[calico] (key: String, codec: Codec[V, String]):
@@ -172,7 +196,7 @@ object Prop:
         .mapK(Rx.renderK)
 
 final class EventProp[F[_], E] private[calico] (key: String):
-  def -->(sink: Pipe[F, E, INothing]): EventProp.Modified[F, E] = ???
+  def -->(sink: Pipe[F, E, INothing]): EventProp.Modified[F, E] = EventProp.Modified(key, sink)
 
 object EventProp:
   final class Modified[F[_], E] private[calico] (

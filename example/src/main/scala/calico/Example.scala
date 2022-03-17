@@ -18,13 +18,23 @@ package calico
 
 import calico.dsl.io.*
 import calico.syntax.*
-import cats.effect.IO
-import fs2.Stream
-
-import scala.concurrent.duration.*
+import cats.effect.*
+import cats.effect.syntax.all.*
+import fs2.*
+import fs2.concurrent.*
+import org.scalajs.dom.*
 
 object Example extends IOWebApp:
-  def render = p("hello", "bye")
-
-  def helloBye =
-    Stream("hello", "bye").repeat.chunkLimit(1).unchunks.debounce[IO](1.second).renderable
+  def render = SignallingRef[IO, String]("world").toResource.flatMap { nameRef =>
+    div(
+      label("Your name: "),
+      input(
+        placeholder := "Enter your name here",
+        onInput --> (_.mapToValue.foreach(nameRef.set))
+      ),
+      span(
+        "Hello, ",
+        nameRef.discrete.map(_.toUpperCase).renderable
+      )
+    )
+  }

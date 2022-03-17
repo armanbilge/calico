@@ -26,6 +26,8 @@ import fs2.Stream
 import fs2.concurrent.Channel
 import org.scalajs.dom
 
+import scala.scalajs.js
+
 extension [F[_]](component: Resource[F, dom.HTMLElement])
   def renderInto(root: dom.Element)(using F: Sync[F]): Resource[F, Unit] =
     component.flatMap { e =>
@@ -43,3 +45,11 @@ extension [F[_]: Async, A](stream: Stream[F, A])
         .drain
         .background
     yield ch.stream
+
+extension [F[_]](events: Stream[F, dom.Event])
+  def mapToValue: Stream[F, String] =
+    events.flatMap { ev =>
+      Stream.fromOption(
+        ev.target.asInstanceOf[js.Dynamic].value.asInstanceOf[js.UndefOr[String]].toOption
+      )
+    }
