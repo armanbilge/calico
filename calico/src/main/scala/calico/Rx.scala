@@ -16,11 +16,11 @@
 
 package calico
 
-import cats.~>
+import cats.Monad
 import cats.effect.kernel.Async
 import cats.effect.kernel.GenConcurrent
 import cats.effect.kernel.Sync
-import cats.Monad
+import cats.~>
 
 import scala.scalajs.concurrent.QueueExecutionContext
 

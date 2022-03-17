@@ -15,6 +15,7 @@
  */
 
 package calico
+package dsl
 
 import cats.effect.IO
 import cats.effect.kernel.Async
@@ -34,19 +35,18 @@ import shapeless3.deriving.K0
 
 import scala.scalajs.js
 
-object dsl:
-  object io extends Dsl[IO]
+object io extends Dsl[IO]
 
-  trait Dsl[F[_]]
-      extends HtmlBuilders[F],
-        DocumentTags[HtmlTagT[F]],
-        GroupingTags[HtmlTagT[F]],
-        TextTags[HtmlTagT[F]],
-        FormTags[HtmlTagT[F]],
-        SectionTags[HtmlTagT[F]],
-        EmbedTags[HtmlTagT[F]],
-        TableTags[HtmlTagT[F]],
-        MiscTags[HtmlTagT[F]]
+trait Dsl[F[_]]
+    extends HtmlBuilders[F],
+      DocumentTags[HtmlTagT[F]],
+      GroupingTags[HtmlTagT[F]],
+      TextTags[HtmlTagT[F]],
+      FormTags[HtmlTagT[F]],
+      SectionTags[HtmlTagT[F]],
+      EmbedTags[HtmlTagT[F]],
+      TableTags[HtmlTagT[F]],
+      MiscTags[HtmlTagT[F]]
 
 trait HtmlBuilders[F[_]](using F: Async[F])
     extends HtmlTagBuilder[HtmlTagT[F], dom.HTMLElement],

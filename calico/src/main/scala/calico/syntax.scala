@@ -15,6 +15,7 @@
  */
 
 package calico
+package syntax
 
 import cats.effect.kernel.Async
 import cats.effect.kernel.Resource

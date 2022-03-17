@@ -16,10 +16,11 @@
 
 package calico
 
+import calico.syntax.*
 import cats.effect.IO
 import cats.effect.Resource
-import org.scalajs.dom
 import cats.effect.unsafe.implicits.*
+import org.scalajs.dom
 
 trait IOWebApp:
 

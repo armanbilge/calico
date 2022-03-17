@@ -17,6 +17,7 @@
 package calico
 
 import calico.dsl.io.*
+import calico.syntax.*
 import cats.effect.IO
 import fs2.Stream
 
