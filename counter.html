@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="Laika 0.18.1 + Helium Theme" />
-    <title>Hello World</title>
+    <title>Counter</title>
     
       <meta name="author" content="Arman Bilge"/>
     
@@ -61,8 +61,8 @@
       </div>
       
       <ul class="nav-list">
-        <li class="level1 active"><a href="#">Hello World</a></li>
-        <li class="level1"><a href="counter.html">Counter</a></li>
+        <li class="level1"><a href="hello-world.html">Hello World</a></li>
+        <li class="level1 active"><a href="#">Counter</a></li>
       </ul>
       
       <ul class="nav-list">
@@ -77,7 +77,7 @@
     <div id="container">
 
       <nav id="page-nav">
-        <p class="header"><a href="#">Hello World</a></p>
+        <p class="header"><a href="#">Counter</a></p>
         
         <ul class="nav-list">
         </ul>
@@ -87,32 +87,57 @@
 
       <main class="content">
 
-        <h1 id="hello-world" class="title">Hello World</h1>
+        <h1 id="counter" class="title">Counter</h1>
         <pre><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.</span><span class="identifier">dsl</span><span>.</span><span class="identifier">io</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.</span><span class="identifier">syntax</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.</span><span class="identifier">syntax</span><span>.</span><span class="identifier">all</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.</span><span class="identifier">unsafe</span><span>.</span><span class="identifier">implicits</span><span>.*
+</span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">syntax</span><span>.</span><span class="identifier">all</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">fs2</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">fs2</span><span>.</span><span class="identifier">concurrent</span><span>.*
 
-</span><span class="keyword">val</span><span> </span><span class="identifier">app</span><span> = </span><span class="type-name">SignallingRef</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">String</span><span>](</span><span class="string-literal">&quot;world&quot;</span><span>).</span><span class="identifier">toResource</span><span>.</span><span class="identifier">flatMap</span><span> { </span><span class="identifier">nameRef</span><span> =&gt;
-  </span><span class="identifier">div</span><span>(
-    </span><span class="identifier">label</span><span>(</span><span class="string-literal">&quot;Your name: &quot;</span><span>),
-    </span><span class="identifier">input</span><span>(
-      </span><span class="identifier">placeholder</span><span> := </span><span class="string-literal">&quot;Enter your name here&quot;</span><span>,
-      </span><span class="identifier">onInput</span><span> --&gt; (</span><span class="identifier">_</span><span>.</span><span class="identifier">mapToValue</span><span>.</span><span class="identifier">foreach</span><span>(</span><span class="identifier">nameRef</span><span>.</span><span class="identifier">set</span><span>))
-    ),
-    </span><span class="identifier">span</span><span>(
-      </span><span class="string-literal">&quot;Hello, &quot;</span><span>,
-      </span><span class="identifier">nameRef</span><span>.</span><span class="identifier">discrete</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">toUpperCase</span><span>).</span><span class="identifier">renderable</span><span>
-    )
-  )
-}
+</span><span class="keyword">def</span><span> </span><span class="declaration-name">Counter</span><span>(</span><span class="identifier">label</span><span>: </span><span class="type-name">String</span><span>, </span><span class="identifier">initialStep</span><span>: </span><span class="type-name">Int</span><span>) =
+  </span><span class="type-name">SignallingRef</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">Int</span><span>](</span><span class="identifier">initialStep</span><span>).</span><span class="identifier">product</span><span>(</span><span class="type-name">Channel</span><span>.</span><span class="identifier">unbounded</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">Int</span><span>])
+    .</span><span class="identifier">toResource</span><span>.</span><span class="identifier">flatMap</span><span> { (</span><span class="identifier">stepRef</span><span>, </span><span class="identifier">diffCh</span><span>) =&gt;
+
+      </span><span class="keyword">val</span><span> </span><span class="identifier">allowedSteps</span><span> = </span><span class="type-name">List</span><span>(</span><span class="number-literal">1</span><span>, </span><span class="number-literal">2</span><span>, </span><span class="number-literal">3</span><span>, </span><span class="number-literal">5</span><span>, </span><span class="number-literal">10</span><span>)
+
+      </span><span class="identifier">div</span><span>(
+        </span><span class="identifier">p</span><span>(
+          </span><span class="string-literal">&quot;Step: &quot;</span><span>,
+          </span><span class="identifier">select</span><span>(
+            </span><span class="identifier">value</span><span> &lt;-- </span><span class="identifier">stepRef</span><span>.</span><span class="identifier">discrete</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">toString</span><span>).</span><span class="identifier">renderable</span><span>,
+            </span><span class="identifier">onChange</span><span> --&gt; (</span><span class="identifier">_</span><span>.</span><span class="identifier">mapToValue</span><span>.</span><span class="identifier">evalMap</span><span>(</span><span class="identifier">i</span><span> =&gt; </span><span class="type-name">IO</span><span>(</span><span class="identifier">i</span><span>.</span><span class="identifier">toInt</span><span>)).</span><span class="identifier">foreach</span><span>(</span><span class="identifier">stepRef</span><span>.</span><span class="identifier">set</span><span>)),
+            </span><span class="identifier">allowedSteps</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">step</span><span> =&gt; </span><span class="identifier">option</span><span>(</span><span class="identifier">value</span><span> := </span><span class="identifier">step</span><span>.</span><span class="identifier">toString</span><span>, </span><span class="identifier">step</span><span>.</span><span class="identifier">toString</span><span>))
+          )
+        ),
+        </span><span class="identifier">p</span><span>(
+          </span><span class="identifier">label</span><span> + </span><span class="string-literal">&quot;: &quot;</span><span>,
+          </span><span class="identifier">b</span><span>(</span><span class="identifier">diffCh</span><span>.</span><span class="identifier">stream</span><span>.</span><span class="identifier">scanMonoid</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">toString</span><span>).</span><span class="identifier">renderable</span><span>),
+          </span><span class="string-literal">&quot; &quot;</span><span>,
+          </span><span class="identifier">button</span><span>(
+            </span><span class="string-literal">&quot;-&quot;</span><span>,
+            </span><span class="identifier">onClick</span><span> --&gt; {
+              </span><span class="identifier">_</span><span>.</span><span class="identifier">evalMap</span><span>(</span><span class="identifier">_</span><span> =&gt; </span><span class="identifier">stepRef</span><span>.</span><span class="identifier">get</span><span>).</span><span class="identifier">map</span><span>(-</span><span class="number-literal">1</span><span> * </span><span class="identifier">_</span><span>).</span><span class="identifier">foreach</span><span>(</span><span class="identifier">diffCh</span><span>.</span><span class="identifier">send</span><span>(</span><span class="identifier">_</span><span>).</span><span class="identifier">void</span><span>)
+            }
+          ),
+          </span><span class="identifier">button</span><span>(
+            </span><span class="string-literal">&quot;+&quot;</span><span>,
+            </span><span class="identifier">onClick</span><span> --&gt; (</span><span class="identifier">_</span><span>.</span><span class="identifier">evalMap</span><span>(</span><span class="identifier">_</span><span> =&gt; </span><span class="identifier">stepRef</span><span>.</span><span class="identifier">get</span><span>).</span><span class="identifier">foreach</span><span>(</span><span class="identifier">diffCh</span><span>.</span><span class="identifier">send</span><span>(</span><span class="identifier">_</span><span>).</span><span class="identifier">void</span><span>))
+          )
+        )
+      )
+  }
+
+</span><span class="keyword">val</span><span> </span><span class="identifier">app</span><span> = </span><span class="identifier">div</span><span>(
+  </span><span class="identifier">h1</span><span>(</span><span class="string-literal">&quot;Let&#39;s count!&quot;</span><span>),
+  </span><span class="type-name">Counter</span><span>(</span><span class="string-literal">&quot;Sheep&quot;</span><span>, </span><span class="identifier">initialStep</span><span> = </span><span class="number-literal">3</span><span>)
+)
 
 </span><span class="identifier">app</span><span>.</span><span class="identifier">renderInto</span><span>(</span><span class="identifier">node</span><span>).</span><span class="identifier">allocated</span><span>.</span><span class="identifier">unsafeRunAndForget</span><span>()</span></code></pre>
         <div id="mdoc-html-run0" data-mdoc-js></div>
-        <p><script type="text/javascript" src="hello-world.md.js" defer></script>
+        <p><script type="text/javascript" src="counter.md.js" defer></script>
         <script type="text/javascript" src="mdoc.js" defer></script></p>
 
         <hr style="margin-top: 30px"/>
