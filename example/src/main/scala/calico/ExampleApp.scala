@@ -17,6 +17,13 @@
 package calico
 
 import calico.dsl.io.*
+import cats.effect.IO
+import fs2.Stream
+
+import scala.concurrent.duration.*
 
 object Example extends IOWebApp:
-  def render = div(children := List(p("hello")))
+  def render = helloBye.flatMap { helloBye => div(children := List(p(helloBye))) }
+
+  def helloBye =
+    Stream("hello", "bye").repeat.chunkLimit(1).unchunks.debounce[IO](1.second).renderable

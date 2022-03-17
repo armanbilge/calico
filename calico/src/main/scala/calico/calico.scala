@@ -16,13 +16,29 @@
 
 package calico
 
-import org.scalajs.dom
+import cats.effect.kernel.Async
 import cats.effect.kernel.Resource
 import cats.effect.kernel.Sync
+import cats.effect.syntax.all.*
 import cats.syntax.all.*
+import fs2.Stream
+import fs2.concurrent.Channel
+import org.scalajs.dom
 
 extension [F[_]](component: Resource[F, dom.HTMLElement])
   def renderInto(root: dom.Element)(using F: Sync[F]): Resource[F, Unit] =
     component.flatMap { e =>
       Resource.make(F.delay(root.appendChild(e)))(_ => F.delay(root.removeChild(e))).void
     }
+
+extension [F[_]: Async, A](stream: Stream[F, A])
+  def renderable: Resource[F, Stream[Rx[F, *], A]] =
+    for
+      ch <- Channel.synchronous[Rx[F, *], A].render.toResource
+      _ <- stream
+        .foreach(ch.send(_).void.render)
+        .onFinalize(ch.close.void.render)
+        .compile
+        .drain
+        .background
+    yield ch.stream

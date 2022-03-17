@@ -73,12 +73,17 @@ trait HtmlBuilders[F[_]](using F: Async[F])
 
 type HtmlTagT[F[_]] = [E <: dom.HTMLElement] =>> HtmlTag[F, E]
 final class HtmlTag[F[_], E <: dom.HTMLElement] private[calico] (name: String, void: Boolean)(
-    using F: Sync[F]):
+    using F: Async[F]):
   def apply[EE >: E](modifiers: Modifier[F, EE]*): Resource[F, E] =
     build.toResource.flatTap { e => modifiers.traverse_(_.modify(e)) }
 
   def apply(text: String): Resource[F, E] =
-    build.flatTap(e => F.delay(e.innerText = text)).toResource
+    apply(Stream.emit(text))
+
+  def apply(text: Stream[Rx[F, *], String]): Resource[F, E] =
+    build.toResource.flatTap { e =>
+      text.foreach(t => Rx(e.innerText = t)).compile.drain.background.mapK(Rx.renderK)
+    }
 
   private def build = F.delay(dom.document.createElement(name).asInstanceOf[E])
 
