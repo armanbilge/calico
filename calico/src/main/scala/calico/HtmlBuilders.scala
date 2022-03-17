@@ -99,9 +99,8 @@ final class HtmlAttr[F[_]: Async, V] private[calico] (key: String, codec: Codec[
   def <--(vs: Stream[Rx[F, *], V]): Modifier[F, dom.HTMLElement] =
     new:
       def modify(e: dom.HTMLElement) =
-        vs.foreach { v =>
-          Rx(e.setAttribute(key, codec.encode(v)))
-        }.compile
+        vs.foreach { v => Rx(e.setAttribute(key, codec.encode(v))) }
+          .compile
           .drain
           .background
           .void

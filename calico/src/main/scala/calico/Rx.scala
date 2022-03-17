@@ -37,7 +37,6 @@ object Rx extends RxLowPriority0:
       def apply[A](rxa: Rx[F, A]): F[A] = render(rxa)
 
   given [F[_], E](using F: GenConcurrent[F, E]): GenConcurrent[Rx[F, *], E] = F
-  
 
 private sealed class RxLowPriority0:
   given [F[_]](using F: Sync[F]): Sync[Rx[F, *]] = F.asInstanceOf[Sync[Rx[F, *]]]
