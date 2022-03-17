@@ -17,6 +17,8 @@
 package calico
 package dsl
 
+import cats.Foldable
+import cats.Monad
 import cats.effect.IO
 import cats.effect.kernel.Async
 import cats.effect.kernel.Resource
@@ -31,6 +33,7 @@ import com.raquo.domtypes.generic.builders.PropBuilder
 import com.raquo.domtypes.generic.builders.ReflectedHtmlAttrBuilder
 import com.raquo.domtypes.generic.codecs.Codec
 import com.raquo.domtypes.generic.defs.attrs.*
+import com.raquo.domtypes.generic.defs.props.*
 import com.raquo.domtypes.generic.defs.reflectedAttrs.*
 import com.raquo.domtypes.jsdom.defs.eventProps.*
 import com.raquo.domtypes.jsdom.defs.tags.*
@@ -58,6 +61,7 @@ trait Dsl[F[_]]
       MiscTags[HtmlTagT[F]],
       HtmlAttrs[HtmlAttr[F, _]],
       ReflectedHtmlAttrs[Prop[F, _, _]],
+      Props[Prop[F, _, _]],
       ClipboardEventProps[EventProp[F, _]],
       ErrorEventProps[EventProp[F, _]],
       FormEventProps[EventProp[F, _]],
@@ -135,6 +139,10 @@ object Modifier:
       using M: Modifier[F, E, A]): Modifier[F, E, Resource[F, A]] with
     def modify(a: Resource[F, A], e: E) = a.flatMap(M.modify(_, e))
 
+  given forFoldable[F[_]: Monad, E <: dom.Element, G[_]: Foldable, A](
+      using M: Modifier[F, E, A]): Modifier[F, E, G[A]] with
+    def modify(ga: G[A], e: E) = ga.foldMapM(M.modify(_, e)).void
+
   given forElement[F[_], E <: dom.Element, E2 <: dom.Element](
       using F: Sync[F]): Modifier[F, E, Resource[F, E2]] with
     def modify(e2: Resource[F, E2], e: E) =
@@ -145,55 +153,60 @@ final class HtmlAttr[F[_], V] private[calico] (key: String, codec: Codec[V, Stri
     this <-- Stream.emit(v)
 
   def <--(vs: Stream[Rx[F, *], V]): HtmlAttr.Modified[F, V] =
+    this <-- Resource.pure(vs)
+
+  def <--(vs: Resource[F, Stream[Rx[F, *], V]]): HtmlAttr.Modified[F, V] =
     HtmlAttr.Modified(key, codec, vs)
 
 object HtmlAttr:
   final class Modified[F[_], V] private[HtmlAttr] (
       val key: String,
       val codec: Codec[V, String],
-      val values: Stream[Rx[F, *], V]
+      val values: Resource[F, Stream[Rx[F, *], V]]
   )
 
   given [F[_]: Async, E <: dom.Element, V]: Modifier[F, E, Modified[F, V]] with
     def modify(attr: Modified[F, V], e: E) =
-      attr
-        .values
-        .foreach(v => Rx(e.setAttribute(attr.key, attr.codec.encode(v))))
-        .compile
-        .drain
-        .background
-        .void
-        .mapK(Rx.renderK)
+      attr.values.flatMap { vs =>
+        vs.foreach(v => Rx(e.setAttribute(attr.key, attr.codec.encode(v))))
+          .compile
+          .drain
+          .background
+          .void
+          .mapK(Rx.renderK)
+      }
 
 final class Prop[F[_], V, J] private[calico] (name: String, codec: Codec[V, J]):
   def :=(v: V): Prop.Modified[F, V, J] =
     this <-- Stream.emit(v)
 
   def <--(vs: Stream[Rx[F, *], V]): Prop.Modified[F, V, J] =
+    this <-- Resource.pure(vs)
+
+  def <--(vs: Resource[F, Stream[Rx[F, *], V]]): Prop.Modified[F, V, J] =
     Prop.Modified(name, codec, vs)
 
 object Prop:
   final class Modified[F[_], V, J] private[Prop] (
       val name: String,
       val codec: Codec[V, J],
-      val values: Stream[Rx[F, *], V]
+      val values: Resource[F, Stream[Rx[F, *], V]]
   )
 
   given [F[_]: Async, E <: dom.Element, V, J]: Modifier[F, E, Modified[F, V, J]] with
     def modify(prop: Modified[F, V, J], e: E) =
-      prop
-        .values
-        .foreach { v =>
+      prop.values.flatMap { vs =>
+        vs.foreach { v =>
           Rx {
             e.asInstanceOf[js.Dynamic]
               .updateDynamic(prop.name)(prop.codec.encode(v).asInstanceOf[js.Any])
           }
-        }
-        .compile
-        .drain
-        .background
-        .void
-        .mapK(Rx.renderK)
+        }.compile
+          .drain
+          .background
+          .void
+          .mapK(Rx.renderK)
+      }
 
 final class EventProp[F[_], E] private[calico] (key: String):
   def -->(sink: Pipe[F, E, INothing]): EventProp.Modified[F, E] = EventProp.Modified(key, sink)

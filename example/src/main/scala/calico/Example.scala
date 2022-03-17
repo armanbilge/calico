@@ -20,21 +20,46 @@ import calico.dsl.io.*
 import calico.syntax.*
 import cats.effect.*
 import cats.effect.syntax.all.*
+import cats.syntax.all.*
 import fs2.*
 import fs2.concurrent.*
 import org.scalajs.dom.*
 
 object Example extends IOWebApp:
-  def render = SignallingRef[IO, String]("world").toResource.flatMap { nameRef =>
-    div(
-      label("Your name: "),
-      input(
-        placeholder := "Enter your name here",
-        onInput --> (_.mapToValue.foreach(nameRef.set))
-      ),
-      span(
-        "Hello, ",
-        nameRef.discrete.map(_.toUpperCase).renderable
-      )
-    )
-  }
+  def render = div(
+    h1("Let's count!"),
+    Counter("Sheep", initialStep = 3)
+  )
+
+  def Counter(label: String, initialStep: Int) =
+    SignallingRef[IO, Int](initialStep).product(Channel.unbounded[IO, Int]).toResource.flatMap {
+      (stepRef, diffCh) =>
+
+        val allowedSteps = List(1, 2, 3, 5, 10)
+
+        div(
+          p(
+            "Step: ",
+            select(
+              value <-- stepRef.discrete.map(_.toString).renderable,
+              onChange --> (_.mapToValue.evalMap(i => IO(i.toInt)).foreach(stepRef.set)),
+              allowedSteps.map(step => option(value := step.toString, step.toString))
+            )
+          ),
+          p(
+            label + ": ",
+            b(diffCh.stream.scanMonoid.map(_.toString).renderable),
+            " ",
+            button(
+              "-",
+              onClick --> {
+                _.evalMap(_ => stepRef.get).map(-1 * _).foreach(diffCh.send(_).void)
+              }
+            ),
+            button(
+              "+",
+              onClick --> (_.evalMap(_ => stepRef.get).foreach(diffCh.send(_).void))
+            )
+          )
+        )
+    }
