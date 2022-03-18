@@ -34,6 +34,9 @@ extension [F[_]](component: Resource[F, dom.HTMLElement])
       Resource.make(F.delay(root.appendChild(e)))(_ => F.delay(root.removeChild(e))).void
     }
 
+extension [F[_]: Async, A](resource: Resource[Rx[F, *], A])
+  def render: Resource[F, A] = resource.mapK(Rx.renderK)
+
 extension [F[_]: Async, A](stream: Stream[F, A])
   def renderable: Resource[F, Stream[Rx[F, *], A]] =
     for

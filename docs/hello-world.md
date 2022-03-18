@@ -1,6 +1,7 @@
 # Hello World
 
 ```scala mdoc:js
+import calico.*
 import calico.dsl.io.*
 import calico.syntax.*
 import cats.effect.*

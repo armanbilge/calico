@@ -19,47 +19,32 @@ package calico
 import calico.dsl.io.*
 import calico.syntax.*
 import cats.effect.*
+import cats.effect.std.Random
 import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import fs2.*
 import fs2.concurrent.*
-import org.scalajs.dom.*
+
+import scala.concurrent.duration.*
 
 object Example extends IOWebApp:
-  def render = div(
-    h1("Let's count!"),
-    Counter("Sheep", initialStep = 3)
-  )
-
-  def Counter(label: String, initialStep: Int) =
-    SignallingRef[IO, Int](initialStep).product(Channel.unbounded[IO, Int]).toResource.flatMap {
-      (stepRef, diffCh) =>
-
-        val allowedSteps = List(1, 2, 3, 5, 10)
-
+  def render = Stream.fixedRate[IO](1.second).void.renderable.flatMap { tick =>
+    Topic[Rx[IO, *], Unit]
+      .toResource
+      .flatTap(topic => tick.through(topic.publish).compile.drain.background)
+      .render
+      .flatMap { tick =>
         div(
-          p(
-            "Step: ",
-            select(
-              value <-- stepRef.discrete.map(_.toString).renderable,
-              onChange --> (_.mapToValue.evalMap(i => IO(i.toInt)).foreach(stepRef.set)),
-              allowedSteps.map(step => option(value := step.toString, step.toString))
-            )
+          div(
+            "Tick #: ",
+            tick.subscribe(0).as(1).scanMonoid.map(_.toString)
           ),
-          p(
-            label + ": ",
-            b(diffCh.stream.scanMonoid.map(_.toString).renderable),
-            " ",
-            button(
-              "-",
-              onClick --> {
-                _.evalMap(_ => stepRef.get).map(-1 * _).foreach(diffCh.send(_).void)
-              }
-            ),
-            button(
-              "+",
-              onClick --> (_.evalMap(_ => stepRef.get).foreach(diffCh.send(_).void))
-            )
+          div(
+            "Random #: ",
+            Stream.eval(Random.scalaUtilRandom[Rx[IO, _]]).flatMap { random =>
+              tick.subscribe(0).evalMap(_ => random.nextInt).map(_ % 100).map(_.toString)
+            }
           )
         )
-    }
+      }
+  }
