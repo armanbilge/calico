@@ -17,7 +17,7 @@ import fs2.concurrent.*
 import scala.concurrent.duration.*
 
 val app = Stream.fixedRate[IO](1.second).void.renderable.flatMap { tick =>
-  Topic[Rx[IO, *], Unit]
+  Topic[Rx[IO, _], Unit]
     .toResource
     .flatTap(topic => tick.through(topic.publish).compile.drain.background)
     .render
