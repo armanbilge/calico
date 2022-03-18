@@ -86,6 +86,7 @@
         
         <ul class="nav-list">
           <li class="level1"><a href="#basic-interval-stream">Basic Interval Stream</a></li>
+          <li class="level1"><a href="#delay">Delay</a></li>
         </ul>
         
         <p class="footer"></p>
@@ -132,6 +133,33 @@
 
 </span><span class="identifier">app</span><span>.</span><span class="identifier">renderInto</span><span>(</span><span class="identifier">node</span><span>).</span><span class="identifier">allocated</span><span>.</span><span class="identifier">unsafeRunAndForget</span><span>()</span></code></pre>
         <div id="mdoc-html-run0" data-mdoc-js></div>
+        
+        <h2 id="delay" class="section">Delay<a class="anchor-link right" href="#delay"><i class="icofont-laika">&#xef71;</i></a></h2>
+        <pre><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.*
+</span><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.</span><span class="identifier">dsl</span><span>.</span><span class="identifier">io</span><span>.*
+</span><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.</span><span class="identifier">syntax</span><span>.*
+</span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.*
+</span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.</span><span class="identifier">std</span><span>.</span><span class="type-name">Random</span><span>
+</span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.</span><span class="identifier">syntax</span><span>.</span><span class="identifier">all</span><span>.*
+</span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.</span><span class="identifier">unsafe</span><span>.</span><span class="identifier">implicits</span><span>.*
+</span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">syntax</span><span>.</span><span class="identifier">all</span><span>.*
+</span><span class="keyword">import</span><span> </span><span class="identifier">fs2</span><span>.*
+</span><span class="keyword">import</span><span> </span><span class="identifier">fs2</span><span>.</span><span class="identifier">concurrent</span><span>.*
+
+</span><span class="keyword">import</span><span> </span><span class="identifier">scala</span><span>.</span><span class="identifier">concurrent</span><span>.</span><span class="identifier">duration</span><span>.*
+
+</span><span class="keyword">val</span><span> </span><span class="identifier">app</span><span> = </span><span class="type-name">Channel</span><span>.</span><span class="identifier">unbounded</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">Unit</span><span>].</span><span class="identifier">toResource</span><span>.</span><span class="identifier">flatMap</span><span> { </span><span class="identifier">clickCh</span><span> =&gt;
+  </span><span class="keyword">val</span><span> </span><span class="identifier">alert</span><span> = </span><span class="identifier">clickCh</span><span>.</span><span class="identifier">stream</span><span> &gt;&gt;
+    (</span><span class="type-name">Stream</span><span>.</span><span class="identifier">emit</span><span>(</span><span class="string-literal">&quot;Just clicked!&quot;</span><span>) ++ </span><span class="type-name">Stream</span><span>.</span><span class="identifier">sleep_</span><span>[</span><span class="type-name">IO</span><span>](</span><span class="number-literal">500</span><span>.</span><span class="identifier">millis</span><span>) ++ </span><span class="type-name">Stream</span><span>.</span><span class="identifier">emit</span><span>(</span><span class="string-literal">&quot;&quot;</span><span>))
+
+  </span><span class="identifier">div</span><span>(
+    </span><span class="identifier">button</span><span>(</span><span class="identifier">onClick</span><span> --&gt; (</span><span class="identifier">_</span><span>.</span><span class="identifier">void</span><span>.</span><span class="identifier">through</span><span>(</span><span class="identifier">clickCh</span><span>.</span><span class="identifier">sendAll</span><span>)), </span><span class="string-literal">&quot;Click me&quot;</span><span>),
+    </span><span class="identifier">alert</span><span>.</span><span class="identifier">renderable</span><span>
+  )
+}
+
+</span><span class="identifier">app</span><span>.</span><span class="identifier">renderInto</span><span>(</span><span class="identifier">node</span><span>).</span><span class="identifier">allocated</span><span>.</span><span class="identifier">unsafeRunAndForget</span><span>()</span></code></pre>
+        <div id="mdoc-html-run1" data-mdoc-js></div>
         <p><script type="text/javascript" src="time.md.js" defer></script>
         <script type="text/javascript" src="mdoc.js" defer></script></p>
 
