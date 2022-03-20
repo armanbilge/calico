@@ -51,8 +51,4 @@ extension [F[_]: Async, A](stream: Stream[F, A])
 
 extension [F[_]](events: Stream[F, dom.Event])
   def mapToValue: Stream[F, String] =
-    events.flatMap { ev =>
-      Stream.fromOption(
-        ev.target.asInstanceOf[js.Dynamic].value.asInstanceOf[js.UndefOr[String]].toOption
-      )
-    }
+    events.map(_.target).collect { case input: dom.HTMLInputElement => input.value }
