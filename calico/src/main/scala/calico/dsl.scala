@@ -33,6 +33,7 @@ import com.raquo.domtypes.generic.builders.PropBuilder
 import com.raquo.domtypes.generic.builders.ReflectedHtmlAttrBuilder
 import com.raquo.domtypes.generic.codecs.Codec
 import com.raquo.domtypes.generic.defs.attrs.*
+import com.raquo.domtypes.generic.defs.complex.*
 import com.raquo.domtypes.generic.defs.props.*
 import com.raquo.domtypes.generic.defs.reflectedAttrs.*
 import com.raquo.domtypes.jsdom.defs.eventProps.*
@@ -96,6 +97,8 @@ trait HtmlBuilders[F[_]](using F: Async[F])
 
   def eventProp[V <: dom.Event](key: String): EventProp[F, V] =
     EventProp(key)
+
+  def cls: ClassAttr[F] = ???
 
 type HtmlTagT[F[_]] = [E <: dom.HTMLElement] =>> HtmlTag[F, E]
 final class HtmlTag[F[_], E <: dom.HTMLElement] private[calico] (name: String, void: Boolean)(
@@ -176,7 +179,7 @@ object HtmlAttr:
           .mapK(Rx.renderK)
       }
 
-final class Prop[F[_], V, J] private[calico] (name: String, codec: Codec[V, J]):
+sealed class Prop[F[_], V, J] private[calico] (name: String, codec: Codec[V, J]):
   def :=(v: V): Prop.Modified[F, V, J] =
     this <-- Stream.emit(v)
 
@@ -233,3 +236,11 @@ object EventProp:
       } { c => F.delay(c.abort()) }
       _ <- ch.stream.through(prop.sink).compile.drain.background
     yield ()
+
+final class ClassAttr[F[_]] private[calico]
+    extends Prop[F, List[String], String](
+      "className",
+      new:
+        def decode(domValue: String) = domValue.split(" ").toList
+        def encode(scalaValue: List[String]) = scalaValue.mkString(" ")
+    )
