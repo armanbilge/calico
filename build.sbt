@@ -10,6 +10,7 @@ ThisBuild / tlSonatypeUseLegacyHost := false
 ThisBuild / tlUntaggedAreSnapshots := false
 
 ThisBuild / crossScalaVersions := Seq("3.1.1")
+ThisBuild / scalacOptions ++= Seq("-new-syntax", "-indent", "-source:future")
 
 lazy val root = tlCrossRootProject.aggregate(calico, example)
 
