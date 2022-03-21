@@ -50,6 +50,7 @@ lazy val docs = project
     },
     tlSiteRelatedProjects ++= Seq(
       TypelevelProject.CatsEffect,
-      TypelevelProject.Fs2
+      TypelevelProject.Fs2,
+      "http4s-dom" -> url("https://http4s.github.io/http4s-dom/")
     )
   )
