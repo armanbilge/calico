@@ -34,13 +34,13 @@ extension [F[_]](component: Resource[F, dom.HTMLElement])
       Resource.make(F.delay(root.appendChild(e)))(_ => F.delay(root.removeChild(e))).void
     }
 
-extension [F[_]: Async, A](resource: Resource[Rx[F, *], A])
+extension [F[_]: Async, A](resource: Resource[Rx[F, _], A])
   def render: Resource[F, A] = resource.mapK(Rx.renderK)
 
 extension [F[_]: Async, A](stream: Stream[F, A])
-  def renderable: Resource[F, Stream[Rx[F, *], A]] =
+  def renderable: Resource[F, Stream[Rx[F, _], A]] =
     for
-      ch <- Channel.synchronous[Rx[F, *], A].render.toResource
+      ch <- Channel.synchronous[Rx[F, _], A].render.toResource
       _ <- stream
         .foreach(ch.send(_).void.render)
         .onFinalize(ch.close.void.render)

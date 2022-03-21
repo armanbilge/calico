@@ -105,7 +105,7 @@ final class HtmlTag[F[_], E <: dom.HTMLElement] private[calico] (name: String, v
     apply(Tuple1(modifier))
 
   def apply[M <: Tuple](modifiers: M)(
-      using inst: K0.ProductInstances[Modifier[F, E, *], M]): Resource[F, E] =
+      using inst: K0.ProductInstances[Modifier[F, E, _], M]): Resource[F, E] =
     inst.foldLeft(modifiers)(build.toResource) {
       [a] => (r: Resource[F, E], m: Modifier[F, E, a], a: a) => r.flatTap(m.modify(a, _))
     }
@@ -126,8 +126,8 @@ object Modifier:
     forStringStream.contramap(Stream.emit(_))
 
   given forStringStream[F[_], E <: dom.Element](
-      using F: Async[F]): Modifier[F, E, Stream[Rx[F, *], String]] with
-    def modify(s: Stream[Rx[F, *], String], e: E) = for
+      using F: Async[F]): Modifier[F, E, Stream[Rx[F, _], String]] with
+    def modify(s: Stream[Rx[F, _], String], e: E) = for
       n <- F
         .delay(dom.document.createTextNode(""))
         .flatTap(n => F.delay(e.appendChild(n)))
@@ -152,17 +152,17 @@ final class HtmlAttr[F[_], V] private[calico] (key: String, codec: Codec[V, Stri
   def :=(v: V): HtmlAttr.Modified[F, V] =
     this <-- Stream.emit(v)
 
-  def <--(vs: Stream[Rx[F, *], V]): HtmlAttr.Modified[F, V] =
+  def <--(vs: Stream[Rx[F, _], V]): HtmlAttr.Modified[F, V] =
     this <-- Resource.pure(vs)
 
-  def <--(vs: Resource[F, Stream[Rx[F, *], V]]): HtmlAttr.Modified[F, V] =
+  def <--(vs: Resource[F, Stream[Rx[F, _], V]]): HtmlAttr.Modified[F, V] =
     HtmlAttr.Modified(key, codec, vs)
 
 object HtmlAttr:
   final class Modified[F[_], V] private[HtmlAttr] (
       val key: String,
       val codec: Codec[V, String],
-      val values: Resource[F, Stream[Rx[F, *], V]]
+      val values: Resource[F, Stream[Rx[F, _], V]]
   )
 
   given [F[_]: Async, E <: dom.Element, V]: Modifier[F, E, Modified[F, V]] with
@@ -180,17 +180,17 @@ final class Prop[F[_], V, J] private[calico] (name: String, codec: Codec[V, J]):
   def :=(v: V): Prop.Modified[F, V, J] =
     this <-- Stream.emit(v)
 
-  def <--(vs: Stream[Rx[F, *], V]): Prop.Modified[F, V, J] =
+  def <--(vs: Stream[Rx[F, _], V]): Prop.Modified[F, V, J] =
     this <-- Resource.pure(vs)
 
-  def <--(vs: Resource[F, Stream[Rx[F, *], V]]): Prop.Modified[F, V, J] =
+  def <--(vs: Resource[F, Stream[Rx[F, _], V]]): Prop.Modified[F, V, J] =
     Prop.Modified(name, codec, vs)
 
 object Prop:
   final class Modified[F[_], V, J] private[Prop] (
       val name: String,
       val codec: Codec[V, J],
-      val values: Resource[F, Stream[Rx[F, *], V]]
+      val values: Resource[F, Stream[Rx[F, _], V]]
   )
 
   given [F[_]: Async, E <: dom.Element, V, J]: Modifier[F, E, Modified[F, V, J]] with

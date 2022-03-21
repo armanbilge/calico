@@ -32,11 +32,11 @@ object Rx extends RxLowPriority0:
   def apply[F[_]: Sync, A](thunk: => A): Rx[F, A] = delay(thunk)
   def delay[F[_], A](thunk: => A)(using F: Sync[F]): Rx[F, A] = F.delay(thunk)
 
-  def renderK[F[_]: Async]: Rx[F, *] ~> F =
+  def renderK[F[_]: Async]: Rx[F, _] ~> F =
     new:
       def apply[A](rxa: Rx[F, A]): F[A] = render(rxa)
 
-  given [F[_], E](using F: GenConcurrent[F, E]): GenConcurrent[Rx[F, *], E] = F
+  given [F[_], E](using F: GenConcurrent[F, E]): GenConcurrent[Rx[F, _], E] = F
 
 private sealed class RxLowPriority0:
-  given [F[_]](using F: Sync[F]): Sync[Rx[F, *]] = F.asInstanceOf[Sync[Rx[F, *]]]
+  given [F[_]](using F: Sync[F]): Sync[Rx[F, _]] = F.asInstanceOf[Sync[Rx[F, _]]]
