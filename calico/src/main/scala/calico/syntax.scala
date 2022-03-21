@@ -24,6 +24,7 @@ import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import fs2.Stream
 import fs2.concurrent.Channel
+import fs2.concurrent.Topic
 import org.scalajs.dom
 
 import scala.scalajs.js
@@ -34,11 +35,11 @@ extension [F[_]](component: Resource[F, dom.HTMLElement])
       Resource.make(F.delay(root.appendChild(e)))(_ => F.delay(root.removeChild(e))).void
     }
 
-extension [F[_]: Async, A](resource: Resource[Rx[F, _], A])
-  def render: Resource[F, A] = resource.mapK(Rx.renderK)
+extension [F[_], A](resource: Resource[Rx[F, _], A])
+  def render(using Async[F]): Resource[F, A] = resource.mapK(Rx.renderK)
 
-extension [F[_]: Async, A](stream: Stream[F, A])
-  def renderable: Resource[F, Stream[Rx[F, _], A]] =
+extension [F[_], A](stream: Stream[F, A])
+  def renderable(using Async[F]): Resource[F, Stream[Rx[F, _], A]] =
     for
       ch <- Channel.synchronous[Rx[F, _], A].render.toResource
       _ <- stream
@@ -48,6 +49,11 @@ extension [F[_]: Async, A](stream: Stream[F, A])
         .drain
         .background
     yield ch.stream
+
+  def renderableTopic(using Async[F]): Resource[F, Topic[Rx[F, _], A]] =
+    renderable.flatMap { stream =>
+      Topic[Rx[F, _], A].toResource.flatTap(_.publish(stream).compile.drain.background).render
+    }
 
 extension [F[_]](events: Stream[F, dom.Event])
   def mapToValue: Stream[F, String] =

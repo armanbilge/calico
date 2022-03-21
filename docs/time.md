@@ -89,21 +89,25 @@ def validateEmail(email: String): Either[String, Unit] =
   else Right(())
 
 val app = Channel.unbounded[IO, String].toResource.flatMap { emailCh =>
-  div(
-    span(
-      label("Your email: "),
-      input(onInput --> (_.mapToValue.through(emailCh.sendAll)))
-    ),
-    emailCh
-      .stream
-      .debounce(1.second)
-      .map(validateEmail)
-      .map {
-        case Left(err) => s"Error: $err"
-        case Right(()) => "Email ok!"
-      }
-      .renderable
-  )
+  val validated = emailCh.stream.debounce(1.second).map(validateEmail)
+  validated.renderableTopic.flatMap { validatedTop =>
+    div(
+      span(
+        label("Your email: "),
+        input(onInput --> (_.mapToValue.through(emailCh.sendAll)))
+      ),
+      span(
+        cls <-- validatedTop.subscribe(0).map {
+          case Left(_) => List("-error")
+          case Right(_) => List("-success")
+        },
+        validatedTop.subscribe(0).map {
+          case Left(err) => s"Error: $err"
+          case Right(()) => "Email ok!"
+        }
+      )
+    )
+  }
 }
 
 app.renderInto(node).allocated.unsafeRunAndForget()

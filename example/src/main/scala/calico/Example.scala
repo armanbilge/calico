@@ -34,19 +34,17 @@ object Example extends IOWebApp:
     else Right(())
 
   def render = Channel.unbounded[IO, String].toResource.flatMap { emailCh =>
-    div(
-      span(
-        label("Your email: "),
-        input(onInput --> (_.mapToValue.through(emailCh.sendAll)))
-      ),
-      emailCh
-        .stream
-        .debounce(1.second)
-        .map(validateEmail)
-        .map {
+    emailCh.stream.debounce(1.second).map(validateEmail).renderableTopic.flatMap { validated =>
+      div(
+        cls <-- validated.subscribe(0).map(_.fold(_ => List("inline", "error"), _ => Nil)),
+        span(
+          label("Your email: "),
+          input(onInput --> (_.mapToValue.through(emailCh.sendAll)))
+        ),
+        validated.subscribe(0).map {
           case Left(err) => s"Error: $err"
           case Right(()) => "Email ok!"
         }
-        .renderable
-    )
+      )
+    }
   }

@@ -98,7 +98,7 @@ trait HtmlBuilders[F[_]](using F: Async[F])
   def eventProp[V <: dom.Event](key: String): EventProp[F, V] =
     EventProp(key)
 
-  def cls: ClassAttr[F] = ???
+  def cls: ClassAttr[F] = ClassAttr[F]
 
 type HtmlTagT[F[_]] = [E <: dom.HTMLElement] =>> HtmlTag[F, E]
 final class HtmlTag[F[_], E <: dom.HTMLElement] private[calico] (name: String, void: Boolean)(
