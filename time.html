@@ -22,6 +22,7 @@
     
     <link rel="stylesheet" type="text/css" href="helium/icofont.min.css" />
     <link rel="stylesheet" type="text/css" href="helium/laika-helium.css" />
+    <link rel="stylesheet" type="text/css" href="site/mdoc.css" />
     <link rel="stylesheet" type="text/css" href="site/styles.css" />
     <script src="helium/laika-helium.js"></script>
     
@@ -180,21 +181,25 @@
   </span><span class="keyword">else</span><span> </span><span class="type-name">Right</span><span>(())
 
 </span><span class="keyword">val</span><span> </span><span class="identifier">app</span><span> = </span><span class="type-name">Channel</span><span>.</span><span class="identifier">unbounded</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">String</span><span>].</span><span class="identifier">toResource</span><span>.</span><span class="identifier">flatMap</span><span> { </span><span class="identifier">emailCh</span><span> =&gt;
-  </span><span class="identifier">div</span><span>(
-    </span><span class="identifier">span</span><span>(
-      </span><span class="identifier">label</span><span>(</span><span class="string-literal">&quot;Your email: &quot;</span><span>),
-      </span><span class="identifier">input</span><span>(</span><span class="identifier">onInput</span><span> --&gt; (</span><span class="identifier">_</span><span>.</span><span class="identifier">mapToValue</span><span>.</span><span class="identifier">through</span><span>(</span><span class="identifier">emailCh</span><span>.</span><span class="identifier">sendAll</span><span>)))
-    ),
-    </span><span class="identifier">emailCh</span><span>
-      .</span><span class="identifier">stream</span><span>
-      .</span><span class="identifier">debounce</span><span>(</span><span class="number-literal">1</span><span>.</span><span class="identifier">second</span><span>)
-      .</span><span class="identifier">map</span><span>(</span><span class="identifier">validateEmail</span><span>)
-      .</span><span class="identifier">map</span><span> {
-        </span><span class="keyword">case</span><span> </span><span class="type-name">Left</span><span>(</span><span class="identifier">err</span><span>) =&gt; </span><span class="string-literal">s&quot;Error: </span><span class="substitution">$err</span><span class="string-literal">&quot;</span><span>
-        </span><span class="keyword">case</span><span> </span><span class="type-name">Right</span><span>(()) =&gt; </span><span class="string-literal">&quot;Email ok!&quot;</span><span>
-      }
-      .</span><span class="identifier">renderable</span><span>
-  )
+  </span><span class="keyword">val</span><span> </span><span class="identifier">validated</span><span> = </span><span class="identifier">emailCh</span><span>.</span><span class="identifier">stream</span><span>.</span><span class="identifier">debounce</span><span>(</span><span class="number-literal">1</span><span>.</span><span class="identifier">second</span><span>).</span><span class="identifier">map</span><span>(</span><span class="identifier">validateEmail</span><span>)
+  </span><span class="identifier">validated</span><span>.</span><span class="identifier">renderableTopic</span><span>.</span><span class="identifier">flatMap</span><span> { </span><span class="identifier">validatedTop</span><span> =&gt;
+    </span><span class="identifier">div</span><span>(
+      </span><span class="identifier">span</span><span>(
+        </span><span class="identifier">label</span><span>(</span><span class="string-literal">&quot;Your email: &quot;</span><span>),
+        </span><span class="identifier">input</span><span>(</span><span class="identifier">onInput</span><span> --&gt; (</span><span class="identifier">_</span><span>.</span><span class="identifier">mapToValue</span><span>.</span><span class="identifier">through</span><span>(</span><span class="identifier">emailCh</span><span>.</span><span class="identifier">sendAll</span><span>)))
+      ),
+      </span><span class="identifier">span</span><span>(
+        </span><span class="identifier">cls</span><span> &lt;-- </span><span class="identifier">validatedTop</span><span>.</span><span class="identifier">subscribe</span><span>(</span><span class="number-literal">0</span><span>).</span><span class="identifier">map</span><span> {
+          </span><span class="keyword">case</span><span> </span><span class="type-name">Left</span><span>(</span><span class="identifier">_</span><span>) =&gt; </span><span class="type-name">List</span><span>(</span><span class="string-literal">&quot;-error&quot;</span><span>)
+          </span><span class="keyword">case</span><span> </span><span class="type-name">Right</span><span>(</span><span class="identifier">_</span><span>) =&gt; </span><span class="type-name">List</span><span>(</span><span class="string-literal">&quot;-success&quot;</span><span>)
+        },
+        </span><span class="identifier">validatedTop</span><span>.</span><span class="identifier">subscribe</span><span>(</span><span class="number-literal">0</span><span>).</span><span class="identifier">map</span><span> {
+          </span><span class="keyword">case</span><span> </span><span class="type-name">Left</span><span>(</span><span class="identifier">err</span><span>) =&gt; </span><span class="string-literal">s&quot;Error: </span><span class="substitution">$err</span><span class="string-literal">&quot;</span><span>
+          </span><span class="keyword">case</span><span> </span><span class="type-name">Right</span><span>(()) =&gt; </span><span class="string-literal">&quot;Email ok!&quot;</span><span>
+        }
+      )
+    )
+  }
 }
 
 </span><span class="identifier">app</span><span>.</span><span class="identifier">renderInto</span><span>(</span><span class="identifier">node</span><span>).</span><span class="identifier">allocated</span><span>.</span><span class="identifier">unsafeRunAndForget</span><span>()</span></code></pre>
