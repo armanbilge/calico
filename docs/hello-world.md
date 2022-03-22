@@ -18,7 +18,7 @@ val app = SignallingRef[IO, String]("world").toResource.flatMap { nameRef =>
       onInput --> (_.mapToValue.foreach(nameRef.set))
     ),
     span(
-      "Hello, ",
+      " Hello, ",
       nameRef.discrete.map(_.toUpperCase).renderable
     )
   )
