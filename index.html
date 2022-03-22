@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="Laika 0.18.1 + Helium Theme" />
+    <title>Introduction</title>
+    
+      <meta name="author" content="Arman Bilge"/>
+    
+    
+      <meta name="description" content="docs"/>
+    
+    
+      <link rel="icon" sizes="32x32" type="image/png" href="https://typelevel.org/img/favicon.png"/>
+    
+    
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700">
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/tonsky/FiraCode@1.207/distr/fira_code.css">
+    
+    <link rel="stylesheet" type="text/css" href="helium/icofont.min.css" />
+    <link rel="stylesheet" type="text/css" href="helium/laika-helium.css" />
+    <link rel="stylesheet" type="text/css" href="site/mdoc.css" />
+    <link rel="stylesheet" type="text/css" href="site/styles.css" />
+    <script src="helium/laika-helium.js"></script>
+    
+    
+    <script> /* for avoiding page load transitions */ </script>
+  </head>
+
+  <body>
+
+    <header id="top-bar">
+
+      <div class="row">
+        <a id="nav-icon">
+          <i class="icofont-laika" title="Navigation">&#xefa2;</i>
+        </a>
+        
+      </div>
+
+      <a class="image-link" href="https://typelevel.org"><img src="https://typelevel.org/img/logo.svg"></a>
+
+      <span class="row links"><a class="icon-link svg-link" href="https://github.com/armanbilge/calico"><span title="Source Code"><svg class="svg-icon" width="100%" height="100%" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+  <g class="svg-shape">
+    <path d="M49.995,1c-27.609,-0 -49.995,22.386 -49.995,50.002c-0,22.09 14.325,40.83 34.194,47.444c2.501,0.458 3.413,-1.086 3.413,-2.412c0,-1.185 -0.043,-4.331 -0.067,-8.503c-13.908,3.021 -16.843,-6.704 -16.843,-6.704c-2.274,-5.773 -5.552,-7.311 -5.552,-7.311c-4.54,-3.103 0.344,-3.042 0.344,-3.042c5.018,0.356 7.658,5.154 7.658,5.154c4.46,7.64 11.704,5.433 14.552,4.156c0.454,-3.232 1.744,-5.436 3.174,-6.685c-11.102,-1.262 -22.775,-5.553 -22.775,-24.713c-0,-5.457 1.949,-9.92 5.147,-13.416c-0.516,-1.265 -2.231,-6.348 0.488,-13.233c0,0 4.199,-1.344 13.751,5.126c3.988,-1.108 8.266,-1.663 12.518,-1.682c4.245,0.019 8.523,0.574 12.517,1.682c9.546,-6.47 13.736,-5.126 13.736,-5.126c2.728,6.885 1.013,11.968 0.497,13.233c3.204,3.496 5.141,7.959 5.141,13.416c0,19.209 -11.691,23.436 -22.83,24.673c1.795,1.544 3.394,4.595 3.394,9.26c0,6.682 -0.061,12.076 -0.061,13.715c0,1.338 0.899,2.894 3.438,2.406c19.853,-6.627 34.166,-25.354 34.166,-47.438c-0,-27.616 -22.389,-50.002 -50.005,-50.002"/>
+  </g>
+</svg></span></a><a class="icon-link" href="https://discord.gg/XF3CXcMzqD"><i class="icofont-laika" title="Chat">&#xeed5;</i></a><a class="icon-link" href="https://twitter.com/typelevel"><i class="icofont-laika" title="Twitter">&#xed7a;</i></a></span>
+
+    </header>
+
+    <nav id="sidebar">
+
+      <div class="row">
+        <a class="icon-link svg-link" href="https://github.com/armanbilge/calico"><span title="Source Code"><svg class="svg-icon" width="100%" height="100%" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+  <g class="svg-shape">
+    <path d="M49.995,1c-27.609,-0 -49.995,22.386 -49.995,50.002c-0,22.09 14.325,40.83 34.194,47.444c2.501,0.458 3.413,-1.086 3.413,-2.412c0,-1.185 -0.043,-4.331 -0.067,-8.503c-13.908,3.021 -16.843,-6.704 -16.843,-6.704c-2.274,-5.773 -5.552,-7.311 -5.552,-7.311c-4.54,-3.103 0.344,-3.042 0.344,-3.042c5.018,0.356 7.658,5.154 7.658,5.154c4.46,7.64 11.704,5.433 14.552,4.156c0.454,-3.232 1.744,-5.436 3.174,-6.685c-11.102,-1.262 -22.775,-5.553 -22.775,-24.713c-0,-5.457 1.949,-9.92 5.147,-13.416c-0.516,-1.265 -2.231,-6.348 0.488,-13.233c0,0 4.199,-1.344 13.751,5.126c3.988,-1.108 8.266,-1.663 12.518,-1.682c4.245,0.019 8.523,0.574 12.517,1.682c9.546,-6.47 13.736,-5.126 13.736,-5.126c2.728,6.885 1.013,11.968 0.497,13.233c3.204,3.496 5.141,7.959 5.141,13.416c0,19.209 -11.691,23.436 -22.83,24.673c1.795,1.544 3.394,4.595 3.394,9.26c0,6.682 -0.061,12.076 -0.061,13.715c0,1.338 0.899,2.894 3.438,2.406c19.853,-6.627 34.166,-25.354 34.166,-47.438c-0,-27.616 -22.389,-50.002 -50.005,-50.002"/>
+  </g>
+</svg></span></a><a class="icon-link" href="https://discord.gg/XF3CXcMzqD"><i class="icofont-laika" title="Chat">&#xeed5;</i></a><a class="icon-link" href="https://twitter.com/typelevel"><i class="icofont-laika" title="Twitter">&#xed7a;</i></a>
+      </div>
+
+      <ul class="nav-list">
+        <li class="level1 active"><a href="#">Introduction</a></li>
+        <li class="level1"><a href="hello-world.html">Hello World</a></li>
+        <li class="level1"><a href="counter.html">Counter</a></li>
+        <li class="level1"><a href="time.html">Time</a></li>
+      </ul>
+
+      <ul class="nav-list">
+        <li class="level1 nav-header">Related Projects</li>
+        
+          <li class="level2"><a href="https://typelevel.org/cats/">cats</a></li>
+        
+          <li class="level2"><a href="https://typelevel.org/cats-effect/">cats-effect</a></li>
+        
+          <li class="level2"><a href="https://fs2.io/">fs2</a></li>
+        
+          <li class="level2"><a href="https://http4s.github.io/http4s-dom/">http4s-dom</a></li>
+        
+      </ul>
+
+    </nav>
+
+    <div id="container">
+
+      <nav id="page-nav">
+        <p class="header"><a href="#">Introduction</a></p>
+
+        <ul class="nav-list">
+          <li class="level1"><a href="#acknowledgements">Acknowledgements</a></li>
+          <li class="level1"><a href="#try-it">Try it!</a></li>
+          <li class="level1"><a href="#core-concepts">Core concepts</a></li>
+          <li class="level2"><a href="#components-and-resource-management">Components and resource management</a></li>
+          <li class="level2"><a href="#glitch-free-rendering">Glitch-free rendering</a></li>
+        </ul>
+
+        <p class="footer"></p>
+      </nav>
+
+      <main class="content">
+
+        <h1 id="calico" class="title">calico</h1>
+        <p><strong>calico</strong> is an (early-stage) &quot;framework&quot; for building web applications in <a href="https://www.scala-js.org/">Scala.js</a> with <a href="https://typelevel.org/cats-effect/">Cats Effect 3</a> and <a href="https://fs2.io/">fs2</a>. I say &quot;framework&quot; because <strong>calico</strong> (so far) introduces only one new concept of its own; otherwise, it is almost entirely a DSL. If you enjoy working with Cats Effect and fs2 then (I hope) you will like <strong>calico</strong> as well.</p>
+        
+        <h3 id="acknowledgements" class="section">Acknowledgements<a class="anchor-link right" href="#acknowledgements"><i class="icofont-laika">&#xef71;</i></a></h3>
+        <p><strong>calico</strong> is heavily inspired by <a href="https://Laminar.dev/">Laminar</a>. I have yet only had time to plagiarize the DSL and a few of the examples ;)</p>
+        
+        <h3 id="try-it" class="section">Try it!<a class="anchor-link right" href="#try-it"><i class="icofont-laika">&#xef71;</i></a></h3>
+        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="identifier">libraryDependencies</span><span> += </span><span class="string-literal">&quot;com.armanbilge&quot;</span><span> %%% </span><span class="string-literal">&quot;calico&quot;</span><span> % </span><span class="string-literal">&quot;0.0-c4ef8a5&quot;</span></code></pre>
+        
+        <h2 id="core-concepts" class="section">Core concepts<a class="anchor-link right" href="#core-concepts"><i class="icofont-laika">&#xef71;</i></a></h2>
+        
+        <h3 id="components-and-resource-management" class="section">Components and resource management<a class="anchor-link right" href="#components-and-resource-management"><i class="icofont-laika">&#xef71;</i></a></h3>
+        <p>The most important idea behind <strong>calico</strong> is that each component of your app (and in fact your app itself) should be expressed as a <code>Resource[IO, HTMLElement]</code>.</p>
+        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.*
+</span><span class="keyword">import</span><span> </span><span class="identifier">org</span><span>.</span><span class="identifier">scalajs</span><span>.</span><span class="identifier">dom</span><span>.*
+</span><span class="comment">// note: no calico import yet!
+</span><span>
+</span><span class="keyword">val</span><span> </span><span class="identifier">component</span><span>: </span><span class="type-name">Resource</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">HTMLElement</span><span>] = ???
+
+</span><span class="comment">// or more generally:
+</span><span class="keyword">def</span><span> </span><span class="declaration-name">component</span><span>[</span><span class="type-name">F</span><span>[</span><span class="identifier">_</span><span>]: </span><span class="type-name">Async</span><span>]: </span><span class="type-name">Resource</span><span>[</span><span class="type-name">F</span><span>, </span><span class="type-name">HTMLElement</span><span>] = ???</span></code></pre>
+        <p>This <code>Resource</code> completely manages the lifecycle of that element and its children. When the <code>Resource</code> is allocated, it will create an instance of the <code>HTMLElement</code> and any supporting resources, such as background <code>Fiber</code>s or WebSocket connections. In kind, when the <code>Resource</code> is closed, these <code>Fiber</code>s and connections are canceled and released.</p>
+        <p>Because <code>Resource[IO, HTMLElement]</code> is referentially-transparent, it naturally behaves as a &quot;builder&quot;. Your component can be re-used in multiple places in your application as well as un-mounted and re-mounted without worrying about crossed-wires or leaked resources. This makes it easy to compose components.</p>
+        <p>So far, none of this is specific to <strong>calico</strong>: we get all of this for free from Cats Effect. <strong>calico</strong> steps in with a friendly DSL to cut down the boilerplate.</p>
+        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.</span><span class="identifier">dsl</span><span>.</span><span class="identifier">io</span><span>.*
+</span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.*
+</span><span class="keyword">import</span><span> </span><span class="identifier">org</span><span>.</span><span class="identifier">scalajs</span><span>.</span><span class="identifier">dom</span><span>.*
+
+</span><span class="keyword">val</span><span> </span><span class="identifier">component</span><span>: </span><span class="type-name">Resource</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">HTMLElement</span><span>] = </span><span class="identifier">div</span><span>(</span><span class="identifier">i</span><span>(</span><span class="string-literal">&quot;hello&quot;</span><span>), </span><span class="string-literal">&quot; &quot;</span><span>, </span><span class="identifier">b</span><span>(</span><span class="string-literal">&quot;world&quot;</span><span>))</span></code></pre>
+        <p>Yes, in this very unexciting example <code>i(&quot;hello&quot;)</code> and <code>b(&quot;world&quot;)</code> are both <code>Resource</code>s that monadically compose with <code>div(...)</code> to create yet another <code>Resource</code>! There are no other resources involved in this very simple snippet. Also note that we have not yet <em>created</em> any <code>HTMLElement</code>s, we have merely created a <code>Resource</code> that <em>describes</em> how to make one.</p>
+        <p>A more interesting example is this interactive Hello World demo.</p>
+        <pre><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.*
+</span><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.</span><span class="identifier">dsl</span><span>.</span><span class="identifier">io</span><span>.*
+</span><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.</span><span class="identifier">syntax</span><span>.*
+</span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.*
+</span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.</span><span class="identifier">syntax</span><span>.</span><span class="identifier">all</span><span>.*
+</span><span class="keyword">import</span><span> </span><span class="identifier">fs2</span><span>.*
+</span><span class="keyword">import</span><span> </span><span class="identifier">fs2</span><span>.</span><span class="identifier">concurrent</span><span>.*
+
+</span><span class="keyword">val</span><span> </span><span class="identifier">component</span><span> = </span><span class="type-name">SignallingRef</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">String</span><span>](</span><span class="string-literal">&quot;world&quot;</span><span>).</span><span class="identifier">toResource</span><span>.</span><span class="identifier">flatMap</span><span> { </span><span class="identifier">nameRef</span><span> =&gt;
+  </span><span class="identifier">div</span><span>(
+    </span><span class="identifier">label</span><span>(</span><span class="string-literal">&quot;Your name: &quot;</span><span>),
+    </span><span class="identifier">input</span><span>(
+      </span><span class="identifier">placeholder</span><span> := </span><span class="string-literal">&quot;Enter your name here&quot;</span><span>,
+      </span><span class="comment">// here, input events are run through the given Pipe
+</span><span>      </span><span class="comment">// this starts background fibers within the lifecycle of the &lt;input&gt; element
+</span><span>      </span><span class="identifier">onInput</span><span> --&gt; (</span><span class="identifier">_</span><span>.</span><span class="identifier">mapToValue</span><span>.</span><span class="identifier">foreach</span><span>(</span><span class="identifier">nameRef</span><span>.</span><span class="identifier">set</span><span>))
+    ),
+    </span><span class="identifier">span</span><span>(
+      </span><span class="string-literal">&quot; Hello, &quot;</span><span>,
+      </span><span class="comment">// here, a Stream is rendered into the HTML
+</span><span>      </span><span class="comment">// this starts background fibers within the life cycle of the &lt;span&gt; element
+</span><span>      </span><span class="identifier">nameRef</span><span>.</span><span class="identifier">discrete</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">toUpperCase</span><span>).</span><span class="identifier">renderable</span><span>
+    )
+  )
+}</span></code></pre>
+        <div id="mdoc-html-run3" data-mdoc-js></div>
+        <p>The ideas are very much the same as the prior example.</p>
+        <ol class="arabic">
+          <li><code>input(...)</code> is a <code>Resource</code> that creates an <code>&lt;input&gt;</code> element and also manages <code>Fiber</code>s that handle input events. </li>
+          <li><code>span(...)</code> is a <code>Resource</code> that creates a <code>&lt;span&gt;</code> element and also manages <code>Fiber</code>s that handle rendering of the name.</li>
+          <li><code>div(...)</code> is a <code>Resource</code> composed of the <code>input(...)</code> and <code>span(...)</code> <code>Resource</code>s, and therefore (indirectly) manages the <code>Fiber</code>s of its child components.</li>
+        </ol>
+        <p>And there we have it: a self-contained component consisting of non-trivial resources, that can be safely used, reused, and torn down.</p>
+        
+        <h3 id="glitch-free-rendering" class="section">Glitch-free rendering<a class="anchor-link right" href="#glitch-free-rendering"><i class="icofont-laika">&#xef71;</i></a></h3>
+        <p>As mentioned in the introduction, <strong>calico</strong> does introduce one new concept: the <code>Rx</code> monad. Its sole purpose is to provide a mechanism for glitch-free rendering.</p>
+        <p>Consider our Hello World example: suppose that in addition to displaying the entered name, we also wanted to display its length. A rendering glitch would be if the UI updates the length before updating the name such that (very briefly!) the user sees inconsistent state.</p>
+        <p>The <code>Rx</code> monad is so-called for its &quot;highly reactive&quot; semantics. Specifically, any computation occurring in <code>Rx</code> (notably, updating the DOM) is <em>guaranteed</em> to complete before the UI re-renders. For this reason, the <strong>calico</strong> DSL uses <code>Rx</code> as the effect type for <code>Stream</code>s that bind the DOM to dynamic content.</p>
+        <p>There are currently two easy ways to transform a <code>stream: Stream[F, A]</code> to the <code>Rx</code> effect and thus make it &quot;renderable&quot;. The type signatures look intimidating, but (1) was already used in the example above and (2) is used in the example below.</p>
+        <ol class="arabic">
+          <li>
+            <p><code>stream.renderable: Resource[F, Stream[Rx[F, _], A]]</code></p>
+            <p>A one-off to make a single-use <code>Stream</code> renderable.</p>
+          </li>
+          <li>
+            <p><code>stream.renderableTopic: Resource[F, Topic[Rx[F, _], A]]</code></p>
+            <p>Creates a <code>Topic</code> which can have multiple renderable subscribers.</p>
+          </li>
+        </ol>
+        <p>Now, we can display the input length in our Hello World without any glitches!</p>
+        <pre><code class="nohighlight"><span class="keyword">val</span><span> </span><span class="identifier">component2</span><span> = </span><span class="type-name">SignallingRef</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">String</span><span>](</span><span class="string-literal">&quot;world&quot;</span><span>).</span><span class="identifier">toResource</span><span>.</span><span class="identifier">flatMap</span><span> { </span><span class="identifier">nameRef</span><span> =&gt;
+  </span><span class="identifier">nameRef</span><span>.</span><span class="identifier">discrete</span><span>.</span><span class="identifier">renderableTopic</span><span>.</span><span class="identifier">flatMap</span><span> { </span><span class="identifier">nameTopic</span><span> =&gt;
+    </span><span class="identifier">div</span><span>(
+      </span><span class="identifier">label</span><span>(</span><span class="string-literal">&quot;Your name: &quot;</span><span>),
+      </span><span class="identifier">input</span><span>(
+        </span><span class="identifier">placeholder</span><span> := </span><span class="string-literal">&quot;Enter your name here&quot;</span><span>,
+        </span><span class="identifier">onInput</span><span> --&gt; (</span><span class="identifier">_</span><span>.</span><span class="identifier">mapToValue</span><span>.</span><span class="identifier">foreach</span><span>(</span><span class="identifier">nameRef</span><span>.</span><span class="identifier">set</span><span>))
+      ),
+      </span><span class="identifier">span</span><span>(
+        </span><span class="string-literal">&quot; Hello, &quot;</span><span>,
+        </span><span class="identifier">nameTopic</span><span>.</span><span class="identifier">subscribe</span><span>(</span><span class="number-literal">0</span><span>).</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">toUpperCase</span><span>)
+      ),
+      </span><span class="identifier">p</span><span>(</span><span class="string-literal">&quot;Length: &quot;</span><span>, </span><span class="identifier">nameTopic</span><span>.</span><span class="identifier">subscribe</span><span>(</span><span class="number-literal">0</span><span>).</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">length</span><span>.</span><span class="identifier">toString</span><span>))
+    )
+  }
+}</span></code></pre>
+        <div id="mdoc-html-run5" data-mdoc-js></div>
+        
+        <h4 id="rx-monad-behind-the-scenes" class="section"><code>Rx</code> monad, behind-the-scenes<a class="anchor-link right" href="#rx-monad-behind-the-scenes"><i class="icofont-laika">&#xef71;</i></a></h4>
+        <p>The <code>Rx</code> monad is in fact a transformer for a monad <code>F[_]</code> that implements <code>Async[F]</code>.</p>
+        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">opaque</span><span> </span><span class="keyword">type</span><span> </span><span class="type-name">Rx</span><span>[</span><span class="type-name">F</span><span>[</span><span class="identifier">_</span><span>], </span><span class="type-name">A</span><span>] = </span><span class="type-name">F</span><span>[</span><span class="type-name">A</span><span>]</span></code></pre>
+        <p>Despite appearances, it is <em>not</em> an identity transformation.</p>
+        <ol class="arabic">
+          <li><code>Rx</code> execution is scheduled on the <a href="https://javascript.info/event-loop#macrotasks-and-microtasks">microtask queue</a>. This is because the JavaScript event loop will always prioritize microtasks over rendering, timers, and handling of user and I/O events.</li>
+          <li><code>Rx</code> only implements <code>Concurrent</code> and <code>Sync</code>. It does not implement <code>Temporal</code> nor <code>Async</code>, because timers and external async events are not microtasks.</li>
+        </ol>
+        <p>Although the semantics of the microtask queue are <a href="https://github.com/scala-js/scala-js-macrotask-executor#background">unsuitable for a general-purpose execution context</a>, selectively applying them to the <code>Rx</code> monad is a useful strategy to achieve glitch-free rendering.<script type="text/javascript" src="index.md.js" defer></script>
+        <script type="text/javascript" src="mdoc.js" defer></script></p>
+
+        <hr style="margin-top: 30px"/>
+        <footer style="font-size: 90%; text-align: center">
+          calico is a <a href="https://typelevel.org/">Typelevel</a> project distributed under the <a href="https://www.apache.org/licenses/LICENSE-2.0.txt">Apache-2.0</a> license.
+        </footer>
+
+      </main>
+
+    </div>
+
+  </body>
+</html>
