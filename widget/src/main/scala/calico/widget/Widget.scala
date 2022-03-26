@@ -27,6 +27,8 @@ import calico.syntax.*
 import fs2.Pipe
 import fs2.INothing
 import shapeless3.deriving.K0
+import shapeless3.deriving.Labelling
+import fs2.concurrent.Signal
 
 trait View[F[_], A]:
   outer =>
@@ -42,8 +44,22 @@ object View:
 
   given int[F[_]: Async]: View[F, Int] = string.contramap(_.toString)
 
-  given product[F[_]: Async, A](using inst: K0.ProductInstances[View[F, _], A]): View[F, A] with
-    def of(read: Stream[Rx[F, _], A]) = ???
+  given product[F[_]: Async, A <: Product](
+      using inst: K0.ProductInstances[View[F, _], A],
+      labelling: Labelling[A]
+  ): View[F, A] with
+    def of(read: Stream[Rx[F, _], A]) =
+      val dsl = Dsl[F]
+      import dsl.*
+
+      inst.unfold(List.empty[Resource[F, dom.HTMLElement]]) {
+        [a] =>
+          (acc: List[Resource[F, dom.HTMLElement]], view: View[F, a]) =>
+            val i = acc.size
+            (???, Some(null.asInstanceOf[a]))
+      }
+
+      ???
 
 trait Edit[F[_], A]:
   def of(read: Stream[Rx[F, _], A])(write: Pipe[F, A, INothing]): Resource[F, dom.HTMLElement]
