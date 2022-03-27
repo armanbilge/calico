@@ -49,7 +49,7 @@ trait View[F[_], A]:
 
 object View:
   given string[F[_]: Async]: View[F, String] with
-    def of(read: Stream[Rx[F, _], String]) = Dsl[F].div(read)
+    def of(read: Stream[Rx[F, _], String]) = Dsl[F].a(read)
 
   given int[F[_]: Async]: View[F, Int] = string.contramap(_.toString)
 
@@ -67,8 +67,8 @@ object View:
             [a] =>
               (acc: List[Resource[F, dom.HTMLElement]], view: View[F, a]) =>
                 val i = acc.size
-                val e = label(
-                  b(labelling.elemLabels(i)),
+                val e = div(
+                  b(labelling.elemLabels(i), ": "),
                   view.of(sig.discrete.map(_.productElement(i).asInstanceOf[a]))
                 )
                 (acc ::: e :: Nil, Some(null.asInstanceOf[a]))
@@ -115,16 +115,18 @@ object Edit:
             [a] =>
               (acc: List[Resource[F, dom.HTMLElement]], edit: Edit[F, a]) =>
                 val i = acc.size
-                val e = label(
-                  b(labelling.elemLabels(i)),
-                  edit.of(sig.discrete.map(_.productElement(i).asInstanceOf[a]))(
-                    _.foreach { a =>
-                      for
-                        oldA <- sig.get.translate
-                        newA = mirror.fromProduct(updatedProduct(oldA, i, a))
-                        _ <- ch.send(newA)
-                      yield ()
-                    }
+                val e = div(
+                  label(
+                    b(labelling.elemLabels(i), ": "),
+                    edit.of(sig.discrete.map(_.productElement(i).asInstanceOf[a]))(
+                      _.foreach { a =>
+                        for
+                          oldA <- sig.get.translate
+                          newA = mirror.fromProduct(updatedProduct(oldA, i, a))
+                          _ <- ch.send(newA)
+                        yield ()
+                      }
+                    )
                   )
                 )
                 (acc ::: e :: Nil, Some(null.asInstanceOf[a]))
