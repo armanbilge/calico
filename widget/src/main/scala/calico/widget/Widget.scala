@@ -30,6 +30,8 @@ import org.scalajs.dom
 import shapeless3.deriving.K0
 import shapeless3.deriving.Labelling
 
+import scala.deriving.Mirror
+
 trait View[F[_], A]:
   outer =>
 
@@ -90,3 +92,44 @@ object Edit:
         value <-- read.map(_.toString),
         onInput --> (_.mapToValue.map(_.toIntOption).unNone.through(write))
       )
+
+  given product[F[_]: Async, A <: Product](
+      using inst: K0.ProductInstances[Edit[F, _], A],
+      mirror: Mirror.ProductOf[A],
+      labelling: Labelling[A]
+  ): Edit[F, A] with
+    def of(read: Stream[Rx[F, _], A])(write: Pipe[F, A, INothing]) =
+      val dsl = Dsl[F]
+      import dsl.*
+
+      (read.signal.render, write.channel).tupled.flatMap { (sig, ch) =>
+        val children = inst
+          .unfold(List.empty[Resource[F, dom.HTMLElement]]) {
+            [a] =>
+              (acc: List[Resource[F, dom.HTMLElement]], edit: Edit[F, a]) =>
+                val i = acc.size
+                val e = label(
+                  b(labelling.elemLabels(i)),
+                  edit.of(sig.discrete.map(_.productElement(i).asInstanceOf[a]))(
+                    _.foreach { a =>
+                      for
+                        oldA <- sig.get.translate
+                        newA = mirror.fromProduct(updatedProduct(oldA, i, a))
+                        _ <- ch.send(newA)
+                      yield ()
+                    }
+                  )
+                )
+                (acc ::: e :: Nil, Some(null.asInstanceOf[a]))
+          }
+          ._1
+
+        div(children)
+      }
+
+    def updatedProduct(product: Product, i: Int, a: Any): Product =
+      new:
+        def canEqual(that: Any) = product.canEqual(that)
+        def productArity = product.productArity
+        def productElement(n: Int): Any =
+          if n == i then a else product.productElement(n)

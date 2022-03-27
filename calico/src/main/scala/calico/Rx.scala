@@ -28,6 +28,7 @@ opaque type Rx[F[_], A] = F[A]
 object Rx extends RxLowPriority0:
   extension [F[_], A](rxa: Rx[F[_], A])
     def render(using F: Async[F]): F[A] = F.evalOn(rxa, QueueExecutionContext.promises)
+    def translate: F[A] = rxa
 
   def apply[F[_]: Sync, A](thunk: => A): Rx[F, A] = delay(thunk)
   def delay[F[_], A](thunk: => A)(using F: Sync[F]): Rx[F, A] = F.delay(thunk)

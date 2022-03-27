@@ -23,6 +23,7 @@ import cats.effect.kernel.Resource
 import cats.effect.kernel.Sync
 import cats.effect.syntax.all.*
 import cats.syntax.all.*
+import fs2.Pipe
 import fs2.Stream
 import fs2.concurrent.Channel
 import fs2.concurrent.Topic
@@ -68,6 +69,13 @@ extension [F[_], A](stream: Stream[F, A])
     renderable.flatMap { stream =>
       Topic[Rx[F, _], A].toResource.flatTap(_.publish(stream).compile.drain.background).render
     }
+
+extension [F[_], A, B](pipe: Pipe[F, A, B])
+  def channel(using F: Concurrent[F]): Resource[F, Channel[F, A]] =
+    for
+      ch <- Channel.unbounded[F, A].toResource
+      _ <- ch.stream.through(pipe).compile.drain.background
+    yield ch
 
 extension [F[_]](events: Stream[F, dom.Event])
   def mapToValue: Stream[F, String] =
