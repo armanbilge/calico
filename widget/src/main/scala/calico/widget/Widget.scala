@@ -17,18 +17,18 @@
 package calico
 package widget
 
-import cats.effect.kernel.Resource
-import cats.syntax.all.*
-import fs2.Stream
-import org.scalajs.dom
-import cats.effect.kernel.Async
 import calico.dsl.Dsl
 import calico.syntax.*
-import fs2.Pipe
+import cats.effect.kernel.Async
+import cats.effect.kernel.Resource
+import cats.syntax.all.*
 import fs2.INothing
+import fs2.Pipe
+import fs2.Stream
+import fs2.concurrent.Signal
+import org.scalajs.dom
 import shapeless3.deriving.K0
 import shapeless3.deriving.Labelling
-import fs2.concurrent.Signal
 
 trait View[F[_], A]:
   outer =>
@@ -52,14 +52,22 @@ object View:
       val dsl = Dsl[F]
       import dsl.*
 
-      inst.unfold(List.empty[Resource[F, dom.HTMLElement]]) {
-        [a] =>
-          (acc: List[Resource[F, dom.HTMLElement]], view: View[F, a]) =>
-            val i = acc.size
-            (???, Some(null.asInstanceOf[a]))
-      }
+      read.signal.render.flatMap { sig =>
+        val children = inst
+          .unfold(List.empty[Resource[F, dom.HTMLElement]]) {
+            [a] =>
+              (acc: List[Resource[F, dom.HTMLElement]], view: View[F, a]) =>
+                val i = acc.size
+                val e = label(
+                  b(labelling.elemLabels(i)),
+                  view.of(sig.discrete.map(_.productElement(i).asInstanceOf[a]))
+                )
+                (acc ::: e :: Nil, Some(null.asInstanceOf[a]))
+          }
+          ._1
 
-      ???
+        div(children)
+      }
 
 trait Edit[F[_], A]:
   def of(read: Stream[Rx[F, _], A])(write: Pipe[F, A, INothing]): Resource[F, dom.HTMLElement]
