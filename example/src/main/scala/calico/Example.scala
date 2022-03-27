@@ -18,33 +18,28 @@ package calico
 
 import calico.dsl.io.*
 import calico.syntax.*
+import calico.widget.*
 import cats.effect.*
 import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import fs2.*
 import fs2.concurrent.*
 
-import scala.concurrent.duration.given
-
 object Example extends IOWebApp:
 
-  def validateEmail(email: String): Either[String, Unit] =
-    if email.isEmpty then Left("Please fill out email")
-    else if !email.contains('@') then Left("Invalid email!")
-    else Right(())
+  final case class Person(firstName: String, lastName: String, age: Int)
 
-  def render = Channel.unbounded[IO, String].toResource.flatMap { emailCh =>
-    emailCh.stream.debounce(1.second).map(validateEmail).renderableTopic.flatMap { validated =>
+  def render = SignallingRef[IO].of(Person("", "", 0)).toResource.flatMap { personRef =>
+    personRef.discrete.renderableSignal.flatMap { personSig =>
       div(
-        cls <-- validated.subscribe(0).map(_.fold(_ => List("inline", "error"), _ => Nil)),
-        span(
-          label("Your email: "),
-          input(onInput --> (_.mapToValue.through(emailCh.sendAll)))
+        div(
+          h3("View"),
+          Widget.view(personSig.discrete)
         ),
-        validated.subscribe(0).map {
-          case Left(err) => s"Error: $err"
-          case Right(()) => "Email ok!"
-        }
+        div(
+          h3("Edit"),
+          Widget.edit(personSig.discrete)(_.foreach(personRef.set(_)))
+        )
       )
     }
   }

@@ -50,6 +50,9 @@ import scala.scalajs.js
 
 object io extends Dsl[IO]
 
+object Dsl:
+  def apply[F[_]: Async]: Dsl[F] = new Dsl[F] {}
+
 trait Dsl[F[_]]
     extends HtmlBuilders[F],
       DocumentTags[HtmlTagT[F]],

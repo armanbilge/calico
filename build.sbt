@@ -12,7 +12,7 @@ ThisBuild / tlUntaggedAreSnapshots := false
 ThisBuild / crossScalaVersions := Seq("3.1.1")
 ThisBuild / scalacOptions ++= Seq("-new-syntax", "-indent", "-source:future")
 
-lazy val root = tlCrossRootProject.aggregate(calico, example)
+lazy val root = tlCrossRootProject.aggregate(calico, widget, example)
 
 lazy val calico = project
   .in(file("calico"))
@@ -29,15 +29,23 @@ lazy val calico = project
     )
   )
 
+lazy val widget = project
+  .in(file("widget"))
+  .enablePlugins(ScalaJSPlugin)
+  .settings(
+    name := "calico-widget"
+  )
+  .dependsOn(calico)
+
 lazy val example = project
   .in(file("example"))
   .enablePlugins(ScalaJSPlugin, NoPublishPlugin)
-  .dependsOn(calico)
+  .dependsOn(calico, widget)
   .settings(
     scalaJSUseMainModuleInitializer := true
   )
 
-lazy val jsdocs = project.dependsOn(calico).enablePlugins(ScalaJSPlugin)
+lazy val jsdocs = project.dependsOn(calico, widget).enablePlugins(ScalaJSPlugin)
 lazy val docs = project
   .in(file("site"))
   .enablePlugins(TypelevelSitePlugin)

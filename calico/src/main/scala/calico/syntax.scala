@@ -18,10 +18,13 @@ package calico
 package syntax
 
 import cats.effect.kernel.Async
+import cats.effect.kernel.Concurrent
+import cats.effect.kernel.MonadCancel
 import cats.effect.kernel.Resource
 import cats.effect.kernel.Sync
 import cats.effect.syntax.all.*
 import cats.syntax.all.*
+import fs2.Pipe
 import fs2.Stream
 import fs2.concurrent.Channel
 import fs2.concurrent.Topic
@@ -38,6 +41,7 @@ extension [F[_]](component: Resource[F, dom.HTMLElement])
 
 extension [F[_], A](resource: Resource[Rx[F, _], A])
   def render(using Async[F]): Resource[F, A] = resource.mapK(Rx.renderK)
+  def translate(using MonadCancel[F, ?]): Resource[F, A] = resource.mapK(Rx.translateK)
 
 extension [F[_], A](stream: Stream[F, A])
   def renderable(using Async[F]): Resource[F, Stream[Rx[F, _], A]] =
@@ -51,6 +55,12 @@ extension [F[_], A](stream: Stream[F, A])
         .background
     yield ch.stream
 
+  def signal(using Concurrent[F]): Resource[F, Signal[F, A]] =
+    for
+      sig <- DeferredSignallingRef[F, A].toResource
+      _ <- stream.foreach(sig.set(_)).compile.drain.background
+    yield sig
+
   def renderableSignal(using Async[F]): Resource[F, Signal[Rx[F, _], A]] =
     for
       sig <- DeferredSignallingRef[Rx[F, _], A].render.toResource
@@ -61,6 +71,13 @@ extension [F[_], A](stream: Stream[F, A])
     renderable.flatMap { stream =>
       Topic[Rx[F, _], A].toResource.flatTap(_.publish(stream).compile.drain.background).render
     }
+
+extension [F[_], A, B](pipe: Pipe[F, A, B])
+  def channel(using F: Concurrent[F]): Resource[F, Channel[F, A]] =
+    for
+      ch <- Channel.unbounded[F, A].toResource
+      _ <- ch.stream.through(pipe).compile.drain.background
+    yield ch
 
 extension [F[_]](events: Stream[F, dom.Event])
   def mapToValue: Stream[F, String] =
