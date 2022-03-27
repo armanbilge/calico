@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="Laika 0.18.1 + Helium Theme" />
-    <title>Hello World</title>
+    <title>Widgets</title>
     
       <meta name="author" content="Arman Bilge"/>
     
@@ -63,10 +63,10 @@
 
       <ul class="nav-list">
         <li class="level1"><a href="index.html">Introduction</a></li>
-        <li class="level1 active"><a href="#">Hello World</a></li>
+        <li class="level1"><a href="hello-world.html">Hello World</a></li>
         <li class="level1"><a href="counter.html">Counter</a></li>
         <li class="level1"><a href="time.html">Time</a></li>
-        <li class="level1"><a href="widget.html">Widgets</a></li>
+        <li class="level1 active"><a href="#">Widgets</a></li>
       </ul>
 
       <ul class="nav-list">
@@ -87,7 +87,7 @@
     <div id="container">
 
       <nav id="page-nav">
-        <p class="header"><a href="#">Hello World</a></p>
+        <p class="header"><a href="#">Widgets</a></p>
 
         <ul class="nav-list">
         </ul>
@@ -97,33 +97,34 @@
 
       <main class="content">
 
-        <h1 id="hello-world" class="title">Hello World</h1>
+        <h1 id="widgets" class="title">Widgets</h1>
         <pre><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.</span><span class="identifier">dsl</span><span>.</span><span class="identifier">io</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.</span><span class="identifier">syntax</span><span>.*
+</span><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.</span><span class="identifier">widget</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.</span><span class="identifier">syntax</span><span>.</span><span class="identifier">all</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.</span><span class="identifier">unsafe</span><span>.</span><span class="identifier">implicits</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">fs2</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">fs2</span><span>.</span><span class="identifier">concurrent</span><span>.*
 
-</span><span class="keyword">val</span><span> </span><span class="identifier">app</span><span> = </span><span class="type-name">SignallingRef</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">String</span><span>](</span><span class="string-literal">&quot;world&quot;</span><span>).</span><span class="identifier">toResource</span><span>.</span><span class="identifier">flatMap</span><span> { </span><span class="identifier">nameRef</span><span> =&gt;
-  </span><span class="identifier">div</span><span>(
-    </span><span class="identifier">label</span><span>(</span><span class="string-literal">&quot;Your name: &quot;</span><span>),
-    </span><span class="identifier">input</span><span>(
-      </span><span class="identifier">placeholder</span><span> := </span><span class="string-literal">&quot;Enter your name here&quot;</span><span>,
-      </span><span class="identifier">onInput</span><span> --&gt; (</span><span class="identifier">_</span><span>.</span><span class="identifier">mapToValue</span><span>.</span><span class="identifier">foreach</span><span>(</span><span class="identifier">nameRef</span><span>.</span><span class="identifier">set</span><span>))
-    ),
-    </span><span class="identifier">span</span><span>(
-      </span><span class="string-literal">&quot; Hello, &quot;</span><span>,
-      </span><span class="identifier">nameRef</span><span>.</span><span class="identifier">discrete</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">toUpperCase</span><span>).</span><span class="identifier">renderable</span><span>
+</span><span class="keyword">case</span><span> </span><span class="keyword">class</span><span> </span><span class="type-name">Person</span><span>(</span><span class="identifier">firstName</span><span>: </span><span class="type-name">String</span><span>, </span><span class="identifier">lastName</span><span>: </span><span class="type-name">String</span><span>, </span><span class="identifier">age</span><span>: </span><span class="type-name">Int</span><span>)
+
+</span><span class="keyword">val</span><span> </span><span class="identifier">app</span><span> = </span><span class="type-name">SignallingRef</span><span>[</span><span class="type-name">IO</span><span>].</span><span class="identifier">of</span><span>(</span><span class="type-name">Person</span><span>(</span><span class="string-literal">&quot;&quot;</span><span>, </span><span class="string-literal">&quot;&quot;</span><span>, </span><span class="number-literal">0</span><span>)).</span><span class="identifier">toResource</span><span>.</span><span class="identifier">flatMap</span><span> { </span><span class="identifier">personRef</span><span> =&gt;
+  </span><span class="identifier">personRef</span><span>.</span><span class="identifier">discrete</span><span>.</span><span class="identifier">renderableSignal</span><span>.</span><span class="identifier">flatMap</span><span> { </span><span class="identifier">personSig</span><span> =&gt;
+    </span><span class="identifier">div</span><span>(
+      </span><span class="identifier">div</span><span>(</span><span class="identifier">h3</span><span>(</span><span class="string-literal">&quot;View&quot;</span><span>), </span><span class="type-name">Widget</span><span>.</span><span class="identifier">view</span><span>(</span><span class="identifier">personSig</span><span>.</span><span class="identifier">discrete</span><span>)),
+      </span><span class="identifier">div</span><span>(
+        </span><span class="identifier">h3</span><span>(</span><span class="string-literal">&quot;Edit&quot;</span><span>),
+        </span><span class="type-name">Widget</span><span>.</span><span class="identifier">edit</span><span>(</span><span class="identifier">personSig</span><span>.</span><span class="identifier">discrete</span><span>)(</span><span class="identifier">_</span><span>.</span><span class="identifier">foreach</span><span>(</span><span class="identifier">personRef</span><span>.</span><span class="identifier">set</span><span>(</span><span class="identifier">_</span><span>)))
+      )
     )
-  )
+  }
 }
 
 </span><span class="identifier">app</span><span>.</span><span class="identifier">renderInto</span><span>(</span><span class="identifier">node</span><span>).</span><span class="identifier">allocated</span><span>.</span><span class="identifier">unsafeRunAndForget</span><span>()</span></code></pre>
         <div id="mdoc-html-run0" data-mdoc-js></div>
-        <p><script type="text/javascript" src="hello-world.md.js" defer></script>
+        <p><script type="text/javascript" src="widget.md.js" defer></script>
         <script type="text/javascript" src="mdoc.js" defer></script></p>
 
         <hr style="margin-top: 30px"/>
