@@ -101,15 +101,15 @@ There are currently two easy ways to transform a `stream: Stream[F, A]` to the `
    
    A one-off to make a single-use `Stream` renderable.
 
-2. `stream.renderableTopic: Resource[F, Topic[Rx[F, _], A]]`
+2. `stream.renderableSignal: Resource[F, Signal[Rx[F, _], A]]`
 
-   Creates a `Topic` which can have multiple renderable subscribers.
+   Creates a `Signal` which can have multiple renderable subscribers.
 
 Now, we can display the input length in our Hello World without any glitches!
 
 ```scala mdoc:js:shared
 val component2 = SignallingRef[IO, String]("world").toResource.flatMap { nameRef =>
-  nameRef.discrete.renderableTopic.flatMap { nameTopic =>
+  nameRef.discrete.renderableSignal.flatMap { nameSig =>
     div(
       label("Your name: "),
       input(
@@ -118,9 +118,9 @@ val component2 = SignallingRef[IO, String]("world").toResource.flatMap { nameRef
       ),
       span(
         " Hello, ",
-        nameTopic.subscribe(0).map(_.toUpperCase)
+        nameSig.discrete.map(_.toUpperCase)
       ),
-      p("Length: ", nameTopic.subscribe(0).map(_.length.toString))
+      p("Length: ", nameSig.discrete.map(_.length.toString))
     )
   }
 }
