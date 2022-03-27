@@ -45,7 +45,7 @@ lazy val example = project
     scalaJSUseMainModuleInitializer := true
   )
 
-lazy val jsdocs = project.dependsOn(calico).enablePlugins(ScalaJSPlugin)
+lazy val jsdocs = project.dependsOn(calico, widget).enablePlugins(ScalaJSPlugin)
 lazy val docs = project
   .in(file("site"))
   .enablePlugins(TypelevelSitePlugin)
