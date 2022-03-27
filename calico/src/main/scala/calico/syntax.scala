@@ -28,6 +28,7 @@ import fs2.concurrent.Topic
 import org.scalajs.dom
 
 import scala.scalajs.js
+import fs2.concurrent.Signal
 
 extension [F[_]](component: Resource[F, dom.HTMLElement])
   def renderInto(root: dom.Element)(using F: Sync[F]): Resource[F, Unit] =
@@ -49,6 +50,12 @@ extension [F[_], A](stream: Stream[F, A])
         .drain
         .background
     yield ch.stream
+
+  def renderableSignal(using Async[F]): Resource[F, Signal[Rx[F, _], A]] =
+    for
+      sig <- DeferredSignallingRef[Rx[F, _], A].render.toResource
+      _ <- stream.foreach(sig.set(_).render).compile.drain.background
+    yield sig
 
   def renderableTopic(using Async[F]): Resource[F, Topic[Rx[F, _], A]] =
     renderable.flatMap { stream =>
