@@ -49,7 +49,7 @@ trait View[F[_], A]:
 
 object View:
   given string[F[_]: Async]: View[F, String] with
-    def of(read: Stream[Rx[F, _], String]) = Dsl[F].a(read)
+    def of(read: Stream[Rx[F, _], String]) = Dsl[F].span(read)
 
   given int[F[_]: Async]: View[F, Int] = string.contramap(_.toString)
 
