@@ -19,6 +19,7 @@ package calico
 import cats.Monad
 import cats.effect.kernel.Async
 import cats.effect.kernel.GenConcurrent
+import cats.effect.kernel.MonadCancel
 import cats.effect.kernel.Sync
 import cats.~>
 
@@ -37,7 +38,15 @@ object Rx extends RxLowPriority0:
     new:
       def apply[A](rxa: Rx[F, A]): F[A] = render(rxa)
 
+  def translateK[F[_]]: Rx[F, _] ~> F =
+    new:
+      def apply[A](rxa: Rx[F, A]): F[A] = translate(rxa)
+
   given [F[_], E](using F: GenConcurrent[F, E]): GenConcurrent[Rx[F, _], E] = F
 
-private sealed class RxLowPriority0:
+private sealed class RxLowPriority0 extends RxLowPriority1:
   given [F[_]](using F: Sync[F]): Sync[Rx[F, _]] = F.asInstanceOf[Sync[Rx[F, _]]]
+
+private sealed class RxLowPriority1:
+  given [F[_], E](using F: MonadCancel[F, E]): MonadCancel[Rx[F, _], E] =
+    F.asInstanceOf[MonadCancel[Rx[F, _], E]]
