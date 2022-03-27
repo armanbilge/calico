@@ -108,7 +108,7 @@
         <p><strong>calico</strong> is heavily inspired by <a href="https://Laminar.dev/">Laminar</a>. I have yet only had time to plagiarize the DSL and a few of the examples ;)</p>
         
         <h3 id="try-it" class="section">Try it!<a class="anchor-link right" href="#try-it"><i class="icofont-laika">&#xef71;</i></a></h3>
-        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="identifier">libraryDependencies</span><span> += </span><span class="string-literal">&quot;com.armanbilge&quot;</span><span> %%% </span><span class="string-literal">&quot;calico&quot;</span><span> % </span><span class="string-literal">&quot;0.0-c4ef8a5&quot;</span></code></pre>
+        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="identifier">libraryDependencies</span><span> += </span><span class="string-literal">&quot;com.armanbilge&quot;</span><span> %%% </span><span class="string-literal">&quot;calico&quot;</span><span> % </span><span class="string-literal">&quot;0.0-09443e5&quot;</span></code></pre>
         
         <h2 id="core-concepts" class="section">Core concepts<a class="anchor-link right" href="#core-concepts"><i class="icofont-laika">&#xef71;</i></a></h2>
         
@@ -177,13 +177,13 @@
             <p>A one-off to make a single-use <code>Stream</code> renderable.</p>
           </li>
           <li>
-            <p><code>stream.renderableTopic: Resource[F, Topic[Rx[F, _], A]]</code></p>
-            <p>Creates a <code>Topic</code> which can have multiple renderable subscribers.</p>
+            <p><code>stream.renderableSignal: Resource[F, Signal[Rx[F, _], A]]</code></p>
+            <p>Creates a <code>Signal</code> which can have multiple renderable subscribers.</p>
           </li>
         </ol>
         <p>Now, we can display the input length in our Hello World without any glitches!</p>
         <pre><code class="nohighlight"><span class="keyword">val</span><span> </span><span class="identifier">component2</span><span> = </span><span class="type-name">SignallingRef</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">String</span><span>](</span><span class="string-literal">&quot;world&quot;</span><span>).</span><span class="identifier">toResource</span><span>.</span><span class="identifier">flatMap</span><span> { </span><span class="identifier">nameRef</span><span> =&gt;
-  </span><span class="identifier">nameRef</span><span>.</span><span class="identifier">discrete</span><span>.</span><span class="identifier">renderableTopic</span><span>.</span><span class="identifier">flatMap</span><span> { </span><span class="identifier">nameTopic</span><span> =&gt;
+  </span><span class="identifier">nameRef</span><span>.</span><span class="identifier">discrete</span><span>.</span><span class="identifier">renderableSignal</span><span>.</span><span class="identifier">flatMap</span><span> { </span><span class="identifier">nameSig</span><span> =&gt;
     </span><span class="identifier">div</span><span>(
       </span><span class="identifier">label</span><span>(</span><span class="string-literal">&quot;Your name: &quot;</span><span>),
       </span><span class="identifier">input</span><span>(
@@ -192,9 +192,9 @@
       ),
       </span><span class="identifier">span</span><span>(
         </span><span class="string-literal">&quot; Hello, &quot;</span><span>,
-        </span><span class="identifier">nameTopic</span><span>.</span><span class="identifier">subscribe</span><span>(</span><span class="number-literal">0</span><span>).</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">toUpperCase</span><span>)
+        </span><span class="identifier">nameSig</span><span>.</span><span class="identifier">discrete</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">toUpperCase</span><span>)
       ),
-      </span><span class="identifier">p</span><span>(</span><span class="string-literal">&quot;Length: &quot;</span><span>, </span><span class="identifier">nameTopic</span><span>.</span><span class="identifier">subscribe</span><span>(</span><span class="number-literal">0</span><span>).</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">length</span><span>.</span><span class="identifier">toString</span><span>))
+      </span><span class="identifier">p</span><span>(</span><span class="string-literal">&quot;Length: &quot;</span><span>, </span><span class="identifier">nameSig</span><span>.</span><span class="identifier">discrete</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">length</span><span>.</span><span class="identifier">toString</span><span>))
     )
   }
 }</span></code></pre>
