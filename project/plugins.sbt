@@ -1,7 +1,4 @@
-resolvers +=
-  "Sonatype S01 OSS Snapshots" at "https://s01.oss.sonatype.org/content/repositories/snapshots"
-
-val sbtTypelevelVersion = "0.4.6-24-24ec070-SNAPSHOT"
+val sbtTypelevelVersion = "0.4.7"
 addSbtPlugin("org.typelevel" % "sbt-typelevel" % sbtTypelevelVersion)
 addSbtPlugin("org.typelevel" % "sbt-typelevel-site" % sbtTypelevelVersion)
 addSbtPlugin("org.scala-js" % "sbt-scalajs" % "1.9.0")
