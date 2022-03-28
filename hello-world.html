@@ -107,7 +107,7 @@
 </span><span class="keyword">import</span><span> </span><span class="identifier">fs2</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">fs2</span><span>.</span><span class="identifier">concurrent</span><span>.*
 
-</span><span class="keyword">val</span><span> </span><span class="identifier">app</span><span> = </span><span class="type-name">SignallingRef</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">String</span><span>](</span><span class="string-literal">&quot;world&quot;</span><span>).</span><span class="identifier">toResource</span><span>.</span><span class="identifier">flatMap</span><span> { </span><span class="identifier">nameRef</span><span> =&gt;
+</span><span class="keyword">val</span><span> </span><span class="identifier">app</span><span> = </span><span class="type-name">SignallingRef</span><span>[</span><span class="type-name">IO</span><span>].</span><span class="identifier">of</span><span>(</span><span class="string-literal">&quot;world&quot;</span><span>).</span><span class="identifier">toResource</span><span>.</span><span class="identifier">flatMap</span><span> { </span><span class="identifier">nameRef</span><span> =&gt;
   </span><span class="identifier">div</span><span>(
     </span><span class="identifier">label</span><span>(</span><span class="string-literal">&quot;Your name: &quot;</span><span>),
     </span><span class="identifier">input</span><span>(
