@@ -10,7 +10,7 @@ import cats.effect.unsafe.implicits.*
 import fs2.*
 import fs2.concurrent.*
 
-val app = SignallingRef[IO, String]("world").toResource.flatMap { nameRef =>
+val app = SignallingRef[IO].of("world").toResource.flatMap { nameRef =>
   div(
     label("Your name: "),
     input(

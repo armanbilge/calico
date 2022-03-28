@@ -56,7 +56,7 @@ import cats.effect.syntax.all.*
 import fs2.*
 import fs2.concurrent.*
 
-val component = SignallingRef[IO, String]("world").toResource.flatMap { nameRef =>
+val component = SignallingRef[IO].of("world").toResource.flatMap { nameRef =>
   div(
     label("Your name: "),
     input(
@@ -108,7 +108,7 @@ There are currently two easy ways to transform a `stream: Stream[F, A]` to the `
 Now, we can display the input length in our Hello World without any glitches!
 
 ```scala mdoc:js:shared
-val component2 = SignallingRef[IO, String]("world").toResource.flatMap { nameRef =>
+val component2 = SignallingRef[IO].of("world").toResource.flatMap { nameRef =>
   nameRef.discrete.renderableSignal.flatMap { nameSig =>
     div(
       label("Your name: "),
