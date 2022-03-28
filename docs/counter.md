@@ -22,7 +22,9 @@ def Counter(label: String, initialStep: Int) =
           "Step: ",
           select(
             value <-- stepRef.discrete.map(_.toString).renderable,
-            onChange --> (_.mapToValue.evalMap(i => IO(i.toInt)).foreach(stepRef.set)),
+            onChange --> {
+              _.mapToTargetValue.map(_.toIntOption).unNone.foreach(stepRef.set)
+            },
             allowedSteps.map(step => option(value := step.toString, step.toString))
           )
         ),

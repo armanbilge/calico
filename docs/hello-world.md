@@ -15,7 +15,7 @@ val app = SignallingRef[IO, String]("world").toResource.flatMap { nameRef =>
     label("Your name: "),
     input(
       placeholder := "Enter your name here",
-      onInput --> (_.mapToValue.foreach(nameRef.set))
+      onInput --> (_.mapToTargetValue.foreach(nameRef.set))
     ),
     span(
       " Hello, ",

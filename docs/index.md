@@ -63,7 +63,7 @@ val component = SignallingRef[IO, String]("world").toResource.flatMap { nameRef 
       placeholder := "Enter your name here",
       // here, input events are run through the given Pipe
       // this starts background fibers within the lifecycle of the <input> element
-      onInput --> (_.mapToValue.foreach(nameRef.set))
+      onInput --> (_.mapToTargetValue.foreach(nameRef.set))
     ),
     span(
       " Hello, ",
@@ -114,7 +114,7 @@ val component2 = SignallingRef[IO, String]("world").toResource.flatMap { nameRef
       label("Your name: "),
       input(
         placeholder := "Enter your name here",
-        onInput --> (_.mapToValue.foreach(nameRef.set))
+        onInput --> (_.mapToTargetValue.foreach(nameRef.set))
       ),
       span(
         " Hello, ",

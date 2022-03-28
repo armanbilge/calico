@@ -89,7 +89,7 @@ val app = Channel.unbounded[IO, String].toResource.flatMap { emailCh =>
     div(
       span(
         label("Your email: "),
-        input(onInput --> (_.mapToValue.through(emailCh.sendAll)))
+        input(onInput --> (_.mapToTargetValue.through(emailCh.sendAll)))
       ),
       span(
         cls <-- validatedSig.discrete.map {

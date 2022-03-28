@@ -87,7 +87,7 @@ object Edit:
       val dsl = Dsl[F]
       import dsl.*
 
-      input(value <-- read, onInput --> (_.mapToValue.through(write)))
+      input(value <-- read, onInput --> (_.mapToTargetValue.through(write)))
 
   given int[F[_]: Async]: Edit[F, Int] with
     def of(read: Stream[Rx[F, _], Int])(write: Pipe[F, Int, INothing]) =
@@ -97,7 +97,7 @@ object Edit:
       input(
         typ := "number",
         value <-- read.map(_.toString),
-        onInput --> (_.mapToValue.map(_.toIntOption).unNone.through(write))
+        onInput --> (_.mapToTargetValue.map(_.toIntOption).unNone.through(write))
       )
 
   given product[F[_]: Async, A <: Product](
