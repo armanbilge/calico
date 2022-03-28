@@ -185,7 +185,7 @@
     </span><span class="identifier">div</span><span>(
       </span><span class="identifier">span</span><span>(
         </span><span class="identifier">label</span><span>(</span><span class="string-literal">&quot;Your email: &quot;</span><span>),
-        </span><span class="identifier">input</span><span>(</span><span class="identifier">onInput</span><span> --&gt; (</span><span class="identifier">_</span><span>.</span><span class="identifier">mapToValue</span><span>.</span><span class="identifier">through</span><span>(</span><span class="identifier">emailCh</span><span>.</span><span class="identifier">sendAll</span><span>)))
+        </span><span class="identifier">input</span><span>(</span><span class="identifier">onInput</span><span> --&gt; (</span><span class="identifier">_</span><span>.</span><span class="identifier">mapToTargetValue</span><span>.</span><span class="identifier">through</span><span>(</span><span class="identifier">emailCh</span><span>.</span><span class="identifier">sendAll</span><span>)))
       ),
       </span><span class="identifier">span</span><span>(
         </span><span class="identifier">cls</span><span> &lt;-- </span><span class="identifier">validatedSig</span><span>.</span><span class="identifier">discrete</span><span>.</span><span class="identifier">map</span><span> {

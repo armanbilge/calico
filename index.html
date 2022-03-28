@@ -109,7 +109,7 @@
         <p><strong>calico</strong> is heavily inspired by <a href="https://Laminar.dev/">Laminar</a>. I have yet only had time to plagiarize the DSL and a few of the examples ;)</p>
         
         <h3 id="try-it" class="section">Try it!<a class="anchor-link right" href="#try-it"><i class="icofont-laika">&#xef71;</i></a></h3>
-        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="identifier">libraryDependencies</span><span> += </span><span class="string-literal">&quot;com.armanbilge&quot;</span><span> %%% </span><span class="string-literal">&quot;calico&quot;</span><span> % </span><span class="string-literal">&quot;0.0-460d7da&quot;</span></code></pre>
+        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="identifier">libraryDependencies</span><span> += </span><span class="string-literal">&quot;com.armanbilge&quot;</span><span> %%% </span><span class="string-literal">&quot;calico&quot;</span><span> % </span><span class="string-literal">&quot;0.0-98b4c51&quot;</span></code></pre>
         
         <h2 id="core-concepts" class="section">Core concepts<a class="anchor-link right" href="#core-concepts"><i class="icofont-laika">&#xef71;</i></a></h2>
         
@@ -148,7 +148,7 @@
       </span><span class="identifier">placeholder</span><span> := </span><span class="string-literal">&quot;Enter your name here&quot;</span><span>,
       </span><span class="comment">// here, input events are run through the given Pipe
 </span><span>      </span><span class="comment">// this starts background fibers within the lifecycle of the &lt;input&gt; element
-</span><span>      </span><span class="identifier">onInput</span><span> --&gt; (</span><span class="identifier">_</span><span>.</span><span class="identifier">mapToValue</span><span>.</span><span class="identifier">foreach</span><span>(</span><span class="identifier">nameRef</span><span>.</span><span class="identifier">set</span><span>))
+</span><span>      </span><span class="identifier">onInput</span><span> --&gt; (</span><span class="identifier">_</span><span>.</span><span class="identifier">mapToTargetValue</span><span>.</span><span class="identifier">foreach</span><span>(</span><span class="identifier">nameRef</span><span>.</span><span class="identifier">set</span><span>))
     ),
     </span><span class="identifier">span</span><span>(
       </span><span class="string-literal">&quot; Hello, &quot;</span><span>,
@@ -189,7 +189,7 @@
       </span><span class="identifier">label</span><span>(</span><span class="string-literal">&quot;Your name: &quot;</span><span>),
       </span><span class="identifier">input</span><span>(
         </span><span class="identifier">placeholder</span><span> := </span><span class="string-literal">&quot;Enter your name here&quot;</span><span>,
-        </span><span class="identifier">onInput</span><span> --&gt; (</span><span class="identifier">_</span><span>.</span><span class="identifier">mapToValue</span><span>.</span><span class="identifier">foreach</span><span>(</span><span class="identifier">nameRef</span><span>.</span><span class="identifier">set</span><span>))
+        </span><span class="identifier">onInput</span><span> --&gt; (</span><span class="identifier">_</span><span>.</span><span class="identifier">mapToTargetValue</span><span>.</span><span class="identifier">foreach</span><span>(</span><span class="identifier">nameRef</span><span>.</span><span class="identifier">set</span><span>))
       ),
       </span><span class="identifier">span</span><span>(
         </span><span class="string-literal">&quot; Hello, &quot;</span><span>,
