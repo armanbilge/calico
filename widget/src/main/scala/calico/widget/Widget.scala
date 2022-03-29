@@ -33,8 +33,14 @@ import shapeless3.deriving.Labelling
 import scala.deriving.Mirror
 
 object Widget:
+  def view[F[_], A](sigRef: SigRef[F, A])(using View[F, A]): Resource[F, dom.HTMLElement] =
+    view(sigRef.discrete)
+
   def view[F[_], A](read: Stream[Rx[F, _], A])(
       using view: View[F, A]): Resource[F, dom.HTMLElement] = view.of(read)
+
+  def edit[F[_], A](sigRef: SigRef[F, A])(using Edit[F, A]): Resource[F, dom.HTMLElement] =
+    edit(sigRef.discrete)(_.foreach(sigRef.set(_)))
 
   def edit[F[_], A](read: Stream[Rx[F, _], A])(write: Pipe[F, A, INothing])(
       using edit: Edit[F, A]): Resource[F, dom.HTMLElement] = edit.of(read)(write)

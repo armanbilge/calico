@@ -28,18 +28,24 @@ import fs2.concurrent.*
 object Example extends IOWebApp:
 
   final case class Person(firstName: String, lastName: String, age: Int)
+  final case class TwoPeople(one: Person, two: Person)
 
-  def render = SignallingRef[IO].of(Person("", "", 0)).toResource.flatMap { personRef =>
-    personRef.discrete.renderableSignal.flatMap { personSig =>
+  def render = SigRef[IO, TwoPeople](TwoPeople(Person("", "", 0), Person("", "", 0)))
+    .toResource
+    .flatMap { persons =>
       div(
         div(
           h3("View"),
-          Widget.view(personSig.discrete)
+          Widget.view(persons.discrete)
         ),
         div(
-          h3("Edit"),
-          Widget.edit(personSig.discrete)(_.foreach(personRef.set(_)))
+          h3("Edit 1"),
+          Widget.edit(persons.focus(_.one))
+        ),
+        div(
+          h3("Edit 2"),
+          Widget.edit(persons.focus(_.two))
         )
       )
+
     }
-  }
