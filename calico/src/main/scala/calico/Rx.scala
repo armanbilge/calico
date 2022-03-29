@@ -47,6 +47,10 @@ object Rx extends RxLowPriority0:
 private sealed class RxLowPriority0 extends RxLowPriority1:
   given [F[_]](using F: Sync[F]): Sync[Rx[F, _]] = F.asInstanceOf[Sync[Rx[F, _]]]
 
-private sealed class RxLowPriority1:
+private sealed class RxLowPriority1 extends RxLowPriority2:
   given [F[_], E](using F: MonadCancel[F, E]): MonadCancel[Rx[F, _], E] =
     F.asInstanceOf[MonadCancel[Rx[F, _], E]]
+
+private sealed class RxLowPriority2:
+  given [F[_], E](using F: Monad[F]): Monad[Rx[F, _]] =
+    F.asInstanceOf[Monad[Rx[F, _]]]
