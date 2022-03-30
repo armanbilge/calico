@@ -28,22 +28,13 @@ import fs2.concurrent.Signal
 import fs2.concurrent.SignallingRef
 import monocle.Focus
 import monocle.Lens
-import monocle.macros.GenLens
 
 abstract class SigRef[F[_], A]
     extends Signal[Rx[F, _], A],
       RefSink[F, A],
       DeferredSource[Rx[F, _], A]:
 
-  inline final def focus[B](inline f: Focus.KeywordContext ?=> A => B): SigRef[F, B] =
-    import scala.compiletime.error
-    inline GenLens(f).asInstanceOf[Matchable] match
-      case lens: Lens[A, B] => focused(lens)
-      case lens =>
-        // error("focus did not create a lens")
-        focused(lens.asInstanceOf[Lens[A, B]])
-
-  def focused[B](lens: Lens[A, B]): SigRef[F, B]
+  def zoom[B](lens: Lens[A, B]): SigRef[F, B]
 
 object SigRef:
   def apply[F[_]: Concurrent, A](a: A): F[SigRef[F, A]] = of(Some(a))
@@ -59,7 +50,7 @@ object SigRef:
         def set(a: A) = sig.set(Some(a)).translate
         def continuous = sig.continuous.unNone
         def discrete = sig.discrete.unNone
-        def focused[B](lens: Lens[A, B]) = SigRef.lens(this, lens)
+        def zoom[B](lens: Lens[A, B]) = SigRef.lens(this, lens)
     }
 
   def lens[F[_]: Monad, A, B](sigRef: SigRef[F, A], lens: Lens[A, B]): SigRef[F, B] =
@@ -69,4 +60,4 @@ object SigRef:
       def set(b: B) = sigRef.get.translate.flatMap(a => sigRef.set(lens.replace(b)(a)))
       def continuous = sigRef.continuous.map(lens.get)
       def discrete = sigRef.discrete.map(lens.get)
-      def focused[C](lensBC: Lens[B, C]) = SigRef.lens(sigRef, lens.andThen(lensBC))
+      def zoom[C](lensBC: Lens[B, C]) = SigRef.lens(sigRef, lens.andThen(lensBC))
