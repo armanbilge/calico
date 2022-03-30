@@ -34,6 +34,8 @@ abstract class SigRef[F[_], A]
       RefSink[F, A],
       DeferredSource[Rx[F, _], A]:
 
+  final def signalF: Signal[F, A] = asInstanceOf[Signal[F, A]]
+
   def zoom[B](lens: Lens[A, B]): SigRef[F, B]
 
 object SigRef:
