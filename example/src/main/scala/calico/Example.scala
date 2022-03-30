@@ -32,7 +32,7 @@ object Example extends IOWebApp:
   final case class TwoPeople(one: Person, two: Person)
 
   def render =
-    SigRef[IO, TwoPeople](TwoPeople(Person("", "", 0), Person("", "", 0))).toResource.flatMap {
+    SigRef[IO].of(TwoPeople(Person("", "", 0), Person("", "", 0))).toResource.flatMap {
       persons =>
         div(
           div(

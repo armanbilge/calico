@@ -39,6 +39,11 @@ abstract class SigRef[F[_], A]
 object SigRef:
   def apply[F[_]: Concurrent, A](a: A): F[SigRef[F, A]] = of(Some(a))
 
+  def apply[F[_]] = new PartialApply[F]
+
+  final class PartialApply[F[_]] private[SigRef]:
+    def of[A](a: A)(using Concurrent[F]): F[SigRef[F, A]] = SigRef.of(Some(a))
+
   def apply[F[_]: Concurrent, A]: F[SigRef[F, A]] = of(None)
 
   private def of[F[_], A](a: Option[A])(using F: Concurrent[F]): F[SigRef[F, A]] =
