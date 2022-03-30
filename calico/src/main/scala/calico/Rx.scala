@@ -23,12 +23,10 @@ import cats.effect.kernel.MonadCancel
 import cats.effect.kernel.Sync
 import cats.~>
 
-import scala.scalajs.concurrent.QueueExecutionContext
-
 opaque type Rx[F[_], A] = F[A]
 object Rx extends RxLowPriority0:
   extension [F[_], A](rxa: Rx[F[_], A])
-    def render(using F: Async[F]): F[A] = F.evalOn(rxa, QueueExecutionContext.promises)
+    def render(using F: Async[F]): F[A] = F.evalOn(rxa, unsafe.MicrotaskExecutor)
     def translate: F[A] = rxa
 
   def apply[F[_]: Sync, A](thunk: => A): Rx[F, A] = delay(thunk)
