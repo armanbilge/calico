@@ -10,7 +10,7 @@ import cats.effect.unsafe.implicits.*
 import fs2.*
 import fs2.concurrent.*
 
-val app = SignallingRef[IO].of("world").toResource.flatMap { nameRef =>
+val app = SigRef[IO].of("world").toResource.flatMap { nameRef =>
   div(
     label("Your name: "),
     input(
@@ -19,7 +19,7 @@ val app = SignallingRef[IO].of("world").toResource.flatMap { nameRef =>
     ),
     span(
       " Hello, ",
-      nameRef.discrete.map(_.toUpperCase).renderable
+      nameRef.discrete.map(_.toUpperCase)
     )
   )
 }

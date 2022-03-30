@@ -12,7 +12,7 @@ import fs2.*
 import fs2.concurrent.*
 
 def Counter(label: String, initialStep: Int) =
-  SignallingRef[IO, Int](initialStep).product(Channel.unbounded[IO, Int])
+  SigRef[IO].of(initialStep).product(Channel.unbounded[IO, Int])
     .toResource.flatMap { (stepRef, diffCh) =>
 
       val allowedSteps = List(1, 2, 3, 5, 10)
@@ -21,7 +21,7 @@ def Counter(label: String, initialStep: Int) =
         p(
           "Step: ",
           select(
-            value <-- stepRef.discrete.map(_.toString).renderable,
+            value <-- stepRef.discrete.map(_.toString),
             onChange --> {
               _.mapToTargetValue.map(_.toIntOption).unNone.foreach(stepRef.set)
             },
@@ -35,12 +35,12 @@ def Counter(label: String, initialStep: Int) =
           button(
             "-",
             onClick --> {
-              _.evalMap(_ => stepRef.get).map(-1 * _).foreach(diffCh.send(_).void)
+              _.evalMap(_ => stepRef.getF).map(-1 * _).foreach(diffCh.send(_).void)
             }
           ),
           button(
             "+",
-            onClick --> (_.evalMap(_ => stepRef.get).foreach(diffCh.send(_).void))
+            onClick --> (_.evalMap(_ => stepRef.getF).foreach(diffCh.send(_).void))
           )
         )
       )
