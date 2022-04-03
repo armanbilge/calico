@@ -17,10 +17,7 @@ val app = SigRef[IO].of("world").toResource.flatMap { nameRef =>
       placeholder := "Enter your name here",
       onInput --> (_.mapToTargetValue.foreach(nameRef.set))
     ),
-    span(
-      " Hello, ",
-      nameRef.discrete.map(_.toUpperCase)
-    )
+    span(" Hello, ", nameRef.discrete.map(_.toUpperCase))
   )
 }
 
