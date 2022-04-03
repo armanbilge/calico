@@ -24,22 +24,29 @@ import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import fs2.*
 import fs2.concurrent.*
+import monocle.macros.GenLens
 
 object Example extends IOWebApp:
 
   final case class Person(firstName: String, lastName: String, age: Int)
+  final case class TwoPeople(one: Person, two: Person)
 
-  def render = SignallingRef[IO].of(Person("", "", 0)).toResource.flatMap { personRef =>
-    personRef.discrete.renderableSignal.flatMap { personSig =>
-      div(
+  def render =
+    SigRef[IO].of(TwoPeople(Person("", "", 0), Person("", "", 0))).toResource.flatMap {
+      persons =>
         div(
-          h3("View"),
-          Widget.view(personSig.discrete)
-        ),
-        div(
-          h3("Edit"),
-          Widget.edit(personSig.discrete)(_.foreach(personRef.set(_)))
+          div(
+            h3("View"),
+            Widget.view(persons.discrete)
+          ),
+          div(
+            h3("Edit 1"),
+            Widget.edit(persons.zoom(GenLens[TwoPeople](_.one)))
+          ),
+          div(
+            h3("Edit 2"),
+            Widget.edit(persons.zoom(GenLens[TwoPeople](_.two)))
+          )
         )
-      )
+
     }
-  }

@@ -24,6 +24,7 @@ lazy val calico = project
       "org.typelevel" %%% "cats-effect" % "3.3.9",
       "co.fs2" %%% "fs2-core" % "3.2.7",
       "org.typelevel" %%% "shapeless3-deriving" % "3.0.4",
+      "dev.optics" %%% "monocle-core" % "3.1.0",
       "com.raquo" %%% "domtypes" % "0.16.0-RC2",
       "org.scala-js" %%% "scalajs-dom" % "2.1.0"
     )
@@ -42,7 +43,10 @@ lazy val example = project
   .enablePlugins(ScalaJSPlugin, NoPublishPlugin)
   .dependsOn(calico, widget)
   .settings(
-    scalaJSUseMainModuleInitializer := true
+    scalaJSUseMainModuleInitializer := true,
+    libraryDependencies ++= Seq(
+      "dev.optics" %%% "monocle-macro" % "3.1.0"
+    )
   )
 
 lazy val jsdocs = project.dependsOn(calico, widget).enablePlugins(ScalaJSPlugin)

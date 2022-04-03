@@ -57,14 +57,14 @@ extension [F[_], A](stream: Stream[F, A])
 
   def signal(using Concurrent[F]): Resource[F, Signal[F, A]] =
     for
-      sig <- DeferredSignallingRef[F, A].toResource
+      sig <- SigRef[F, A].toResource
       _ <- stream.foreach(sig.set(_)).compile.drain.background
-    yield sig
+    yield sig.signalF
 
   def renderableSignal(using Async[F]): Resource[F, Signal[Rx[F, _], A]] =
     for
-      sig <- DeferredSignallingRef[Rx[F, _], A].render.toResource
-      _ <- stream.foreach(sig.set(_).render).compile.drain.background
+      sig <- SigRef[F, A].toResource
+      _ <- stream.foreach(sig.set(_)).compile.drain.background
     yield sig
 
   def renderableTopic(using Async[F]): Resource[F, Topic[Rx[F, _], A]] =

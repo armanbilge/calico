@@ -10,17 +10,14 @@ import cats.effect.unsafe.implicits.*
 import fs2.*
 import fs2.concurrent.*
 
-val app = SignallingRef[IO].of("world").toResource.flatMap { nameRef =>
+val app = SigRef[IO].of("world").toResource.flatMap { nameRef =>
   div(
     label("Your name: "),
     input(
       placeholder := "Enter your name here",
       onInput --> (_.mapToTargetValue.foreach(nameRef.set))
     ),
-    span(
-      " Hello, ",
-      nameRef.discrete.map(_.toUpperCase).renderable
-    )
+    span(" Hello, ", nameRef.discrete.map(_.toUpperCase))
   )
 }
 

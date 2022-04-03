@@ -56,7 +56,7 @@ import cats.effect.syntax.all.*
 import fs2.*
 import fs2.concurrent.*
 
-val component = SignallingRef[IO].of("world").toResource.flatMap { nameRef =>
+val component = SigRef[IO].of("world").toResource.flatMap { nameRef =>
   div(
     label("Your name: "),
     input(
@@ -69,7 +69,7 @@ val component = SignallingRef[IO].of("world").toResource.flatMap { nameRef =>
       " Hello, ",
       // here, a Stream is rendered into the HTML
       // this starts background fibers within the life cycle of the <span> element
-      nameRef.discrete.map(_.toUpperCase).renderable
+      nameRef.discrete.map(_.toUpperCase)
     )
   )
 }
@@ -95,40 +95,35 @@ Consider our Hello World example: suppose that in addition to displaying the ent
 
 The `Rx` monad is so-called for its "highly reactive" semantics. Specifically, any computation occurring in `Rx` (notably, updating the DOM) is _guaranteed_ to complete before the UI re-renders. For this reason, the **calico** DSL uses `Rx` as the effect type for `Stream`s that bind the DOM to dynamic content.
 
-There are currently two easy ways to transform a `stream: Stream[F, A]` to the `Rx` effect and thus make it "renderable". The type signatures look intimidating, but (1) was already used in the example above and (2) is used in the example below.
-
-1. `stream.renderable: Resource[F, Stream[Rx[F, _], A]]`
-   
-   A one-off to make a single-use `Stream` renderable.
-
-2. `stream.renderableSignal: Resource[F, Signal[Rx[F, _], A]]`
-
-   Creates a `Signal` which can have multiple renderable subscribers.
-
-Now, we can display the input length in our Hello World without any glitches!
+The `SigRef` mutable signalling reference exposes a `discrete` stream of updates in the `Rx` effect. Thus, any components that subscribe to the same `SigRef` will always be rendered in sync without glitches.
 
 ```scala mdoc:js:shared
-val component2 = SignallingRef[IO].of("world").toResource.flatMap { nameRef =>
-  nameRef.discrete.renderableSignal.flatMap { nameSig =>
-    div(
-      label("Your name: "),
-      input(
-        placeholder := "Enter your name here",
-        onInput --> (_.mapToTargetValue.foreach(nameRef.set))
-      ),
-      span(
-        " Hello, ",
-        nameSig.discrete.map(_.toUpperCase)
-      ),
-      p("Length: ", nameSig.discrete.map(_.length.toString))
-    )
-  }
+val component2 = SigRef[IO].of("world").toResource.flatMap { name =>
+  div(
+    label("Your name: "),
+    input(
+      placeholder := "Enter your name here",
+      onInput --> (_.mapToTargetValue.foreach(name.set))
+    ),
+    span(" Hello, ", name.discrete.map(_.toUpperCase)), // subscription 1
+    p("Length: ", name.discrete.map(_.length.toString)) // subscription 2
+  )
 }
 ```
 
 ```scala mdoc:js:invisible
 component2.renderInto(node).allocated.unsafeRunAndForget()(cats.effect.unsafe.IORuntime.global)
 ```
+
+There are also two syntax extensions to transform a `stream: Stream[F, A]` to the `Rx` effect and thus make it "renderable".
+
+1. `stream.renderable: Resource[F, Stream[Rx[F, _], A]]`
+
+   A one-off to make a single-use `Stream` renderable.
+
+2. `stream.renderableSignal: Resource[F, Signal[Rx[F, _], A]]`
+
+   Creates a `Signal` which can have multiple renderable subscribers.
 
 #### `Rx` monad, behind-the-scenes
 
