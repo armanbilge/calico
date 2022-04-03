@@ -203,10 +203,7 @@ object Prop:
     def modify(prop: Modified[F, V, J], e: E) =
       prop.values.flatMap { vs =>
         vs.foreach { v =>
-          Rx {
-            e.asInstanceOf[js.Dynamic]
-              .updateDynamic(prop.name)(prop.codec.encode(v).asInstanceOf[js.Any])
-          }
+          Rx(e.asInstanceOf[js.Dictionary[J]](prop.name) = prop.codec.encode(v))
         }.compile
           .drain
           .background
