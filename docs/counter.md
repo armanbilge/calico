@@ -21,11 +21,11 @@ def Counter(label: String, initialStep: Int) =
         p(
           "Step: ",
           select(
+            allowedSteps.map(step => option(value := step.toString, step.toString)),
             value <-- step.discrete.map(_.toString),
             onChange --> {
               _.mapToTargetValue.map(_.toIntOption).unNone.foreach(step.set)
-            },
-            allowedSteps.map(step => option(value := step.toString, step.toString))
+            }
           )
         ),
         p(
