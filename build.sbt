@@ -44,6 +44,11 @@ lazy val example = project
   .dependsOn(calico, widget)
   .settings(
     scalaJSUseMainModuleInitializer := true,
+    scalaJSLinkerConfig ~= {
+      import org.scalajs.linker.interface.ModuleSplitStyle
+      _.withModuleKind(ModuleKind.ESModule)
+        .withModuleSplitStyle(ModuleSplitStyle.SmallModulesFor(List("calico")))
+    },
     libraryDependencies ++= Seq(
       "dev.optics" %%% "monocle-macro" % "3.1.0"
     )
