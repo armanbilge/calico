@@ -61,7 +61,7 @@ extension [F[_], A](stream: Stream[F, A])
       _ <- stream.foreach(sig.set(_)).compile.drain.background
     yield sig.signalF
 
-  def renderableSignal(using Async[F]): Resource[F, Signal[Rx[F, _], A]] =
+  def renderableSignal(using Concurrent[F]): Resource[F, Signal[Rx[F, _], A]] =
     for
       sig <- SigRef[F, A].toResource
       _ <- stream.foreach(sig.set(_)).compile.drain.background
