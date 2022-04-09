@@ -67,11 +67,6 @@ extension [F[_], A](stream: Stream[F, A])
       _ <- stream.foreach(sig.set(_)).compile.drain.background
     yield sig
 
-  def renderableTopic(using Async[F]): Resource[F, Topic[Rx[F, _], A]] =
-    renderable.flatMap { stream =>
-      Topic[Rx[F, _], A].toResource.flatTap(_.publish(stream).compile.drain.background).render
-    }
-
 extension [F[_], A, B](pipe: Pipe[F, A, B])
   def channel(using F: Concurrent[F]): Resource[F, Channel[F, A]] =
     for
