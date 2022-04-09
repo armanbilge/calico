@@ -18,6 +18,7 @@ package calico
 package dsl
 
 import cats.Foldable
+import cats.Hash
 import cats.Monad
 import cats.effect.IO
 import cats.effect.kernel.Async
@@ -244,3 +245,5 @@ final class ClassAttr[F[_]] private[calico]
         def decode(domValue: String) = domValue.split(" ").toList
         def encode(scalaValue: List[String]) = scalaValue.mkString(" ")
     )
+
+final class Children[F[_], K: Hash, E <: dom.Element] private[calico] (f: K => Resource[F, E])
