@@ -19,6 +19,7 @@ package syntax
 
 import cats.effect.kernel.Async
 import cats.effect.kernel.Concurrent
+import cats.effect.kernel.Deferred
 import cats.effect.kernel.MonadCancel
 import cats.effect.kernel.Resource
 import cats.effect.kernel.Sync
@@ -42,6 +43,13 @@ extension [F[_]](component: Resource[F, dom.HTMLElement])
 extension [F[_], A](resource: Resource[Rx[F, _], A])
   def render(using Async[F]): Resource[F, A] = resource.mapK(Rx.renderK)
   def translate(using MonadCancel[F, ?]): Resource[F, A] = resource.mapK(Rx.translateK)
+
+extension [F[_], A](fa: F[A])
+  def renderable(using F: Concurrent[F]): Resource[F, Rx[F, A]] =
+    for
+      d <- Deferred[Rx[F, _], A].translate.toResource
+      _ <- fa.flatMap(d.complete(_).translate).background
+    yield d.get
 
 extension [F[_], A](stream: Stream[F, A])
   def renderable(using Async[F]): Resource[F, Stream[Rx[F, _], A]] =
