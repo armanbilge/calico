@@ -44,12 +44,12 @@ extension [F[_], A](resource: Resource[Rx[F, _], A])
   def translate(using MonadCancel[F, ?]): Resource[F, A] = resource.mapK(Rx.translateK)
 
 extension [F[_], A](stream: Stream[F, A])
-  def renderable(using Async[F]): Resource[F, Stream[Rx[F, _], A]] =
+  def renderable(using Concurrent[F]): Resource[F, Stream[Rx[F, _], A]] =
     for
-      ch <- Channel.synchronous[Rx[F, _], A].render.toResource
+      ch <- Channel.synchronous[Rx[F, _], A].translate.toResource
       _ <- stream
-        .foreach(ch.send(_).void.render)
-        .onFinalize(ch.close.void.render)
+        .foreach(ch.send(_).void.translate)
+        .onFinalize(ch.close.void.translate)
         .compile
         .drain
         .background
@@ -61,16 +61,11 @@ extension [F[_], A](stream: Stream[F, A])
       _ <- stream.foreach(sig.set(_)).compile.drain.background
     yield sig.signalF
 
-  def renderableSignal(using Async[F]): Resource[F, Signal[Rx[F, _], A]] =
+  def renderableSignal(using Concurrent[F]): Resource[F, Signal[Rx[F, _], A]] =
     for
       sig <- SigRef[F, A].toResource
       _ <- stream.foreach(sig.set(_)).compile.drain.background
     yield sig
-
-  def renderableTopic(using Async[F]): Resource[F, Topic[Rx[F, _], A]] =
-    renderable.flatMap { stream =>
-      Topic[Rx[F, _], A].toResource.flatTap(_.publish(stream).compile.drain.background).render
-    }
 
 extension [F[_], A, B](pipe: Pipe[F, A, B])
   def channel(using F: Concurrent[F]): Resource[F, Channel[F, A]] =
