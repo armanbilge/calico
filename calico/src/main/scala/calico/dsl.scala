@@ -22,6 +22,7 @@ import cats.Hash
 import cats.Monad
 import cats.effect.IO
 import cats.effect.kernel.Async
+import cats.effect.kernel.Ref
 import cats.effect.kernel.Resource
 import cats.effect.kernel.Sync
 import cats.effect.std.Dispatcher
@@ -46,6 +47,7 @@ import fs2.concurrent.Channel
 import org.scalajs.dom
 import shapeless3.deriving.K0
 
+import scala.collection.mutable
 import scala.scalajs.concurrent.QueueExecutionContext
 import scala.scalajs.js
 
@@ -246,4 +248,16 @@ final class ClassAttr[F[_]] private[calico]
         def encode(scalaValue: List[String]) = scalaValue.mkString(" ")
     )
 
-final class Children[F[_], K: Hash, E <: dom.Element] private[calico] (f: K => Resource[F, E])
+final class Children[F[_], K, E <: dom.Element] private[calico] (f: K => Resource[F, E]):
+  def <--(ks: Stream[Rx[F, _], List[K]]): Children.Modified[F, K, E] = ???
+
+object Children:
+  final class Modified[F[_], K, E <: dom.Element] private[calico] (
+      val f: K => Resource[F, E],
+      val ks: Stream[Rx[F, _], List[K]])
+
+  given [F[_], E <: dom.Element, K: Hash, E2 <: dom.Element](
+      using F: Async[F]): Modifier[F, E, Modified[F, K, E2]] with
+    def modify(prop: Modified[F, K, E2], e: E) =
+      for active <- Ref[Rx[F, _]].of(mutable.Map.empty[K, E2]).translate.toResource
+      yield ()
