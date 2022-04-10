@@ -17,6 +17,7 @@
 package calico
 package dsl
 
+import calico.syntax.*
 import cats.Foldable
 import cats.Hash
 import cats.Monad
@@ -26,6 +27,7 @@ import cats.effect.kernel.Ref
 import cats.effect.kernel.Resource
 import cats.effect.kernel.Sync
 import cats.effect.std.Dispatcher
+import cats.effect.std.Supervisor
 import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import com.raquo.domtypes.generic.builders.EventPropBuilder
@@ -259,5 +261,32 @@ object Children:
   given [F[_], E <: dom.Element, K: Hash, E2 <: dom.Element](
       using F: Async[F]): Modifier[F, E, Modified[F, K, E2]] with
     def modify(prop: Modified[F, K, E2], e: E) =
-      for active <- Ref[Rx[F, _]].of(mutable.Map.empty[K, E2]).translate.toResource
+      for
+        sup <- Supervisor[F]
+        active <- Ref[Rx[F, _]].of(mutable.Map.empty[K, (E2, F[Unit])]).translate.toResource
+        _ <- prop
+          .ks
+          .evalMap { ks =>
+            for
+              (currentNodes, update) <- active.access
+              (nextNodes, newNodes, release) <- Rx.delay {
+                val nextNodes = mutable.Map[K, (E2, F[Unit])]()
+                val newNodes = List.newBuilder[K]
+                ks.foreach { k =>
+                  currentNodes.remove(k) match
+                    case Some(v) => nextNodes += (k -> v)
+                    case None => newNodes += k
+                }
+
+                val release = currentNodes.values.toList.traverse_(_._2)
+
+                (nextNodes, newNodes.result, release)
+              }
+            // newNodes <- newNodes.traverse(prop.f)
+            yield ()
+          }
+          .compile
+          .drain
+          .background
+          .translate
       yield ()
