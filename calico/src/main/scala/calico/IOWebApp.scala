@@ -17,9 +17,9 @@
 package calico
 
 import calico.syntax.*
+import calico.unsafe.given
 import cats.effect.IO
 import cats.effect.Resource
-import cats.effect.unsafe.implicits.*
 import org.scalajs.dom
 
 trait IOWebApp:
