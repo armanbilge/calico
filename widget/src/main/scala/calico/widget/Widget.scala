@@ -36,26 +36,26 @@ object Widget:
   def view[F[_], A](sigRef: SigRef[F, A])(using View[F, A]): Resource[F, dom.HTMLElement] =
     view(sigRef.discrete)
 
-  def view[F[_], A](read: Stream[Rx[F, _], A])(
-      using view: View[F, A]): Resource[F, dom.HTMLElement] = view.of(read)
+  def view[F[_], A](read: Stream[F, A])(using view: View[F, A]): Resource[F, dom.HTMLElement] =
+    view.of(read)
 
   def edit[F[_], A](sigRef: SigRef[F, A])(using Edit[F, A]): Resource[F, dom.HTMLElement] =
     edit(sigRef.discrete)(_.foreach(sigRef.set(_)))
 
-  def edit[F[_], A](read: Stream[Rx[F, _], A])(write: Pipe[F, A, INothing])(
+  def edit[F[_], A](read: Stream[F, A])(write: Pipe[F, A, INothing])(
       using edit: Edit[F, A]): Resource[F, dom.HTMLElement] = edit.of(read)(write)
 
 trait View[F[_], A]:
   outer =>
 
-  def of(read: Stream[Rx[F, _], A]): Resource[F, dom.HTMLElement]
+  def of(read: Stream[F, A]): Resource[F, dom.HTMLElement]
 
   final def contramap[B](f: B => A): View[F, B] = new:
-    def of(read: Stream[Rx[F, _], B]) = outer.of(read.map(f))
+    def of(read: Stream[F, B]) = outer.of(read.map(f))
 
 object View:
   given string[F[_]: Async]: View[F, String] with
-    def of(read: Stream[Rx[F, _], String]) = Dsl[F].span(read)
+    def of(read: Stream[F, String]) = Dsl[F].span(read)
 
   given int[F[_]: Async]: View[F, Int] = string.contramap(_.toString)
 
@@ -63,11 +63,11 @@ object View:
       using inst: K0.ProductInstances[View[F, _], A],
       labelling: Labelling[A]
   ): View[F, A] with
-    def of(read: Stream[Rx[F, _], A]) =
+    def of(read: Stream[F, A]) =
       val dsl = Dsl[F]
       import dsl.*
 
-      read.signal.render.flatMap { sig =>
+      read.signal.flatMap { sig =>
         val children = inst
           .unfold(List.empty[Resource[F, dom.HTMLElement]]) {
             [a] =>
@@ -85,18 +85,18 @@ object View:
       }
 
 trait Edit[F[_], A]:
-  def of(read: Stream[Rx[F, _], A])(write: Pipe[F, A, INothing]): Resource[F, dom.HTMLElement]
+  def of(read: Stream[F, A])(write: Pipe[F, A, INothing]): Resource[F, dom.HTMLElement]
 
 object Edit:
   given string[F[_]: Async]: Edit[F, String] with
-    def of(read: Stream[Rx[F, _], String])(write: Pipe[F, String, INothing]) =
+    def of(read: Stream[F, String])(write: Pipe[F, String, INothing]) =
       val dsl = Dsl[F]
       import dsl.*
 
       input(value <-- read, onInput --> (_.mapToTargetValue.through(write)))
 
   given int[F[_]: Async]: Edit[F, Int] with
-    def of(read: Stream[Rx[F, _], Int])(write: Pipe[F, Int, INothing]) =
+    def of(read: Stream[F, Int])(write: Pipe[F, Int, INothing]) =
       val dsl = Dsl[F]
       import dsl.*
 
@@ -111,11 +111,11 @@ object Edit:
       mirror: Mirror.ProductOf[A],
       labelling: Labelling[A]
   ): Edit[F, A] with
-    def of(read: Stream[Rx[F, _], A])(write: Pipe[F, A, INothing]) =
+    def of(read: Stream[F, A])(write: Pipe[F, A, INothing]) =
       val dsl = Dsl[F]
       import dsl.*
 
-      (read.signal.render, write.channel).tupled.flatMap { (sig, ch) =>
+      (read.signal, write.channel).tupled.flatMap { (sig, ch) =>
         val children = inst
           .unfold(List.empty[Resource[F, dom.HTMLElement]]) {
             [a] =>
@@ -127,7 +127,7 @@ object Edit:
                     edit.of(sig.discrete.map(_.productElement(i).asInstanceOf[a]))(
                       _.foreach { a =>
                         for
-                          oldA <- sig.get.translate
+                          oldA <- sig.get
                           newA = mirror.fromProduct(updatedProduct(oldA, i, a))
                           _ <- ch.send(newA)
                         yield ()
