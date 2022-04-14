@@ -132,13 +132,13 @@ object Modifier:
     forStringStream.contramap(Stream.emit(_))
 
   given forStringStream[F[_], E <: dom.Element](
-      using F: Async[F]): Modifier[F, E, Stream[Rx[F, _], String]] with
-    def modify(s: Stream[Rx[F, _], String], e: E) = for
+      using F: Async[F]): Modifier[F, E, Stream[F, String]] with
+    def modify(s: Stream[F, String], e: E) = for
       n <- F
         .delay(dom.document.createTextNode(""))
         .flatTap(n => F.delay(e.appendChild(n)))
         .toResource
-      _ <- s.foreach(t => Rx(n.textContent = t)).compile.drain.background.mapK(Rx.renderK)
+      _ <- s.foreach(t => F.delay(n.textContent = t)).compile.drain.background
     yield ()
 
   given forResource[F[_], E <: dom.Element, A](
@@ -158,57 +158,56 @@ final class HtmlAttr[F[_], V] private[calico] (key: String, codec: Codec[V, Stri
   def :=(v: V): HtmlAttr.Modified[F, V] =
     this <-- Stream.emit(v)
 
-  def <--(vs: Stream[Rx[F, _], V]): HtmlAttr.Modified[F, V] =
+  def <--(vs: Stream[F, V]): HtmlAttr.Modified[F, V] =
     this <-- Resource.pure(vs)
 
-  def <--(vs: Resource[F, Stream[Rx[F, _], V]]): HtmlAttr.Modified[F, V] =
+  def <--(vs: Resource[F, Stream[F, V]]): HtmlAttr.Modified[F, V] =
     HtmlAttr.Modified(key, codec, vs)
 
 object HtmlAttr:
   final class Modified[F[_], V] private[HtmlAttr] (
       val key: String,
       val codec: Codec[V, String],
-      val values: Resource[F, Stream[Rx[F, _], V]]
+      val values: Resource[F, Stream[F, V]]
   )
 
-  given [F[_]: Async, E <: dom.Element, V]: Modifier[F, E, Modified[F, V]] with
+  given [F[_], E <: dom.Element, V](using F: Async[F]): Modifier[F, E, Modified[F, V]] with
     def modify(attr: Modified[F, V], e: E) =
       attr.values.flatMap { vs =>
-        vs.foreach(v => Rx(e.setAttribute(attr.key, attr.codec.encode(v))))
+        vs.foreach(v => F.delay(e.setAttribute(attr.key, attr.codec.encode(v))))
           .compile
           .drain
           .background
           .void
-          .mapK(Rx.renderK)
       }
 
 sealed class Prop[F[_], V, J] private[calico] (name: String, codec: Codec[V, J]):
   def :=(v: V): Prop.Modified[F, V, J] =
     this <-- Stream.emit(v)
 
-  def <--(vs: Stream[Rx[F, _], V]): Prop.Modified[F, V, J] =
+  def <--(vs: Stream[F, V]): Prop.Modified[F, V, J] =
     this <-- Resource.pure(vs)
 
-  def <--(vs: Resource[F, Stream[Rx[F, _], V]]): Prop.Modified[F, V, J] =
+  def <--(vs: Resource[F, Stream[F, V]]): Prop.Modified[F, V, J] =
     Prop.Modified(name, codec, vs)
 
 object Prop:
   final class Modified[F[_], V, J] private[Prop] (
       val name: String,
       val codec: Codec[V, J],
-      val values: Resource[F, Stream[Rx[F, _], V]]
+      val values: Resource[F, Stream[F, V]]
   )
 
-  given [F[_]: Async, E <: dom.Element, V, J]: Modifier[F, E, Modified[F, V, J]] with
+  given [F[_], E <: dom.Element, V, J](using F: Async[F]): Modifier[F, E, Modified[F, V, J]]
+    with
     def modify(prop: Modified[F, V, J], e: E) =
       prop.values.flatMap { vs =>
         vs.foreach { v =>
-          Rx(e.asInstanceOf[js.Dictionary[J]](prop.name) = prop.codec.encode(v))
+          F.delay(e.asInstanceOf[js.Dictionary[J]](prop.name) = prop.codec.encode(v))
         }.compile
           .drain
           .background
           .void
-          .mapK(Rx.renderK)
       }
 
 final class EventProp[F[_], E] private[calico] (key: String):
