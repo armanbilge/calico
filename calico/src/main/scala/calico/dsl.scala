@@ -264,9 +264,8 @@ object Children:
         _ <- children
           .ks
           .evalMap { ks =>
-            for
-              (currentNodes, update) <- active.access
-              (nextNodes, newNodes, release) <- F.delay {
+            active.access.flatMap { (currentNodes, update) =>
+              F.delay {
                 val nextNodes = mutable.Map[K, (E2, F[Unit])]()
                 val newNodes = List.newBuilder[K]
                 ks.foreach { k =>
@@ -277,10 +276,17 @@ object Children:
 
                 val release = currentNodes.values.toList.traverse_(_._2)
 
+                newNodes
+                  .result()
+                  .traverse(k => children.f(k).allocated.tupleLeft(k))
+                  .flatMap(newNodes => F.delay(nextNodes ++= newNodes))
+                  .flatMap(F.delay {
+                    
+                  })
+
                 (nextNodes, newNodes.result, release)
               }
-            // newNodes <- newNodes.traverse(prop.f)
-            yield ()
+            }
           }
           .compile
           .drain
