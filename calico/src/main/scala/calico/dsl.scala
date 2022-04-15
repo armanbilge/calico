@@ -123,8 +123,7 @@ trait Modifier[F[_], E, A]:
   def modify(a: A, e: E): Resource[F, Unit]
 
   final def contramap[B](f: B => A): Modifier[F, E, B] =
-    new:
-      def modify(b: B, e: E) = outer.modify(f(b), e)
+    (b: B, e: E) => outer.modify(f(b), e)
 
 object Modifier:
   given forString[F[_], E <: dom.Element](using F: Async[F]): Modifier[F, E, String] =
