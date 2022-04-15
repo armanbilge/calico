@@ -45,7 +45,6 @@ import fs2.concurrent.Channel
 import org.scalajs.dom
 import shapeless3.deriving.K0
 
-import scala.scalajs.concurrent.QueueExecutionContext
 import scala.scalajs.js
 
 object io extends Dsl[IO]
@@ -221,7 +220,7 @@ object EventProp:
   given [F[_], E <: dom.Element, V](using F: Async[F]): Modifier[F, E, Modified[F, V]] with
     def modify(prop: Modified[F, V], e: E) = for
       ch <- Resource.make(Channel.unbounded[F, V])(_.close.void)
-      d <- Dispatcher[F].evalOn(QueueExecutionContext.promises)
+      d <- Dispatcher[F]
       _ <- Resource.make {
         F.delay(new dom.AbortController).flatTap { c =>
           F.delay {
