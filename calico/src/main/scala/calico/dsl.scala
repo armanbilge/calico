@@ -267,26 +267,29 @@ object Children:
           .ks
           .evalMap { ks =>
             active.access.flatMap { (currentNodes, update) =>
-              F.delay {
-                val nextNodes = mutable.Map[K, (E2, F[Unit])]()
-                val newNodes = List.newBuilder[K]
-                ks.foreach { k =>
-                  currentNodes.remove(k) match
-                    case Some(v) => nextNodes += (k -> v)
-                    case None => newNodes += k
-                }
+              F.uncancelable { poll =>
+                F.delay {
+                  val nextNodes = mutable.Map[K, (E2, F[Unit])]()
+                  val newNodes = List.newBuilder[K]
+                  ks.foreach { k =>
+                    currentNodes.remove(k) match
+                      case Some(v) => nextNodes += (k -> v)
+                      case None => newNodes += k
+                  }
 
-                val release = currentNodes.values.toList.traverse_(_._2)
+                  val releaseOldNodes = currentNodes.values.toList.traverse_(_._2)
 
-                newNodes
-                  .result()
-                  .traverse(k => children.f(k).allocated.tupleLeft(k))
-                  .flatMap(newNodes => F.delay(nextNodes ++= newNodes))
-                  .*>(F.delay(e.replaceChildren(ks.map(nextNodes(_)._1)*)))
-                  .*>(update(nextNodes))
-                  .*>(release)
-              }.flatten
-                .uncancelable
+                  val acquireNewNodes = newNodes.result().traverse_ { k =>
+                    poll(children.f(k).allocated).flatMap(x => F.delay(nextNodes += k -> x))
+                  }
+
+                  val renderNextNodes = F.delay(e.replaceChildren(ks.map(nextNodes(_)._1)*))
+
+                  (update(nextNodes) *>
+                    acquireNewNodes *>
+                    renderNextNodes).guarantee(releaseOldNodes)
+                }.flatten
+              }
             }
           }
           .compile
