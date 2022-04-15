@@ -27,6 +27,7 @@ import cats.effect.kernel.Ref
 import cats.effect.kernel.Resource
 import cats.effect.kernel.Sync
 import cats.effect.std.Dispatcher
+import cats.effect.std.Hotswap
 import cats.effect.std.Supervisor
 import cats.effect.syntax.all.*
 import cats.syntax.all.*
@@ -159,6 +160,26 @@ object Modifier:
       using F: Sync[F]): Modifier[F, E, Resource[F, E2]] with
     def modify(e2: Resource[F, E2], e: E) =
       e2.evalMap(e2 => F.delay(e.appendChild(e2)))
+
+  given forElementStream[F[_], E <: dom.Element, E2 <: dom.Element](
+      using F: Async[F]): Modifier[F, E, Stream[F, Resource[F, E2]]] with
+    def modify(e2s: Stream[F, Resource[F, E2]], e: E) =
+      for
+        (hs, c) <- Hotswap[F, dom.Node](Resource.eval(F.delay(dom.document.createComment(""))))
+        prev <- F.ref(c).toResource
+        _ <- e2s
+          .evalMap { next =>
+            for
+              n <- hs.swap(next.widen)
+              p <- prev.get
+              _ <- F.delay(e.replaceChild(p, n))
+              _ <- prev.set(n)
+            yield ()
+          }
+          .compile
+          .drain
+          .background
+      yield ()
 
 final class HtmlAttr[F[_], V] private[calico] (key: String, codec: Codec[V, String]):
   def :=(v: V): HtmlAttr.Modified[F, V] =
