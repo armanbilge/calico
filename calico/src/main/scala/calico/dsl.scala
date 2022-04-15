@@ -260,7 +260,9 @@ object Children:
     def modify(children: Modified[F, K, E2], e: E) =
       for
         sup <- Supervisor[F]
-        active <- Ref[F].of(mutable.Map.empty[K, (E2, F[Unit])]).toResource
+        active <- Resource.make(Ref[F].of(mutable.Map.empty[K, (E2, F[Unit])]))(
+          _.get.flatMap(_.values.toList.traverse_(_._2))
+        )
         _ <- children
           .ks
           .evalMap { ks =>
@@ -280,12 +282,10 @@ object Children:
                   .result()
                   .traverse(k => children.f(k).allocated.tupleLeft(k))
                   .flatMap(newNodes => F.delay(nextNodes ++= newNodes))
-                  .flatMap(F.delay {
-                    
-                  })
-
-                (nextNodes, newNodes.result, release)
-              }
+                  .*>(F.delay(e.replaceChildren(ks.map(nextNodes(_)._1)*)))
+                  .*>(release)
+              }.flatten
+                .uncancelable
             }
           }
           .compile
