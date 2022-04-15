@@ -107,6 +107,9 @@ trait HtmlBuilders[F[_]](using F: Async[F])
 
   def cls: ClassAttr[F] = ClassAttr[F]
 
+  def children[K, E <: dom.Element](f: K => Resource[F, E]): Children[F, K, E] =
+    Children[F, K, E](f)
+
 type HtmlTagT[F[_]] = [E <: dom.HTMLElement] =>> HtmlTag[F, E]
 final class HtmlTag[F[_], E <: dom.HTMLElement] private[calico] (name: String, void: Boolean)(
     using F: Async[F]):
@@ -248,7 +251,7 @@ final class ClassAttr[F[_]] private[calico]
     )
 
 final class Children[F[_], K, E <: dom.Element] private[calico] (f: K => Resource[F, E]):
-  def <--(ks: Stream[F, List[K]]): Children.Modified[F, K, E] = ???
+  def <--(ks: Stream[F, List[K]]): Children.Modified[F, K, E] = Children.Modified(f, ks)
 
 object Children:
   final class Modified[F[_], K, E <: dom.Element] private[calico] (
