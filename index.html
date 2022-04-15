@@ -94,7 +94,6 @@
           <li class="level1"><a href="#try-it">Try it!</a></li>
           <li class="level1"><a href="#core-concepts">Core concepts</a></li>
           <li class="level2"><a href="#components-and-resource-management">Components and resource management</a></li>
-          <li class="level2"><a href="#glitch-free-rendering">Glitch-free rendering</a></li>
         </ul>
 
         <p class="footer"></p>
@@ -103,13 +102,13 @@
       <main class="content">
 
         <h1 id="calico" class="title">calico</h1>
-        <p><strong>calico</strong> is an (early-stage) &quot;framework&quot; for building web applications in <a href="https://www.scala-js.org/">Scala.js</a> with <a href="https://typelevel.org/cats-effect/">Cats Effect 3</a> and <a href="https://fs2.io/">fs2</a>. I say &quot;framework&quot; because <strong>calico</strong> (so far) introduces only one new concept of its own; otherwise, it is almost entirely a DSL. If you enjoy working with Cats Effect and fs2 then (I hope) you will like <strong>calico</strong> as well.</p>
+        <p><strong>calico</strong> is an (early-stage) &quot;framework&quot; for building web applications in <a href="https://www.scala-js.org/">Scala.js</a> with <a href="https://typelevel.org/cats-effect/">Cats Effect 3</a> and <a href="https://fs2.io/">fs2</a>. I say &quot;framework&quot; because <strong>calico</strong> no new concepts of its own; it is effectively a DSL. If you enjoy working with Cats Effect and fs2 then (I hope) you will like <strong>calico</strong> as well.</p>
         
         <h3 id="acknowledgements" class="section">Acknowledgements<a class="anchor-link right" href="#acknowledgements"><i class="icofont-laika">&#xef71;</i></a></h3>
         <p><strong>calico</strong> is heavily inspired by <a href="https://Laminar.dev/">Laminar</a>. I have yet only had time to plagiarize the DSL and a few of the examples ;)</p>
         
         <h3 id="try-it" class="section">Try it!<a class="anchor-link right" href="#try-it"><i class="icofont-laika">&#xef71;</i></a></h3>
-        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="identifier">libraryDependencies</span><span> += </span><span class="string-literal">&quot;com.armanbilge&quot;</span><span> %%% </span><span class="string-literal">&quot;calico&quot;</span><span> % </span><span class="string-literal">&quot;0.0-c051a16&quot;</span></code></pre>
+        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="identifier">libraryDependencies</span><span> += </span><span class="string-literal">&quot;com.armanbilge&quot;</span><span> %%% </span><span class="string-literal">&quot;calico&quot;</span><span> % </span><span class="string-literal">&quot;0.0-128ad82&quot;</span></code></pre>
         
         <h2 id="core-concepts" class="section">Core concepts<a class="anchor-link right" href="#core-concepts"><i class="icofont-laika">&#xef71;</i></a></h2>
         
@@ -165,46 +164,8 @@
           <li><code>span(...)</code> is a <code>Resource</code> that creates a <code>&lt;span&gt;</code> element and also manages <code>Fiber</code>s that handle rendering of the name.</li>
           <li><code>div(...)</code> is a <code>Resource</code> composed of the <code>input(...)</code> and <code>span(...)</code> <code>Resource</code>s, and therefore (indirectly) manages the <code>Fiber</code>s of its child components.</li>
         </ol>
-        <p>And there we have it: a self-contained component consisting of non-trivial resources, that can be safely used, reused, and torn down.</p>
-        
-        <h3 id="glitch-free-rendering" class="section">Glitch-free rendering<a class="anchor-link right" href="#glitch-free-rendering"><i class="icofont-laika">&#xef71;</i></a></h3>
-        <p>As mentioned in the introduction, <strong>calico</strong> does introduce one new concept: the <code>Rx</code> monad. Its sole purpose is to provide a mechanism for glitch-free rendering.</p>
-        <p>Consider our Hello World example: suppose that in addition to displaying the entered name, we also wanted to display its length. A rendering glitch would be if the UI updates the length before updating the name such that (very briefly!) the user sees inconsistent state.</p>
-        <p>The <code>Rx</code> monad is so-called for its &quot;highly reactive&quot; semantics. Specifically, any computation occurring in <code>Rx</code> (notably, updating the DOM) is <em>guaranteed</em> to complete before the UI re-renders. For this reason, the <strong>calico</strong> DSL uses <code>Rx</code> as the effect type for <code>Stream</code>s that bind the DOM to dynamic content.</p>
-        <p>The <code>SigRef</code> mutable signalling reference exposes a <code>discrete</code> stream of updates in the <code>Rx</code> effect. Thus, any components that subscribe to the same <code>SigRef</code> will always be rendered in sync without glitches.</p>
-        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">val</span><span> </span><span class="identifier">component2</span><span> = </span><span class="type-name">SigRef</span><span>[</span><span class="type-name">IO</span><span>].</span><span class="identifier">of</span><span>(</span><span class="string-literal">&quot;world&quot;</span><span>).</span><span class="identifier">toResource</span><span>.</span><span class="identifier">flatMap</span><span> { </span><span class="identifier">name</span><span> =&gt;
-  </span><span class="identifier">div</span><span>(
-    </span><span class="identifier">label</span><span>(</span><span class="string-literal">&quot;Your name: &quot;</span><span>),
-    </span><span class="identifier">input</span><span>(
-      </span><span class="identifier">placeholder</span><span> := </span><span class="string-literal">&quot;Enter your name here&quot;</span><span>,
-      </span><span class="identifier">onInput</span><span> --&gt; (</span><span class="identifier">_</span><span>.</span><span class="identifier">mapToTargetValue</span><span>.</span><span class="identifier">foreach</span><span>(</span><span class="identifier">name</span><span>.</span><span class="identifier">set</span><span>))
-    ),
-    </span><span class="identifier">span</span><span>(</span><span class="string-literal">&quot; Hello, &quot;</span><span>, </span><span class="identifier">name</span><span>.</span><span class="identifier">discrete</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">toUpperCase</span><span>)), </span><span class="comment">// subscription 1
-</span><span>    </span><span class="identifier">p</span><span>(</span><span class="string-literal">&quot;Length: &quot;</span><span>, </span><span class="identifier">name</span><span>.</span><span class="identifier">discrete</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">length</span><span>.</span><span class="identifier">toString</span><span>)) </span><span class="comment">// subscription 2
-</span><span>  )
-}</span></code></pre>
-        <div id="mdoc-html-run5" data-mdoc-js></div>
-        <p>There are also two syntax extensions to transform a <code>stream: Stream[F, A]</code> to the <code>Rx</code> effect and thus make it &quot;renderable&quot;.</p>
-        <ol class="arabic">
-          <li>
-            <p><code>stream.renderable: Resource[F, Stream[Rx[F, _], A]]</code></p>
-            <p>A one-off to make a single-use <code>Stream</code> renderable.</p>
-          </li>
-          <li>
-            <p><code>stream.renderableSignal: Resource[F, Signal[Rx[F, _], A]]</code></p>
-            <p>Creates a <code>Signal</code> which can have multiple renderable subscribers.</p>
-          </li>
-        </ol>
-        
-        <h4 id="rx-monad-behind-the-scenes" class="section"><code>Rx</code> monad, behind-the-scenes<a class="anchor-link right" href="#rx-monad-behind-the-scenes"><i class="icofont-laika">&#xef71;</i></a></h4>
-        <p>The <code>Rx</code> monad is in fact a transformer for a monad <code>F[_]</code> that implements <code>Async[F]</code>.</p>
-        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">opaque</span><span> </span><span class="keyword">type</span><span> </span><span class="type-name">Rx</span><span>[</span><span class="type-name">F</span><span>[</span><span class="identifier">_</span><span>], </span><span class="type-name">A</span><span>] = </span><span class="type-name">F</span><span>[</span><span class="type-name">A</span><span>]</span></code></pre>
-        <p>Despite appearances, it is <em>not</em> an identity transformation.</p>
-        <ol class="arabic">
-          <li><code>Rx</code> execution is scheduled on the <a href="https://javascript.info/event-loop#macrotasks-and-microtasks">microtask queue</a>. This is because the JavaScript event loop will always prioritize microtasks over rendering, timers, and handling of user and I/O events.</li>
-          <li><code>Rx</code> only implements <code>Concurrent</code> and <code>Sync</code>. It does not implement <code>Temporal</code> nor <code>Async</code>, because timers and external async events are not microtasks.</li>
-        </ol>
-        <p>Although the semantics of the microtask queue are <a href="https://github.com/scala-js/scala-js-macrotask-executor#background">unsuitable for a general-purpose execution context</a>, selectively applying them to the <code>Rx</code> monad is a useful strategy to achieve glitch-free rendering.<script type="text/javascript" src="index.md.js" defer></script>
+        <p>And there we have it: a self-contained component consisting of non-trivial resources, that can be safely used, reused, and torn down.
+        <script type="text/javascript" src="index.md.js" defer></script>
         <script type="text/javascript" src="mdoc.js" defer></script></p>
 
         <hr style="margin-top: 30px"/>

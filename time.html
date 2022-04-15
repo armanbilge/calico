@@ -106,17 +106,17 @@
         <pre><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.</span><span class="identifier">dsl</span><span>.</span><span class="identifier">io</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.</span><span class="identifier">syntax</span><span>.*
+</span><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.</span><span class="identifier">unsafe</span><span>.</span><span class="keyword">given</span><span>
 </span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.</span><span class="identifier">std</span><span>.</span><span class="type-name">Random</span><span>
 </span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.</span><span class="identifier">syntax</span><span>.</span><span class="identifier">all</span><span>.*
-</span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.</span><span class="identifier">unsafe</span><span>.</span><span class="identifier">implicits</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">syntax</span><span>.</span><span class="identifier">all</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">fs2</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">fs2</span><span>.</span><span class="identifier">concurrent</span><span>.*
 
 </span><span class="keyword">import</span><span> </span><span class="identifier">scala</span><span>.</span><span class="identifier">concurrent</span><span>.</span><span class="identifier">duration</span><span>.*
 
-</span><span class="keyword">val</span><span> </span><span class="identifier">app</span><span> = </span><span class="type-name">Stream</span><span>.</span><span class="identifier">fixedRate</span><span>[</span><span class="type-name">IO</span><span>](</span><span class="number-literal">1</span><span>.</span><span class="identifier">second</span><span>).</span><span class="identifier">as</span><span>(</span><span class="number-literal">1</span><span>).</span><span class="identifier">scanMonoid</span><span>.</span><span class="identifier">renderableSignal</span><span>
+</span><span class="keyword">val</span><span> </span><span class="identifier">app</span><span> = </span><span class="type-name">Stream</span><span>.</span><span class="identifier">fixedRate</span><span>[</span><span class="type-name">IO</span><span>](</span><span class="number-literal">1</span><span>.</span><span class="identifier">second</span><span>).</span><span class="identifier">as</span><span>(</span><span class="number-literal">1</span><span>).</span><span class="identifier">scanMonoid</span><span>.</span><span class="identifier">signal</span><span>
   .</span><span class="identifier">flatMap</span><span> { </span><span class="identifier">tick</span><span> =&gt;
     </span><span class="identifier">div</span><span>(
       </span><span class="identifier">div</span><span>(
@@ -125,7 +125,7 @@
       ),
       </span><span class="identifier">div</span><span>(
         </span><span class="string-literal">&quot;Random #: &quot;</span><span>,
-        </span><span class="type-name">Stream</span><span>.</span><span class="identifier">eval</span><span>(</span><span class="type-name">Random</span><span>.</span><span class="identifier">scalaUtilRandom</span><span>[</span><span class="type-name">Rx</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="identifier">_</span><span>]]).</span><span class="identifier">flatMap</span><span> { </span><span class="identifier">random</span><span> =&gt;
+        </span><span class="type-name">Stream</span><span>.</span><span class="identifier">eval</span><span>(</span><span class="type-name">Random</span><span>.</span><span class="identifier">scalaUtilRandom</span><span>[</span><span class="type-name">IO</span><span>]).</span><span class="identifier">flatMap</span><span> { </span><span class="identifier">random</span><span> =&gt;
           </span><span class="identifier">tick</span><span>.</span><span class="identifier">discrete</span><span>.</span><span class="identifier">evalMap</span><span>(</span><span class="identifier">_</span><span> =&gt; </span><span class="identifier">random</span><span>.</span><span class="identifier">nextInt</span><span>).</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span> % </span><span class="number-literal">100</span><span>).</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">toString</span><span>)
         }
       )
@@ -139,9 +139,9 @@
         <pre><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.</span><span class="identifier">dsl</span><span>.</span><span class="identifier">io</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.</span><span class="identifier">syntax</span><span>.*
+</span><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.</span><span class="identifier">unsafe</span><span>.</span><span class="keyword">given</span><span>
 </span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.</span><span class="identifier">syntax</span><span>.</span><span class="identifier">all</span><span>.*
-</span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.</span><span class="identifier">unsafe</span><span>.</span><span class="identifier">implicits</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">syntax</span><span>.</span><span class="identifier">all</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">fs2</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">fs2</span><span>.</span><span class="identifier">concurrent</span><span>.*
@@ -154,7 +154,7 @@
 
   </span><span class="identifier">div</span><span>(
     </span><span class="identifier">button</span><span>(</span><span class="identifier">onClick</span><span> --&gt; (</span><span class="identifier">_</span><span>.</span><span class="identifier">void</span><span>.</span><span class="identifier">through</span><span>(</span><span class="identifier">clickCh</span><span>.</span><span class="identifier">sendAll</span><span>)), </span><span class="string-literal">&quot;Click me&quot;</span><span>),
-    </span><span class="identifier">alert</span><span>.</span><span class="identifier">renderable</span><span>
+    </span><span class="identifier">alert</span><span>
   )
 }
 
@@ -165,9 +165,9 @@
         <pre><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.</span><span class="identifier">dsl</span><span>.</span><span class="identifier">io</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.</span><span class="identifier">syntax</span><span>.*
+</span><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.</span><span class="identifier">unsafe</span><span>.</span><span class="keyword">given</span><span>
 </span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.</span><span class="identifier">syntax</span><span>.</span><span class="identifier">all</span><span>.*
-</span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.</span><span class="identifier">unsafe</span><span>.</span><span class="identifier">implicits</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">syntax</span><span>.</span><span class="identifier">all</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">fs2</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">fs2</span><span>.</span><span class="identifier">concurrent</span><span>.*
@@ -181,7 +181,7 @@
 
 </span><span class="keyword">val</span><span> </span><span class="identifier">app</span><span> = </span><span class="type-name">Channel</span><span>.</span><span class="identifier">unbounded</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">String</span><span>].</span><span class="identifier">toResource</span><span>.</span><span class="identifier">flatMap</span><span> { </span><span class="identifier">emailCh</span><span> =&gt;
   </span><span class="keyword">val</span><span> </span><span class="identifier">validated</span><span> = </span><span class="identifier">emailCh</span><span>.</span><span class="identifier">stream</span><span>.</span><span class="identifier">debounce</span><span>(</span><span class="number-literal">1</span><span>.</span><span class="identifier">second</span><span>).</span><span class="identifier">map</span><span>(</span><span class="identifier">validateEmail</span><span>)
-  </span><span class="identifier">validated</span><span>.</span><span class="identifier">renderableSignal</span><span>.</span><span class="identifier">flatMap</span><span> { </span><span class="identifier">validatedSig</span><span> =&gt;
+  </span><span class="identifier">validated</span><span>.</span><span class="identifier">signal</span><span>.</span><span class="identifier">flatMap</span><span> { </span><span class="identifier">validatedSig</span><span> =&gt;
     </span><span class="identifier">div</span><span>(
       </span><span class="identifier">span</span><span>(
         </span><span class="identifier">label</span><span>(</span><span class="string-literal">&quot;Your email: &quot;</span><span>),

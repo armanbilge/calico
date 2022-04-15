@@ -101,9 +101,9 @@
         <pre><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.</span><span class="identifier">dsl</span><span>.</span><span class="identifier">io</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.</span><span class="identifier">syntax</span><span>.*
+</span><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.</span><span class="identifier">unsafe</span><span>.</span><span class="keyword">given</span><span>
 </span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.</span><span class="identifier">syntax</span><span>.</span><span class="identifier">all</span><span>.*
-</span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.</span><span class="identifier">unsafe</span><span>.</span><span class="identifier">implicits</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">syntax</span><span>.</span><span class="identifier">all</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">fs2</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">fs2</span><span>.</span><span class="identifier">concurrent</span><span>.*
@@ -127,17 +127,17 @@
         ),
         </span><span class="identifier">p</span><span>(
           </span><span class="identifier">label</span><span> + </span><span class="string-literal">&quot;: &quot;</span><span>,
-          </span><span class="identifier">b</span><span>(</span><span class="identifier">diff</span><span>.</span><span class="identifier">stream</span><span>.</span><span class="identifier">scanMonoid</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">toString</span><span>).</span><span class="identifier">renderable</span><span>),
+          </span><span class="identifier">b</span><span>(</span><span class="identifier">diff</span><span>.</span><span class="identifier">stream</span><span>.</span><span class="identifier">scanMonoid</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">toString</span><span>)),
           </span><span class="string-literal">&quot; &quot;</span><span>,
           </span><span class="identifier">button</span><span>(
             </span><span class="string-literal">&quot;-&quot;</span><span>,
             </span><span class="identifier">onClick</span><span> --&gt; {
-              </span><span class="identifier">_</span><span>.</span><span class="identifier">evalMap</span><span>(</span><span class="identifier">_</span><span> =&gt; </span><span class="identifier">step</span><span>.</span><span class="identifier">getF</span><span>).</span><span class="identifier">map</span><span>(-</span><span class="number-literal">1</span><span> * </span><span class="identifier">_</span><span>).</span><span class="identifier">foreach</span><span>(</span><span class="identifier">diff</span><span>.</span><span class="identifier">send</span><span>(</span><span class="identifier">_</span><span>).</span><span class="identifier">void</span><span>)
+              </span><span class="identifier">_</span><span>.</span><span class="identifier">evalMap</span><span>(</span><span class="identifier">_</span><span> =&gt; </span><span class="identifier">step</span><span>.</span><span class="identifier">get</span><span>).</span><span class="identifier">map</span><span>(-</span><span class="number-literal">1</span><span> * </span><span class="identifier">_</span><span>).</span><span class="identifier">foreach</span><span>(</span><span class="identifier">diff</span><span>.</span><span class="identifier">send</span><span>(</span><span class="identifier">_</span><span>).</span><span class="identifier">void</span><span>)
             }
           ),
           </span><span class="identifier">button</span><span>(
             </span><span class="string-literal">&quot;+&quot;</span><span>,
-            </span><span class="identifier">onClick</span><span> --&gt; (</span><span class="identifier">_</span><span>.</span><span class="identifier">evalMap</span><span>(</span><span class="identifier">_</span><span> =&gt; </span><span class="identifier">step</span><span>.</span><span class="identifier">getF</span><span>).</span><span class="identifier">foreach</span><span>(</span><span class="identifier">diff</span><span>.</span><span class="identifier">send</span><span>(</span><span class="identifier">_</span><span>).</span><span class="identifier">void</span><span>))
+            </span><span class="identifier">onClick</span><span> --&gt; (</span><span class="identifier">_</span><span>.</span><span class="identifier">evalMap</span><span>(</span><span class="identifier">_</span><span> =&gt; </span><span class="identifier">step</span><span>.</span><span class="identifier">get</span><span>).</span><span class="identifier">foreach</span><span>(</span><span class="identifier">diff</span><span>.</span><span class="identifier">send</span><span>(</span><span class="identifier">_</span><span>).</span><span class="identifier">void</span><span>))
           )
         )
       )
