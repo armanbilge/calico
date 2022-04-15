@@ -19,7 +19,6 @@ package syntax
 
 import cats.effect.kernel.Async
 import cats.effect.kernel.Concurrent
-import cats.effect.kernel.Deferred
 import cats.effect.kernel.MonadCancel
 import cats.effect.kernel.Resource
 import cats.effect.kernel.Sync
