@@ -4,9 +4,9 @@
 import calico.*
 import calico.dsl.io.*
 import calico.syntax.*
+import calico.unsafe.given
 import cats.effect.*
 import cats.effect.syntax.all.*
-import cats.effect.unsafe.implicits.*
 import cats.syntax.all.*
 import fs2.*
 import fs2.concurrent.*
@@ -30,17 +30,17 @@ def Counter(label: String, initialStep: Int) =
         ),
         p(
           label + ": ",
-          b(diff.stream.scanMonoid.map(_.toString).renderable),
+          b(diff.stream.scanMonoid.map(_.toString)),
           " ",
           button(
             "-",
             onClick --> {
-              _.evalMap(_ => step.getF).map(-1 * _).foreach(diff.send(_).void)
+              _.evalMap(_ => step.get).map(-1 * _).foreach(diff.send(_).void)
             }
           ),
           button(
             "+",
-            onClick --> (_.evalMap(_ => step.getF).foreach(diff.send(_).void))
+            onClick --> (_.evalMap(_ => step.get).foreach(diff.send(_).void))
           )
         )
       )

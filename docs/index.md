@@ -76,7 +76,7 @@ val component = SigRef[IO].of("world").toResource.flatMap { nameRef =>
 ```
 
 ```scala mdoc:js:invisible
-component.renderInto(node).allocated.unsafeRunAndForget()(cats.effect.unsafe.IORuntime.global)
+component.renderInto(node).allocated.unsafeRunAndForget()(calico.unsafe.given_IORuntime)
 ```
 
 The ideas are very much the same as the prior example.
