@@ -39,29 +39,8 @@ extension [F[_]](component: Resource[F, dom.HTMLElement])
       Resource.make(F.delay(root.appendChild(e)))(_ => F.delay(root.removeChild(e))).void
     }
 
-extension [F[_], A](resource: Resource[Rx[F, _], A])
-  def render(using Async[F]): Resource[F, A] = resource.mapK(Rx.renderK)
-  def translate(using MonadCancel[F, ?]): Resource[F, A] = resource.mapK(Rx.translateK)
-
 extension [F[_], A](stream: Stream[F, A])
-  def renderable(using Concurrent[F]): Resource[F, Stream[Rx[F, _], A]] =
-    for
-      ch <- Channel.synchronous[Rx[F, _], A].translate.toResource
-      _ <- stream
-        .foreach(ch.send(_).void.translate)
-        .onFinalize(ch.close.void.translate)
-        .compile
-        .drain
-        .background
-    yield ch.stream
-
   def signal(using Concurrent[F]): Resource[F, Signal[F, A]] =
-    for
-      sig <- SigRef[F, A].toResource
-      _ <- stream.foreach(sig.set(_)).compile.drain.background
-    yield sig.signalF
-
-  def renderableSignal(using Concurrent[F]): Resource[F, Signal[Rx[F, _], A]] =
     for
       sig <- SigRef[F, A].toResource
       _ <- stream.foreach(sig.set(_)).compile.drain.background

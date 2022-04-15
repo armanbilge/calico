@@ -6,17 +6,17 @@
 import calico.*
 import calico.dsl.io.*
 import calico.syntax.*
+import calico.unsafe.given
 import cats.effect.*
 import cats.effect.std.Random
 import cats.effect.syntax.all.*
-import cats.effect.unsafe.implicits.*
 import cats.syntax.all.*
 import fs2.*
 import fs2.concurrent.*
 
 import scala.concurrent.duration.*
 
-val app = Stream.fixedRate[IO](1.second).as(1).scanMonoid.renderableSignal
+val app = Stream.fixedRate[IO](1.second).as(1).scanMonoid.signal
   .flatMap { tick =>
     div(
       div(
@@ -25,7 +25,7 @@ val app = Stream.fixedRate[IO](1.second).as(1).scanMonoid.renderableSignal
       ),
       div(
         "Random #: ",
-        Stream.eval(Random.scalaUtilRandom[Rx[IO, _]]).flatMap { random =>
+        Stream.eval(Random.scalaUtilRandom[IO]).flatMap { random =>
           tick.discrete.evalMap(_ => random.nextInt).map(_ % 100).map(_.toString)
         }
       )
@@ -41,9 +41,9 @@ app.renderInto(node).allocated.unsafeRunAndForget()
 import calico.*
 import calico.dsl.io.*
 import calico.syntax.*
+import calico.unsafe.given
 import cats.effect.*
 import cats.effect.syntax.all.*
-import cats.effect.unsafe.implicits.*
 import cats.syntax.all.*
 import fs2.*
 import fs2.concurrent.*
@@ -56,7 +56,7 @@ val app = Channel.unbounded[IO, Unit].toResource.flatMap { clickCh =>
 
   div(
     button(onClick --> (_.void.through(clickCh.sendAll)), "Click me"),
-    alert.renderable
+    alert
   )
 }
 
@@ -69,9 +69,9 @@ app.renderInto(node).allocated.unsafeRunAndForget()
 import calico.*
 import calico.dsl.io.*
 import calico.syntax.*
+import calico.unsafe.given
 import cats.effect.*
 import cats.effect.syntax.all.*
-import cats.effect.unsafe.implicits.*
 import cats.syntax.all.*
 import fs2.*
 import fs2.concurrent.*
@@ -85,7 +85,7 @@ def validateEmail(email: String): Either[String, Unit] =
 
 val app = Channel.unbounded[IO, String].toResource.flatMap { emailCh =>
   val validated = emailCh.stream.debounce(1.second).map(validateEmail)
-  validated.renderableSignal.flatMap { validatedSig =>
+  validated.signal.flatMap { validatedSig =>
     div(
       span(
         label("Your email: "),

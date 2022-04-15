@@ -2,7 +2,7 @@
 
 # calico
 
-**calico** is an (early-stage) "framework" for building web applications in [Scala.js](https://www.scala-js.org/) with [Cats Effect 3](https://typelevel.org/cats-effect/) and [fs2](https://fs2.io/). I say "framework" because **calico** (so far) introduces only one new concept of its own; otherwise, it is almost entirely a DSL. If you enjoy working with Cats Effect and fs2 then (I hope) you will like **calico** as well.
+**calico** is an (early-stage) "framework" for building web applications in [Scala.js](https://www.scala-js.org/) with [Cats Effect 3](https://typelevel.org/cats-effect/) and [fs2](https://fs2.io/). I say "framework" because **calico** no new concepts of its own; it is effectively a DSL. If you enjoy working with Cats Effect and fs2 then (I hope) you will like **calico** as well.
 
 ### Acknowledgements
 **calico** is heavily inspired by [Laminar](https://Laminar.dev/). I have yet only had time to plagiarize the DSL and a few of the examples ;)
@@ -76,7 +76,7 @@ val component = SigRef[IO].of("world").toResource.flatMap { nameRef =>
 ```
 
 ```scala mdoc:js:invisible
-component.renderInto(node).allocated.unsafeRunAndForget()(cats.effect.unsafe.IORuntime.global)
+component.renderInto(node).allocated.unsafeRunAndForget()(calico.unsafe.given_IORuntime)
 ```
 
 The ideas are very much the same as the prior example.
@@ -86,55 +86,3 @@ The ideas are very much the same as the prior example.
 3. `div(...)` is a `Resource` composed of the `input(...)` and `span(...)` `Resource`s, and therefore (indirectly) manages the `Fiber`s of its child components.
 
 And there we have it: a self-contained component consisting of non-trivial resources, that can be safely used, reused, and torn down.
-
-### Glitch-free rendering
-
-As mentioned in the introduction, **calico** does introduce one new concept: the `Rx` monad. Its sole purpose is to provide a mechanism for glitch-free rendering.
-
-Consider our Hello World example: suppose that in addition to displaying the entered name, we also wanted to display its length. A rendering glitch would be if the UI updates the length before updating the name such that (very briefly!) the user sees inconsistent state.
-
-The `Rx` monad is so-called for its "highly reactive" semantics. Specifically, any computation occurring in `Rx` (notably, updating the DOM) is _guaranteed_ to complete before the UI re-renders. For this reason, the **calico** DSL uses `Rx` as the effect type for `Stream`s that bind the DOM to dynamic content.
-
-The `SigRef` mutable signalling reference exposes a `discrete` stream of updates in the `Rx` effect. Thus, any components that subscribe to the same `SigRef` will always be rendered in sync without glitches.
-
-```scala mdoc:js:shared
-val component2 = SigRef[IO].of("world").toResource.flatMap { name =>
-  div(
-    label("Your name: "),
-    input(
-      placeholder := "Enter your name here",
-      onInput --> (_.mapToTargetValue.foreach(name.set))
-    ),
-    span(" Hello, ", name.discrete.map(_.toUpperCase)), // subscription 1
-    p("Length: ", name.discrete.map(_.length.toString)) // subscription 2
-  )
-}
-```
-
-```scala mdoc:js:invisible
-component2.renderInto(node).allocated.unsafeRunAndForget()(cats.effect.unsafe.IORuntime.global)
-```
-
-There are also two syntax extensions to transform a `stream: Stream[F, A]` to the `Rx` effect and thus make it "renderable".
-
-1. `stream.renderable: Resource[F, Stream[Rx[F, _], A]]`
-
-   A one-off to make a single-use `Stream` renderable.
-
-2. `stream.renderableSignal: Resource[F, Signal[Rx[F, _], A]]`
-
-   Creates a `Signal` which can have multiple renderable subscribers.
-
-#### `Rx` monad, behind-the-scenes
-
-The `Rx` monad is in fact a transformer for a monad `F[_]` that implements `Async[F]`.
-```scala
-opaque type Rx[F[_], A] = F[A]
-```
-
-Despite appearances, it is _not_ an identity transformation.
-
-1. `Rx` execution is scheduled on the [microtask queue](https://javascript.info/event-loop#macrotasks-and-microtasks). This is because the JavaScript event loop will always prioritize microtasks over rendering, timers, and handling of user and I/O events.
-2. `Rx` only implements `Concurrent` and `Sync`. It does not implement `Temporal` nor `Async`, because timers and external async events are not microtasks.
-
-Although the semantics of the microtask queue are [unsuitable for a general-purpose execution context](https://github.com/scala-js/scala-js-macrotask-executor#background), selectively applying them to the `Rx` monad is a useful strategy to achieve glitch-free rendering.
