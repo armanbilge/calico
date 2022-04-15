@@ -283,6 +283,7 @@ object Children:
                   .traverse(k => children.f(k).allocated.tupleLeft(k))
                   .flatMap(newNodes => F.delay(nextNodes ++= newNodes))
                   .*>(F.delay(e.replaceChildren(ks.map(nextNodes(_)._1)*)))
+                  .*>(update(nextNodes))
                   .*>(release)
               }.flatten
                 .uncancelable
