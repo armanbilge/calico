@@ -17,13 +17,18 @@
 package calico
 package dsl
 
+import calico.syntax.*
 import cats.Foldable
+import cats.Hash
 import cats.Monad
 import cats.effect.IO
 import cats.effect.kernel.Async
+import cats.effect.kernel.Ref
 import cats.effect.kernel.Resource
 import cats.effect.kernel.Sync
 import cats.effect.std.Dispatcher
+import cats.effect.std.Hotswap
+import cats.effect.std.Supervisor
 import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import com.raquo.domtypes.generic.builders.EventPropBuilder
@@ -45,6 +50,7 @@ import fs2.concurrent.Channel
 import org.scalajs.dom
 import shapeless3.deriving.K0
 
+import scala.collection.mutable
 import scala.scalajs.js
 
 object io extends Dsl[IO]
@@ -102,6 +108,9 @@ trait HtmlBuilders[F[_]](using F: Async[F])
 
   def cls: ClassAttr[F] = ClassAttr[F]
 
+  def children[K, E <: dom.Element](f: K => Resource[F, E]): Children[F, K, E] =
+    Children[F, K, E](f)
+
 type HtmlTagT[F[_]] = [E <: dom.HTMLElement] =>> HtmlTag[F, E]
 final class HtmlTag[F[_], E <: dom.HTMLElement] private[calico] (name: String, void: Boolean)(
     using F: Async[F]):
@@ -151,6 +160,26 @@ object Modifier:
       using F: Sync[F]): Modifier[F, E, Resource[F, E2]] with
     def modify(e2: Resource[F, E2], e: E) =
       e2.evalMap(e2 => F.delay(e.appendChild(e2)))
+
+  given forElementStream[F[_], E <: dom.Element, E2 <: dom.Element](
+      using F: Async[F]): Modifier[F, E, Stream[F, Resource[F, E2]]] with
+    def modify(e2s: Stream[F, Resource[F, E2]], e: E) =
+      for
+        (hs, c) <- Hotswap[F, dom.Node](Resource.eval(F.delay(dom.document.createComment(""))))
+        prev <- F.ref(c).toResource
+        _ <- e2s
+          .evalMap { next =>
+            for
+              n <- hs.swap(next.widen)
+              p <- prev.get
+              _ <- F.delay(e.replaceChild(p, n))
+              _ <- prev.set(n)
+            yield ()
+          }
+          .compile
+          .drain
+          .background
+      yield ()
 
 final class HtmlAttr[F[_], V] private[calico] (key: String, codec: Codec[V, String]):
   def :=(v: V): HtmlAttr.Modified[F, V] =
@@ -241,3 +270,53 @@ final class ClassAttr[F[_]] private[calico]
         def decode(domValue: String) = domValue.split(" ").toList
         def encode(scalaValue: List[String]) = scalaValue.mkString(" ")
     )
+
+final class Children[F[_], K, E <: dom.Element] private[calico] (f: K => Resource[F, E]):
+  def <--(ks: Stream[F, List[K]]): Children.Modified[F, K, E] = Children.Modified(f, ks)
+
+object Children:
+  final class Modified[F[_], K, E <: dom.Element] private[calico] (
+      val f: K => Resource[F, E],
+      val ks: Stream[F, List[K]])
+
+  given [F[_], E <: dom.Element, K: Hash, E2 <: dom.Element](
+      using F: Async[F]): Modifier[F, E, Modified[F, K, E2]] with
+    def modify(children: Modified[F, K, E2], e: E) =
+      for
+        sup <- Supervisor[F]
+        active <- Resource.make(Ref[F].of(mutable.Map.empty[K, (E2, F[Unit])]))(
+          _.get.flatMap(_.values.toList.traverse_(_._2))
+        )
+        _ <- children
+          .ks
+          .evalMap { ks =>
+            active.access.flatMap { (currentNodes, update) =>
+              F.uncancelable { poll =>
+                F.delay {
+                  val nextNodes = mutable.Map[K, (E2, F[Unit])]()
+                  val newNodes = List.newBuilder[K]
+                  ks.foreach { k =>
+                    currentNodes.remove(k) match
+                      case Some(v) => nextNodes += (k -> v)
+                      case None => newNodes += k
+                  }
+
+                  val releaseOldNodes = currentNodes.values.toList.traverse_(_._2)
+
+                  val acquireNewNodes = newNodes.result().traverse_ { k =>
+                    poll(children.f(k).allocated).flatMap(x => F.delay(nextNodes += k -> x))
+                  }
+
+                  val renderNextNodes = F.delay(e.replaceChildren(ks.map(nextNodes(_)._1)*))
+
+                  (update(nextNodes) *>
+                    acquireNewNodes *>
+                    renderNextNodes).guarantee(releaseOldNodes)
+                }.flatten
+              }
+            }
+          }
+          .compile
+          .drain
+          .background
+      yield ()
