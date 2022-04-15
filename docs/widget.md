@@ -4,10 +4,10 @@
 import calico.*
 import calico.dsl.io.*
 import calico.syntax.*
+import calico.unsafe.given
 import calico.widget.*
 import cats.effect.*
 import cats.effect.syntax.all.*
-import cats.effect.unsafe.implicits.*
 import fs2.*
 import fs2.concurrent.*
 

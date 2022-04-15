@@ -14,21 +14,16 @@
  * limitations under the License.
  */
 
-package calico
+package calico.unsafe
 
-import calico.syntax.*
-import calico.unsafe.given
-import cats.effect.IO
-import cats.effect.Resource
-import org.scalajs.dom
+import cats.effect.unsafe.IORuntime
+import cats.effect.unsafe.IORuntimeConfig
+import cats.effect.unsafe.Scheduler
 
-trait IOWebApp:
-
-  def rootElementId: String = "app"
-
-  def render: Resource[IO, dom.HTMLElement]
-
-  def main(args: Array[String]): Unit =
-    IO.delay(Option(dom.document.getElementById(rootElementId)).get)
-      .flatMap { e => render.renderInto(e).useForever }
-      .unsafeRunAndForget()
+given IORuntime = IORuntime(
+  MicrotaskExecutor,
+  MicrotaskExecutor,
+  Scheduler.createDefaultScheduler()._1,
+  () => (),
+  IORuntimeConfig()
+)

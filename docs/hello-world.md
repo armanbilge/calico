@@ -2,11 +2,11 @@
 
 ```scala mdoc:js
 import calico.*
+import calico.unsafe.given
 import calico.dsl.io.*
 import calico.syntax.*
 import cats.effect.*
 import cats.effect.syntax.all.*
-import cats.effect.unsafe.implicits.*
 import fs2.*
 import fs2.concurrent.*
 

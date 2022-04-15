@@ -29,13 +29,7 @@ import fs2.concurrent.SignallingRef
 import monocle.Focus
 import monocle.Lens
 
-abstract class SigRef[F[_], A]
-    extends Signal[Rx[F, _], A],
-      RefSink[F, A],
-      DeferredSource[Rx[F, _], A]:
-
-  final def getF: F[A] = get.translate
-  final def signalF: Signal[F, A] = asInstanceOf[Signal[F, A]]
+abstract class SigRef[F[_], A] extends Signal[F, A], RefSink[F, A], DeferredSource[F, A]:
 
   def zoom[B](lens: Lens[A, B]): SigRef[F, B]
 
@@ -50,12 +44,12 @@ object SigRef:
   def apply[F[_]: Concurrent, A]: F[SigRef[F, A]] = of(None)
 
   private def of[F[_], A](a: Option[A])(using F: Concurrent[F]): F[SigRef[F, A]] =
-    SignallingRef[Rx[F, _]].of(a).translate.map { sig =>
+    SignallingRef[F].of(a).map { sig =>
       new:
         outer =>
         def get = OptionT(tryGet).getOrElseF(discrete.head.compile.lastOrError)
         def tryGet = sig.get
-        def set(a: A) = sig.set(Some(a)).translate
+        def set(a: A) = sig.set(Some(a))
         def continuous = sig.continuous.unNone
         def discrete = sig.discrete.unNone
         def zoom[B](lens: Lens[A, B]) = SigRef.lens(this, lens)
@@ -65,7 +59,7 @@ object SigRef:
     new:
       def get = sigRef.get.map(lens.get)
       def tryGet = OptionT(sigRef.tryGet).map(lens.get).value
-      def set(b: B) = sigRef.get.translate.flatMap(a => sigRef.set(lens.replace(b)(a)))
+      def set(b: B) = sigRef.get.flatMap(a => sigRef.set(lens.replace(b)(a)))
       def continuous = sigRef.continuous.map(lens.get)
       def discrete = sigRef.discrete.map(lens.get)
       def zoom[C](lensBC: Lens[B, C]) = SigRef.lens(sigRef, lens.andThen(lensBC))
