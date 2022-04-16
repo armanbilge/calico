@@ -118,10 +118,19 @@ final class HtmlTag[F[_], E <: dom.HTMLElement] private[calico] (name: String, v
   def apply[M](modifier: M)(using Modifier[F, E, M]): Resource[F, E] =
     apply(Tuple1(modifier))
 
+  def apply[M](mkModifier: E => M)(using Modifier[F, E, M]): Resource[F, E] =
+    apply(e => Tuple1(mkModifier(e)))
+
   def apply[M <: Tuple](modifiers: M)(
+      using K0.ProductInstances[Modifier[F, E, _], M]): Resource[F, E] =
+    apply(_ => modifiers)
+
+  def apply[M <: Tuple](mkModifiers: E => M)(
       using inst: K0.ProductInstances[Modifier[F, E, _], M]): Resource[F, E] =
-    inst.foldLeft(modifiers)(build.toResource) {
-      [a] => (r: Resource[F, E], m: Modifier[F, E, a], a: a) => r.flatTap(m.modify(a, _))
+    build.toResource.flatMap { e =>
+      inst.foldLeft(mkModifiers(e))(Resource.pure(e)) {
+        [a] => (r: Resource[F, E], m: Modifier[F, E, a], a: a) => r.flatTap(m.modify(a, _))
+      }
     }
 
   private def build = F.delay(dom.document.createElement(name).asInstanceOf[E])

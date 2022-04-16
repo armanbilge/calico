@@ -40,14 +40,18 @@ object TodoMvc extends IOWebApp:
   }
 
   def TodoInput(store: TodoStore) =
-    input(
-      cls := "new-todo",
-      placeholder := "What needs to be done?",
-      autoFocus := true,
-      onKeyPress --> {
-        _.filter(_.keyCode == KeyCode.Enter).mapToTargetValue.foreach(store.create(_))
-      }
-    )
+    input { self =>
+      (
+        cls := "new-todo",
+        placeholder := "What needs to be done?",
+        autoFocus := true,
+        onKeyPress --> {
+          _.filter(_.keyCode == KeyCode.Enter).foreach { _ =>
+            store.create(self.value) *> IO(self.value = "")
+          }
+        }
+      )
+    }
 
   def TodoItem(todo: SignallingRef[IO, Todo]) =
     SignallingRef[IO].of(false).toResource.flatMap { editing =>
