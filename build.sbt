@@ -12,7 +12,7 @@ ThisBuild / tlUntaggedAreSnapshots := false
 ThisBuild / crossScalaVersions := Seq("3.1.2")
 ThisBuild / scalacOptions ++= Seq("-new-syntax", "-indent", "-source:future")
 
-lazy val root = tlCrossRootProject.aggregate(calico, widget, example)
+lazy val root = tlCrossRootProject.aggregate(calico, widget, example, todoMvc)
 
 lazy val calico = project
   .in(file("calico"))
@@ -44,10 +44,26 @@ lazy val example = project
   .dependsOn(calico, widget)
   .settings(
     scalaJSUseMainModuleInitializer := true,
-    scalaJSLinkerConfig ~= {
+    Compile / fastLinkJS / scalaJSLinkerConfig ~= {
       import org.scalajs.linker.interface.ModuleSplitStyle
       _.withModuleKind(ModuleKind.ESModule)
         .withModuleSplitStyle(ModuleSplitStyle.SmallModulesFor(List("calico")))
+    },
+    libraryDependencies ++= Seq(
+      "dev.optics" %%% "monocle-macro" % "3.1.0"
+    )
+  )
+
+lazy val todoMvc = project
+  .in(file("todo-mvc"))
+  .enablePlugins(ScalaJSPlugin, NoPublishPlugin)
+  .dependsOn(calico)
+  .settings(
+    scalaJSUseMainModuleInitializer := true,
+    Compile / fastLinkJS / scalaJSLinkerConfig ~= {
+      import org.scalajs.linker.interface.ModuleSplitStyle
+      _.withModuleKind(ModuleKind.ESModule)
+        .withModuleSplitStyle(ModuleSplitStyle.SmallModulesFor(List("todomvc")))
     },
     libraryDependencies ++= Seq(
       "dev.optics" %%% "monocle-macro" % "3.1.0"
@@ -69,5 +85,20 @@ lazy val docs = project
       TypelevelProject.CatsEffect,
       TypelevelProject.Fs2,
       "http4s-dom" -> url("https://http4s.github.io/http4s-dom/")
-    )
+    ),
+    laikaInputs := {
+      import laika.ast.Path.Root
+      laikaInputs
+        .value
+        .delegate
+        .addFile(
+          (todoMvc / Compile / fullOptJS / artifactPath).value,
+          Root / "todomvc" / "index.js")
+    },
+    mdocVariables += {
+      val src = IO.readLines(
+        (todoMvc / sourceDirectory).value / "main" / "scala" / "todomvc" / "TodoMvc.scala")
+      "TODO_MVC_SRC" -> src.dropWhile(!_.startsWith("package")).mkString("\n")
+    },
+    laikaSite := laikaSite.dependsOn((todoMvc / Compile / fullOptJS)).value
   )

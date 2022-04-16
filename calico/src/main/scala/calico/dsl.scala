@@ -108,8 +108,10 @@ trait HtmlBuilders[F[_]](using F: Async[F])
 
   def cls: ClassAttr[F] = ClassAttr[F]
 
-  def children[K, E <: dom.Element](f: K => Resource[F, E]): Children[F, K, E] =
-    Children[F, K, E](f)
+  def children[E <: dom.Element]: Children[F, E] = Children[F, E]
+
+  def children[K, E <: dom.Element](f: K => Resource[F, E]): KeyedChildren[F, K, E] =
+    KeyedChildren[F, K, E](f)
 
 type HtmlTagT[F[_]] = [E <: dom.HTMLElement] =>> HtmlTag[F, E]
 final class HtmlTag[F[_], E <: dom.HTMLElement] private[calico] (name: String, void: Boolean)(
@@ -118,10 +120,19 @@ final class HtmlTag[F[_], E <: dom.HTMLElement] private[calico] (name: String, v
   def apply[M](modifier: M)(using Modifier[F, E, M]): Resource[F, E] =
     apply(Tuple1(modifier))
 
+  def apply[M](mkModifier: E => M)(using Modifier[F, E, M]): Resource[F, E] =
+    apply(e => Tuple1(mkModifier(e)))
+
   def apply[M <: Tuple](modifiers: M)(
+      using K0.ProductInstances[Modifier[F, E, _], M]): Resource[F, E] =
+    apply(_ => modifiers)
+
+  def apply[M <: Tuple](mkModifiers: E => M)(
       using inst: K0.ProductInstances[Modifier[F, E, _], M]): Resource[F, E] =
-    inst.foldLeft(modifiers)(build.toResource) {
-      [a] => (r: Resource[F, E], m: Modifier[F, E, a], a: a) => r.flatTap(m.modify(a, _))
+    build.toResource.flatMap { e =>
+      inst.foldLeft(mkModifiers(e))(Resource.pure(e)) {
+        [a] => (r: Resource[F, E], m: Modifier[F, E, a], a: a) => r.flatTap(m.modify(a, _))
+      }
     }
 
   private def build = F.delay(dom.document.createElement(name).asInstanceOf[E])
@@ -135,6 +146,9 @@ trait Modifier[F[_], E, A]:
     (b: B, e: E) => outer.modify(f(b), e)
 
 object Modifier:
+  given forUnit[F[_], E]: Modifier[F, E, Unit] with
+    def modify(unit: Unit, e: E) = Resource.unit
+
   given forString[F[_], E <: dom.Element](using F: Async[F]): Modifier[F, E, String] =
     forStringStream.contramap(Stream.emit(_))
 
@@ -269,12 +283,37 @@ final class ClassAttr[F[_]] private[calico]
       new:
         def decode(domValue: String) = domValue.split(" ").toList
         def encode(scalaValue: List[String]) = scalaValue.mkString(" ")
-    )
+    ):
 
-final class Children[F[_], K, E <: dom.Element] private[calico] (f: K => Resource[F, E]):
-  def <--(ks: Stream[F, List[K]]): Children.Modified[F, K, E] = Children.Modified(f, ks)
+  def :=(cls: String): Prop.Modified[F, List[String], String] =
+    this := List(cls)
+
+final class Children[F[_], E <: dom.Element] private[calico]:
+  def <--(cs: Stream[F, List[Resource[F, E]]])(using Monad[F]): Children.Modified[F, E] =
+    Children.Modified(cs.map(_.sequence))
 
 object Children:
+  final class Modified[F[_], E <: dom.Element] private[calico] (
+      val cs: Stream[F, Resource[F, List[E]]])
+
+  given [F[_], E <: dom.Element, E2 <: dom.Element](
+      using F: Async[F]): Modifier[F, E, Modified[F, E2]] with
+    def modify(children: Modified[F, E2], e: E) =
+      Stream
+        .resource(Hotswap.create[F, Unit])
+        .flatMap { hs =>
+          children.cs.evalMap(c => hs.swap(c.evalMap(c => F.delay(e.replaceChildren(c*)))))
+        }
+        .compile
+        .drain
+        .background
+        .void
+
+final class KeyedChildren[F[_], K, E <: dom.Element] private[calico] (f: K => Resource[F, E]):
+  def <--(ks: Stream[F, List[K]]): KeyedChildren.Modified[F, K, E] =
+    KeyedChildren.Modified(f, ks)
+
+object KeyedChildren:
   final class Modified[F[_], K, E <: dom.Element] private[calico] (
       val f: K => Resource[F, E],
       val ks: Stream[F, List[K]])
