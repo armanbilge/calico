@@ -85,5 +85,20 @@ lazy val docs = project
       TypelevelProject.CatsEffect,
       TypelevelProject.Fs2,
       "http4s-dom" -> url("https://http4s.github.io/http4s-dom/")
-    )
+    ),
+    laikaInputs := {
+      import laika.ast.Path.Root
+      laikaInputs
+        .value
+        .delegate
+        .addFile(
+          (todoMvc / Compile / fullOptJS / artifactPath).value,
+          Root / "todomvc" / "index.js")
+    },
+    mdocVariables += {
+      val src = IO.readLines(
+        (todoMvc / sourceDirectory).value / "main" / "scala" / "todomvc" / "TodoMvc.scala")
+      "TODO_MVC_SRC" -> src.dropWhile(!_.startsWith("package")).mkString("\n")
+    },
+    laikaSite := laikaSite.dependsOn((todoMvc / Compile / fullOptJS)).value
   )
