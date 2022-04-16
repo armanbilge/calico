@@ -17,6 +17,7 @@
 package calico
 package syntax
 
+import cats.data.State
 import cats.effect.kernel.Async
 import cats.effect.kernel.Concurrent
 import cats.effect.kernel.MonadCancel
@@ -28,16 +29,36 @@ import fs2.Pipe
 import fs2.Stream
 import fs2.concurrent.Channel
 import fs2.concurrent.Topic
+import fs2.concurrent.Signal
+import fs2.concurrent.SignallingRef
+import monocle.Lens
 import org.scalajs.dom
 
 import scala.scalajs.js
-import fs2.concurrent.Signal
+import cats.effect.kernel.Ref
 
 extension [F[_]](component: Resource[F, dom.HTMLElement])
   def renderInto(root: dom.Element)(using F: Sync[F]): Resource[F, Unit] =
     component.flatMap { e =>
       Resource.make(F.delay(root.appendChild(e)))(_ => F.delay(root.removeChild(e))).void
     }
+
+extension [F[_], A](sigRef: SignallingRef[F, A])
+  def zoom[B <: AnyRef](lens: Lens[A, B])(using Sync[F]): SignallingRef[F, B] =
+    val ref = Ref.lens[F, A, B](sigRef)(lens.get(_), a => b => lens.replace(b)(a))
+
+    new:
+      def access = ref.access
+      def modify[C](f: B => (B, C)) = ref.modify(f)
+      def modifyState[C](state: State[B, C]) = ref.modifyState(state)
+      def tryModify[C](f: B => (B, C)) = ref.tryModify(f)
+      def tryModifyState[C](state: State[B, C]) = ref.tryModifyState(state)
+      def tryUpdate(f: B => B) = ref.tryUpdate(f)
+      def update(f: B => B) = ref.update(f)
+      def set(b: B) = ref.set(b)
+      def get = ref.get
+      def continuous = sigRef.map(lens.get).continuous
+      def discrete = sigRef.map(lens.get).discrete
 
 extension [F[_], A](stream: Stream[F, A])
   def signal(using Concurrent[F]): Resource[F, Signal[F, A]] =
