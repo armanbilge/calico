@@ -40,7 +40,7 @@ object TodoMvc extends IOWebApp:
         cls := "main",
         ul(
           cls := "todo-list",
-          children((id: Int) => TodoItem(???, store.delete(id))) <-- store.ids.discrete
+          children[Int, HTMLElement]((id: Int) => TodoItem(???, store.delete(id))) <-- store.ids.discrete
         )
       )
     )
@@ -65,7 +65,7 @@ object TodoMvc extends IOWebApp:
       li(
         cls <-- todo.discrete.map(t => Option.when(t.completed)("completed").toList),
         onDblClick --> (_.foreach(_ => editing.set(true))),
-        children <-- editing.discrete.map {
+        children[HTMLElement] <-- editing.discrete.map {
           case true =>
             List(
               input { self =>
