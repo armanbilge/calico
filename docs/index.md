@@ -2,7 +2,7 @@
 
 # calico
 
-**calico** is an (early-stage) "framework" for building web applications in [Scala.js](https://www.scala-js.org/) with [Cats Effect 3](https://typelevel.org/cats-effect/) and [fs2](https://fs2.io/). I say "framework" because **calico** no new concepts of its own; it is effectively a DSL. If you enjoy working with Cats Effect and fs2 then (I hope) you will like **calico** as well.
+**calico** is an (early-stage) "framework" for building web applications in [Scala.js](https://www.scala-js.org/) with [Cats Effect 3](https://typelevel.org/cats-effect/) and [fs2](https://fs2.io/). I say "framework" because **calico** introduces no new concepts of its own; it is effectively a DSL. If you enjoy working with Cats Effect and fs2 then (I hope) you will like **calico** as well.
 
 ### Acknowledgements
 **calico** is heavily inspired by [Laminar](https://Laminar.dev/). I have yet only had time to plagiarize the DSL and a few of the examples ;)
