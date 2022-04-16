@@ -108,6 +108,8 @@ trait HtmlBuilders[F[_]](using F: Async[F])
 
   def cls: ClassAttr[F] = ClassAttr[F]
 
+  def children[E <: dom.Element]: Children[F, E] = Children[F, E]
+
   def children[K, E <: dom.Element](f: K => Resource[F, E]): KeyedChildren[F, K, E] =
     KeyedChildren[F, K, E](f)
 
@@ -283,8 +285,30 @@ final class ClassAttr[F[_]] private[calico]
   def :=(cls: String): Prop.Modified[F, List[String], String] =
     this := List(cls)
 
+final class Children[F[_], E <: dom.Element] private[calico]:
+  def <--(cs: Stream[F, List[Resource[F, E]]])(using Monad[F]): Children.Modified[F, E] =
+    Children.Modified(cs.map(_.sequence))
+
+object Children:
+  final class Modified[F[_], E <: dom.Element] private[calico] (
+      val cs: Stream[F, Resource[F, List[E]]])
+
+  given [F[_], E <: dom.Element, E2 <: dom.Element](
+      using F: Async[F]): Modifier[F, E, Modified[F, E2]] with
+    def modify(children: Modified[F, E2], e: E) =
+      Stream
+        .resource(Hotswap.create[F, Unit])
+        .flatMap { hs =>
+          children.cs.evalMap(c => hs.swap(c.evalMap(c => F.delay(e.replaceChildren(c*)))))
+        }
+        .compile
+        .drain
+        .background
+        .void
+
 final class KeyedChildren[F[_], K, E <: dom.Element] private[calico] (f: K => Resource[F, E]):
-  def <--(ks: Stream[F, List[K]]): KeyedChildren.Modified[F, K, E] = KeyedChildren.Modified(f, ks)
+  def <--(ks: Stream[F, List[K]]): KeyedChildren.Modified[F, K, E] =
+    KeyedChildren.Modified(f, ks)
 
 object KeyedChildren:
   final class Modified[F[_], K, E <: dom.Element] private[calico] (
