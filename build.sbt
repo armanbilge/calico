@@ -44,7 +44,23 @@ lazy val example = project
   .dependsOn(calico, widget)
   .settings(
     scalaJSUseMainModuleInitializer := true,
-    scalaJSLinkerConfig ~= {
+    Compile / fastLinkJS / scalaJSLinkerConfig ~= {
+      import org.scalajs.linker.interface.ModuleSplitStyle
+      _.withModuleKind(ModuleKind.ESModule)
+        .withModuleSplitStyle(ModuleSplitStyle.SmallModulesFor(List("calico")))
+    },
+    libraryDependencies ++= Seq(
+      "dev.optics" %%% "monocle-macro" % "3.1.0"
+    )
+  )
+
+lazy val todoMvc = project
+  .in(file("todo-mvc"))
+  .enablePlugins(ScalaJSPlugin, NoPublishPlugin)
+  .dependsOn(calico)
+  .settings(
+    scalaJSUseMainModuleInitializer := true,
+    Compile / fastLinkJS / scalaJSLinkerConfig ~= {
       import org.scalajs.linker.interface.ModuleSplitStyle
       _.withModuleKind(ModuleKind.ESModule)
         .withModuleSplitStyle(ModuleSplitStyle.SmallModulesFor(List("calico")))
