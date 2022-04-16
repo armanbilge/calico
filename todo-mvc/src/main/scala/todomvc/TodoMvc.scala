@@ -35,8 +35,14 @@ object TodoMvc extends IOWebApp:
   def render = TodoStore.empty.toResource.flatMap { store =>
     div(
       cls := "todoapp",
-      div(cls := "header", h1("todos")),
-      TodoInput(store)
+      div(cls := "header", h1("todos"), TodoInput(store)),
+      div(
+        cls := "main",
+        ul(
+          cls := "todo-list",
+          children((id: Int) => TodoItem(???, store.delete(id))) <-- store.ids.discrete
+        )
+      )
     )
   }
 
