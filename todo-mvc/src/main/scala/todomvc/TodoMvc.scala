@@ -24,8 +24,7 @@ import cats.effect.std.*
 import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import fs2.concurrent.*
-import monocle.*
-import monocle.macros.GenLens
+import monocle.function.*
 import org.scalajs.dom.*
 
 import scala.collection.immutable.SortedMap
@@ -40,7 +39,7 @@ object TodoMvc extends IOWebApp:
         cls := "main",
         ul(
           cls := "todo-list",
-          children[Int, HTMLElement]((id: Int) => TodoItem(???, store.delete(id))) <-- store
+          children[Int, HTMLElement]((id: Int) => TodoItem(store.entry(id))) <-- store
             .ids
             .discrete
         )
@@ -62,10 +61,10 @@ object TodoMvc extends IOWebApp:
       )
     }
 
-  def TodoItem(todo: SignallingRef[IO, Todo], delete: IO[Unit]) =
+  def TodoItem(todo: SignallingRef[IO, Option[Todo]]) =
     SignallingRef[IO].of(false).toResource.flatMap { editing =>
       li(
-        cls <-- todo.discrete.map(t => Option.when(t.completed)("completed").toList),
+        cls <-- todo.discrete.unNone.map(t => Option.when(t.completed)("completed").toList),
         onDblClick --> (_.foreach(_ => editing.set(true))),
         children[HTMLElement] <-- editing.discrete.map {
           case true =>
@@ -73,13 +72,13 @@ object TodoMvc extends IOWebApp:
               input { self =>
                 (
                   cls := "edit",
-                  defaultValue <-- todo.discrete.map(_.text),
+                  defaultValue <-- todo.discrete.unNone.map(_.text),
                   onKeyPress --> {
                     _.filter(_.keyCode == KeyCode.Enter).foreach { _ =>
-                      todo.update(_.copy(text = self.value))
+                      todo.update(_.map(_.copy(text = self.value)))
                     }
                   },
-                  onBlur --> (_.foreach(_ => todo.update(_.copy(text = self.value))))
+                  onBlur --> (_.foreach(_ => todo.update(_.map(_.copy(text = self.value)))))
                 )
               }
             )
@@ -89,12 +88,14 @@ object TodoMvc extends IOWebApp:
                 (
                   cls := "toggle",
                   typ := "checkbox",
-                  checked <-- todo.discrete.map(_.completed),
-                  onInput --> (_.foreach(_ => todo.update(_.copy(completed = self.checked))))
+                  checked <-- todo.discrete.unNone.map(_.completed),
+                  onInput --> {
+                    _.foreach(_ => todo.update(_.map(_.copy(completed = self.checked))))
+                  }
                 )
               },
-              label(todo.discrete.map(_.text)),
-              button(cls := "destroy", onClick --> (_.foreach(_ => delete)))
+              label(todo.discrete.unNone.map(_.text)),
+              button(cls := "destroy", onClick --> (_.foreach(_ => todo.set(None))))
             )
         }
       )
@@ -104,7 +105,8 @@ class TodoStore(map: SignallingRef[IO, SortedMap[Int, Todo]], nextId: Ref[IO, In
   def create(text: String): IO[Unit] =
     nextId.getAndUpdate(_ + 1).flatMap(id => map.update(_ + (id -> Todo(text, false))))
 
-  def delete(id: Int): IO[Unit] = map.update(_ - id)
+  def entry(id: Int): SignallingRef[IO, Option[Todo]] =
+    map.zoom(At.atSortedMap[Int, Todo].at(id))
 
   def ids: Signal[IO, List[Int]] = map.map(_.keySet.toList)
 
