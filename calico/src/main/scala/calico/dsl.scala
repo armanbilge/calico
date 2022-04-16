@@ -269,7 +269,10 @@ final class ClassAttr[F[_]] private[calico]
       new:
         def decode(domValue: String) = domValue.split(" ").toList
         def encode(scalaValue: List[String]) = scalaValue.mkString(" ")
-    )
+    ):
+
+  def :=(cls: String): Prop.Modified[F, List[String], String] =
+    this := List(cls)
 
 final class Children[F[_], K, E <: dom.Element] private[calico] (f: K => Resource[F, E]):
   def <--(ks: Stream[F, List[K]]): Children.Modified[F, K, E] = Children.Modified(f, ks)

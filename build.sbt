@@ -12,7 +12,7 @@ ThisBuild / tlUntaggedAreSnapshots := false
 ThisBuild / crossScalaVersions := Seq("3.1.2")
 ThisBuild / scalacOptions ++= Seq("-new-syntax", "-indent", "-source:future")
 
-lazy val root = tlCrossRootProject.aggregate(calico, widget, example)
+lazy val root = tlCrossRootProject.aggregate(calico, widget, example, todoMvc)
 
 lazy val calico = project
   .in(file("calico"))
@@ -63,7 +63,7 @@ lazy val todoMvc = project
     Compile / fastLinkJS / scalaJSLinkerConfig ~= {
       import org.scalajs.linker.interface.ModuleSplitStyle
       _.withModuleKind(ModuleKind.ESModule)
-        .withModuleSplitStyle(ModuleSplitStyle.SmallModulesFor(List("calico")))
+        .withModuleSplitStyle(ModuleSplitStyle.SmallModulesFor(List("todomvc")))
     },
     libraryDependencies ++= Seq(
       "dev.optics" %%% "monocle-macro" % "3.1.0"
