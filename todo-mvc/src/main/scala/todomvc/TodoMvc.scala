@@ -22,6 +22,7 @@ import calico.syntax.*
 import cats.effect.*
 import cats.effect.std.*
 import cats.effect.syntax.all.*
+import cats.syntax.all.*
 import fs2.concurrent.*
 import monocle.*
 import monocle.macros.GenLens
@@ -53,18 +54,49 @@ object TodoMvc extends IOWebApp:
       )
     }
 
-  def TodoItem(todo: SignallingRef[IO, Todo]) =
+  def TodoItem(todo: SignallingRef[IO, Todo], delete: IO[Unit]) =
     SignallingRef[IO].of(false).toResource.flatMap { editing =>
       li(
         cls <-- todo.discrete.map(t => Option.when(t.completed)("completed").toList),
-        onDblClick --> (_.foreach(_ => editing.set(true)))
+        onDblClick --> (_.foreach(_ => editing.set(true))),
+        children <-- editing.discrete.map {
+          case true =>
+            List(
+              input { self =>
+                (
+                  cls := "edit",
+                  defaultValue <-- todo.discrete.map(_.text),
+                  onKeyPress --> {
+                    _.filter(_.keyCode == KeyCode.Enter).foreach { _ =>
+                      todo.update(_.copy(text = self.value))
+                    }
+                  },
+                  onBlur --> (_.foreach(_ => todo.update(_.copy(text = self.value))))
+                )
+              }
+            )
+          case false =>
+            List(
+              input { self =>
+                (
+                  cls := "toggle",
+                  typ := "checkbox",
+                  checked <-- todo.discrete.map(_.completed),
+                  onInput --> (_.foreach(_ => todo.update(_.copy(completed = self.checked))))
+                )
+              },
+              label(todo.discrete.map(_.text)),
+              button(cls := "destroy", onClick --> (_.foreach(_ => delete)))
+            )
+        }
       )
-      ???
     }
 
 class TodoStore(map: SignallingRef[IO, SortedMap[Int, Todo]], nextId: Ref[IO, Int]):
   def create(text: String): IO[Unit] =
     nextId.getAndUpdate(_ + 1).flatMap(id => map.update(_ + (id -> Todo(text, false))))
+
+  def delete(id: Int): IO[Unit] = map.update(_ - id)
 
   def ids: Signal[IO, List[Int]] = map.map(_.keySet.toList)
 
