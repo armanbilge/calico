@@ -108,8 +108,8 @@ trait HtmlBuilders[F[_]](using F: Async[F])
 
   def cls: ClassAttr[F] = ClassAttr[F]
 
-  def children[K, E <: dom.Element](f: K => Resource[F, E]): Children[F, K, E] =
-    Children[F, K, E](f)
+  def children[K, E <: dom.Element](f: K => Resource[F, E]): KeyedChildren[F, K, E] =
+    KeyedChildren[F, K, E](f)
 
 type HtmlTagT[F[_]] = [E <: dom.HTMLElement] =>> HtmlTag[F, E]
 final class HtmlTag[F[_], E <: dom.HTMLElement] private[calico] (name: String, void: Boolean)(
@@ -283,10 +283,10 @@ final class ClassAttr[F[_]] private[calico]
   def :=(cls: String): Prop.Modified[F, List[String], String] =
     this := List(cls)
 
-final class Children[F[_], K, E <: dom.Element] private[calico] (f: K => Resource[F, E]):
-  def <--(ks: Stream[F, List[K]]): Children.Modified[F, K, E] = Children.Modified(f, ks)
+final class KeyedChildren[F[_], K, E <: dom.Element] private[calico] (f: K => Resource[F, E]):
+  def <--(ks: Stream[F, List[K]]): KeyedChildren.Modified[F, K, E] = KeyedChildren.Modified(f, ks)
 
-object Children:
+object KeyedChildren:
   final class Modified[F[_], K, E <: dom.Element] private[calico] (
       val f: K => Resource[F, E],
       val ks: Stream[F, List[K]])
