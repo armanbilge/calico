@@ -12,7 +12,7 @@ import fs2.*
 import fs2.concurrent.*
 
 def Counter(label: String, initialStep: Int) =
-  SigRef[IO].of(initialStep).product(Channel.unbounded[IO, Int])
+  SignallingRef[IO].of(initialStep).product(Channel.unbounded[IO, Int])
     .toResource.flatMap { (step, diff) =>
 
       val allowedSteps = List(1, 2, 3, 5, 10)
