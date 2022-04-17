@@ -31,18 +31,20 @@ import scala.collection.immutable.SortedMap
 
 object TodoMvc extends IOWebApp:
 
-  def render = TodoStore.empty.toResource.flatMap { store =>
-    div(
-      cls := "todoapp",
-      div(cls := "header", h1("todos"), TodoInput(store)),
+  def render = (TodoStore.empty, SignallingRef[IO].of(Filter.All)).tupled.toResource.flatMap {
+    (store, filter) =>
       div(
-        cls := "main",
-        ul(
-          cls := "todo-list",
-          children[Int](id => TodoItem(store.entry(id))) <-- store.ids.discrete
-        )
+        cls := "todoapp",
+        div(cls := "header", h1("todos"), TodoInput(store)),
+        div(
+          cls := "main",
+          ul(
+            cls := "todo-list",
+            children[Int](id => TodoItem(store.entry(id))) <-- store.ids.discrete
+          )
+        ),
+        StatusBar(store.active, filter)
       )
-    )
   }
 
   def TodoInput(store: TodoStore) =
@@ -106,6 +108,33 @@ object TodoMvc extends IOWebApp:
       )
     }
 
+  def StatusBar(activeCount: Signal[IO, Int], filter: SignallingRef[IO, Filter]) =
+    footer(
+      cls := "footer",
+      span(
+        cls := "todo-count",
+        activeCount.discrete.map {
+          case 1 => "1 item left"
+          case n => s"$n items left"
+        }
+      ),
+      ul(
+        cls := "filters",
+        Filter
+          .values
+          .toList
+          .map { f =>
+            li(
+              a(
+                cls <-- filter.discrete.map(_ == f).map(Option.when(_)("selected").toList),
+                onClick --> (_.foreach(_ => filter.set(f))),
+                f.toString
+              )
+            )
+          }
+      )
+    )
+
 class TodoStore(map: SignallingRef[IO, SortedMap[Int, Todo]], nextId: Ref[IO, Int]):
   def create(text: String): IO[Unit] =
     nextId.getAndUpdate(_ + 1).flatMap(id => map.update(_ + (id -> Todo(text, false))))
@@ -115,6 +144,8 @@ class TodoStore(map: SignallingRef[IO, SortedMap[Int, Todo]], nextId: Ref[IO, In
 
   def ids: Signal[IO, List[Int]] = map.map(_.keySet.toList)
 
+  def active: Signal[IO, Int] = map.map(_.values.count(!_.completed))
+
 object TodoStore:
   def empty: IO[TodoStore] = for
     map <- SignallingRef[IO].of(SortedMap.empty[Int, Todo])
@@ -122,3 +153,8 @@ object TodoStore:
   yield TodoStore(map, nextId)
 
 case class Todo(text: String, completed: Boolean)
+
+enum Filter(val pred: Todo => Boolean):
+  case All extends Filter(_ => true)
+  case Active extends Filter(!_.completed)
+  case Completed extends Filter(_.completed)
