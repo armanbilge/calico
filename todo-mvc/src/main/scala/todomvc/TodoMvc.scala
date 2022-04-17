@@ -64,21 +64,27 @@ object TodoMvc extends IOWebApp:
   def TodoItem(todo: SignallingRef[IO, Option[Todo]]) =
     SignallingRef[IO].of(false).toResource.flatMap { editing =>
       li(
-        cls <-- todo.discrete.unNone.map(t => Option.when(t.completed)("completed").toList),
+        cls <-- (todo: Signal[IO, Option[Todo]], editing: Signal[IO, Boolean]).mapN { (t, e) =>
+          val completed = Option.when(t.exists(_.completed))("completed")
+          val editing = Option.when(e)("editing").toList
+          completed.toList ++ editing.toList
+        }.discrete,
         onDblClick --> (_.foreach(_ => editing.set(true))),
         children[HTMLElement] <-- editing.discrete.map {
           case true =>
             List(
               input { self =>
+                val endEdit = IO(self.value).flatMap { text =>
+                  todo.update(_.map(_.copy(text = text))) *> editing.set(false)
+                }
+
                 (
                   cls := "edit",
                   defaultValue <-- todo.discrete.unNone.map(_.text),
                   onKeyPress --> {
-                    _.filter(_.keyCode == KeyCode.Enter).foreach { _ =>
-                      todo.update(_.map(_.copy(text = self.value)))
-                    }
+                    _.filter(_.keyCode == KeyCode.Enter).foreach(_ => endEdit)
                   },
-                  onBlur --> (_.foreach(_ => todo.update(_.map(_.copy(text = self.value)))))
+                  onBlur --> (_.foreach(_ => endEdit))
                 )
               }
             )

@@ -21,9 +21,11 @@ import cats.data.State
 import cats.effect.kernel.Async
 import cats.effect.kernel.Concurrent
 import cats.effect.kernel.MonadCancel
+import cats.effect.kernel.Ref
 import cats.effect.kernel.Resource
 import cats.effect.kernel.Sync
 import cats.effect.syntax.all.*
+import cats.kernel.Eq
 import cats.syntax.all.*
 import fs2.Pipe
 import fs2.Stream
@@ -35,7 +37,6 @@ import monocle.Lens
 import org.scalajs.dom
 
 import scala.scalajs.js
-import cats.effect.kernel.Ref
 
 extension [F[_]](component: Resource[F, dom.HTMLElement])
   def renderInto(root: dom.Element)(using F: Sync[F]): Resource[F, Unit] =
@@ -46,7 +47,6 @@ extension [F[_]](component: Resource[F, dom.HTMLElement])
 extension [F[_], A](sigRef: SignallingRef[F, A])
   def zoom[B <: AnyRef](lens: Lens[A, B])(using Sync[F]): SignallingRef[F, B] =
     val ref = Ref.lens[F, A, B](sigRef)(lens.get(_), a => b => lens.replace(b)(a))
-
     new:
       def access = ref.access
       def modify[C](f: B => (B, C)) = ref.modify(f)
@@ -58,7 +58,7 @@ extension [F[_], A](sigRef: SignallingRef[F, A])
       def set(b: B) = ref.set(b)
       def get = ref.get
       def continuous = sigRef.map(lens.get).continuous
-      def discrete = sigRef.map(lens.get).discrete
+      def discrete = sigRef.map(lens.get).discrete.changes(Eq.fromUniversalEquals)
 
 extension [F[_], A](stream: Stream[F, A])
   def signal(using Concurrent[F]): Resource[F, Signal[F, A]] =
