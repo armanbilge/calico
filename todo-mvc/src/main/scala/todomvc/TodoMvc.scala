@@ -70,7 +70,7 @@ object TodoMvc extends IOWebApp:
           completed.toList ++ editing.toList
         }.discrete,
         onDblClick --> (_.foreach(_ => editing.set(true))),
-        children[HTMLElement] <-- editing.discrete.map {
+        children <-- editing.discrete.map {
           case true =>
             List(
               input { self =>
