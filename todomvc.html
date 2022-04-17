@@ -141,9 +141,10 @@
         </span><span class="identifier">placeholder</span><span> := </span><span class="string-literal">&quot;What needs to be done?&quot;</span><span>,
         </span><span class="identifier">autoFocus</span><span> := </span><span class="boolean-literal">true</span><span>,
         </span><span class="identifier">onKeyPress</span><span> --&gt; {
-          </span><span class="identifier">_</span><span>.</span><span class="identifier">filter</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">keyCode</span><span> == </span><span class="type-name">KeyCode</span><span>.</span><span class="type-name">Enter</span><span>).</span><span class="identifier">foreach</span><span> { </span><span class="identifier">_</span><span> =&gt;
-            </span><span class="identifier">store</span><span>.</span><span class="identifier">create</span><span>(</span><span class="identifier">self</span><span>.</span><span class="identifier">value</span><span>) *&gt; </span><span class="type-name">IO</span><span>(</span><span class="identifier">self</span><span>.</span><span class="identifier">value</span><span> = </span><span class="string-literal">&quot;&quot;</span><span>)
-          }
+          </span><span class="identifier">_</span><span>.</span><span class="identifier">filter</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">keyCode</span><span> == </span><span class="type-name">KeyCode</span><span>.</span><span class="type-name">Enter</span><span>)
+            .</span><span class="identifier">mapToTargetValue</span><span>
+            .</span><span class="identifier">filterNot</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">isEmpty</span><span>)
+            .</span><span class="identifier">foreach</span><span>(</span><span class="identifier">store</span><span>.</span><span class="identifier">create</span><span>(</span><span class="identifier">_</span><span>) *&gt; </span><span class="type-name">IO</span><span>(</span><span class="identifier">self</span><span>.</span><span class="identifier">value</span><span> = </span><span class="string-literal">&quot;&quot;</span><span>))
         }
       )
     }
