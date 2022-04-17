@@ -110,8 +110,8 @@ trait HtmlBuilders[F[_]](using F: Async[F])
 
   def children: Children[F] = Children[F]
 
-  def children[K, E <: dom.Element](f: K => Resource[F, E]): KeyedChildren[F, K, E] =
-    KeyedChildren[F, K, E](f)
+  def children[K](f: K => Resource[F, dom.Node]): KeyedChildren[F, K] =
+    KeyedChildren[F, K](f)
 
 type HtmlTagT[F[_]] = [E <: dom.HTMLElement] =>> HtmlTag[F, E]
 final class HtmlTag[F[_], E <: dom.HTMLElement] private[calico] (name: String, void: Boolean)(
@@ -289,7 +289,10 @@ final class ClassAttr[F[_]] private[calico]
 
 final class Children[F[_]] private[calico]:
   def <--(cs: Stream[F, List[Resource[F, dom.Node]]])(using Monad[F]): Children.Modified[F] =
-    Children.Modified(cs.map(_.sequence))
+    this <-- cs.map(_.sequence)
+
+  def <--(cs: Stream[F, Resource[F, List[dom.Node]]]): Children.Modified[F] =
+    Children.Modified(cs)
 
 object Children:
   final class Modified[F[_]] private[calico] (val cs: Stream[F, Resource[F, List[dom.Node]]])
@@ -306,21 +309,21 @@ object Children:
         .background
         .void
 
-final class KeyedChildren[F[_], K, E <: dom.Element] private[calico] (f: K => Resource[F, E]):
-  def <--(ks: Stream[F, List[K]]): KeyedChildren.Modified[F, K, E] =
+final class KeyedChildren[F[_], K] private[calico] (f: K => Resource[F, dom.Node]):
+  def <--(ks: Stream[F, List[K]]): KeyedChildren.Modified[F, K] =
     KeyedChildren.Modified(f, ks)
 
 object KeyedChildren:
-  final class Modified[F[_], K, E <: dom.Element] private[calico] (
-      val f: K => Resource[F, E],
+  final class Modified[F[_], K] private[calico] (
+      val f: K => Resource[F, dom.Node],
       val ks: Stream[F, List[K]])
 
-  given [F[_], E <: dom.Element, K: Hash, E2 <: dom.Element](
-      using F: Async[F]): Modifier[F, E, Modified[F, K, E2]] with
-    def modify(children: Modified[F, K, E2], e: E) =
+  given [F[_], E <: dom.Element, K: Hash](using F: Async[F]): Modifier[F, E, Modified[F, K]]
+    with
+    def modify(children: Modified[F, K], e: E) =
       for
         sup <- Supervisor[F]
-        active <- Resource.make(Ref[F].of(mutable.Map.empty[K, (E2, F[Unit])]))(
+        active <- Resource.make(Ref[F].of(mutable.Map.empty[K, (dom.Node, F[Unit])]))(
           _.get.flatMap(_.values.toList.traverse_(_._2))
         )
         _ <- children
@@ -329,7 +332,7 @@ object KeyedChildren:
             active.access.flatMap { (currentNodes, update) =>
               F.uncancelable { poll =>
                 F.delay {
-                  val nextNodes = mutable.Map[K, (E2, F[Unit])]()
+                  val nextNodes = mutable.Map[K, (dom.Node, F[Unit])]()
                   val newNodes = List.newBuilder[K]
                   ks.foreach { k =>
                     currentNodes.remove(k) match
