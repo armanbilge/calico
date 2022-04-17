@@ -43,7 +43,12 @@ object TodoMvc extends IOWebApp:
             children[Int](id => TodoItem(store.entry(id))) <-- store.ids(filter).discrete
           )
         ),
-        StatusBar(store.active, filter)
+        store
+          .size
+          .discrete
+          .map(_ > 0)
+          .changes
+          .map(if _ then StatusBar(store.activeCount, filter).some else None)
       )
   }
 
@@ -145,7 +150,9 @@ class TodoStore(map: SignallingRef[IO, SortedMap[Int, Todo]], nextId: Ref[IO, In
   def ids(filter: Signal[IO, Filter]): Signal[IO, List[Int]] =
     (map, filter).mapN((m, f) => m.filter((_, t) => f.pred(t)).keySet.toList)
 
-  def active: Signal[IO, Int] = map.map(_.values.count(!_.completed))
+  def size: Signal[IO, Int] = map.map(_.size)
+
+  def activeCount: Signal[IO, Int] = map.map(_.values.count(!_.completed))
 
 object TodoStore:
   def empty: IO[TodoStore] = for
