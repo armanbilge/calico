@@ -39,9 +39,7 @@ object TodoMvc extends IOWebApp:
         cls := "main",
         ul(
           cls := "todo-list",
-          children[Int, HTMLElement]((id: Int) => TodoItem(store.entry(id))) <-- store
-            .ids
-            .discrete
+          children[Int](id => TodoItem(store.entry(id))) <-- store.ids.discrete
         )
       )
     )
