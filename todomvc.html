@@ -157,7 +157,7 @@
           </span><span class="identifier">completed</span><span>.</span><span class="identifier">toList</span><span> ++ </span><span class="identifier">editing</span><span>.</span><span class="identifier">toList</span><span>
         }.</span><span class="identifier">discrete</span><span>,
         </span><span class="identifier">onDblClick</span><span> --&gt; (</span><span class="identifier">_</span><span>.</span><span class="identifier">foreach</span><span>(</span><span class="identifier">_</span><span> =&gt; </span><span class="identifier">editing</span><span>.</span><span class="identifier">set</span><span>(</span><span class="boolean-literal">true</span><span>))),
-        </span><span class="identifier">children</span><span>[</span><span class="type-name">HTMLElement</span><span>] &lt;-- </span><span class="identifier">editing</span><span>.</span><span class="identifier">discrete</span><span>.</span><span class="identifier">map</span><span> {
+        </span><span class="identifier">children</span><span> &lt;-- </span><span class="identifier">editing</span><span>.</span><span class="identifier">discrete</span><span>.</span><span class="identifier">map</span><span> {
           </span><span class="keyword">case</span><span> </span><span class="boolean-literal">true</span><span> =&gt;
             </span><span class="type-name">List</span><span>(
               </span><span class="identifier">input</span><span> { </span><span class="identifier">self</span><span> =&gt;
