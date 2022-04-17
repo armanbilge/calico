@@ -38,8 +38,8 @@ import org.scalajs.dom
 
 import scala.scalajs.js
 
-extension [F[_]](component: Resource[F, dom.HTMLElement])
-  def renderInto(root: dom.Element)(using F: Sync[F]): Resource[F, Unit] =
+extension [F[_]](component: Resource[F, dom.Node])
+  def renderInto(root: dom.Node)(using F: Sync[F]): Resource[F, Unit] =
     component.flatMap { e =>
       Resource.make(F.delay(root.appendChild(e)))(_ => F.delay(root.removeChild(e))).void
     }

@@ -149,10 +149,10 @@ object Modifier:
   given forUnit[F[_], E]: Modifier[F, E, Unit] with
     def modify(unit: Unit, e: E) = Resource.unit
 
-  given forString[F[_], E <: dom.Element](using F: Async[F]): Modifier[F, E, String] =
+  given forString[F[_], E <: dom.Node](using F: Async[F]): Modifier[F, E, String] =
     forStringStream.contramap(Stream.emit(_))
 
-  given forStringStream[F[_], E <: dom.Element](
+  given forStringStream[F[_], E <: dom.Node](
       using F: Async[F]): Modifier[F, E, Stream[F, String]] with
     def modify(s: Stream[F, String], e: E) = for
       n <- F
@@ -162,20 +162,20 @@ object Modifier:
       _ <- s.foreach(t => F.delay(n.textContent = t)).compile.drain.background
     yield ()
 
-  given forResource[F[_], E <: dom.Element, A](
+  given forResource[F[_], E <: dom.Node, A](
       using M: Modifier[F, E, A]): Modifier[F, E, Resource[F, A]] with
     def modify(a: Resource[F, A], e: E) = a.flatMap(M.modify(_, e))
 
-  given forFoldable[F[_]: Monad, E <: dom.Element, G[_]: Foldable, A](
+  given forFoldable[F[_]: Monad, E <: dom.Node, G[_]: Foldable, A](
       using M: Modifier[F, E, A]): Modifier[F, E, G[A]] with
     def modify(ga: G[A], e: E) = ga.foldMapM(M.modify(_, e)).void
 
-  given forElement[F[_], E <: dom.Element, E2 <: dom.Element](
+  given forElement[F[_], E <: dom.Node, E2 <: dom.Node](
       using F: Sync[F]): Modifier[F, E, Resource[F, E2]] with
     def modify(e2: Resource[F, E2], e: E) =
       e2.evalMap(e2 => F.delay(e.appendChild(e2)))
 
-  given forElementStream[F[_], E <: dom.Element, E2 <: dom.Element](
+  given forElementStream[F[_], E <: dom.Node, E2 <: dom.Node](
       using F: Async[F]): Modifier[F, E, Stream[F, Resource[F, E2]]] with
     def modify(e2s: Stream[F, Resource[F, E2]], e: E) =
       for
@@ -239,8 +239,7 @@ object Prop:
       val values: Resource[F, Stream[F, V]]
   )
 
-  given [F[_], E <: dom.Element, V, J](using F: Async[F]): Modifier[F, E, Modified[F, V, J]]
-    with
+  given [F[_], E, V, J](using F: Async[F]): Modifier[F, E, Modified[F, V, J]] with
     def modify(prop: Modified[F, V, J], e: E) =
       prop.values.flatMap { vs =>
         vs.foreach { v =>
@@ -259,7 +258,7 @@ object EventProp:
       val key: String,
       val sink: Pipe[F, E, INothing])
 
-  given [F[_], E <: dom.Element, V](using F: Async[F]): Modifier[F, E, Modified[F, V]] with
+  given [F[_], E <: dom.EventTarget, V](using F: Async[F]): Modifier[F, E, Modified[F, V]] with
     def modify(prop: Modified[F, V], e: E) = for
       ch <- Resource.make(Channel.unbounded[F, V])(_.close.void)
       d <- Dispatcher[F]
