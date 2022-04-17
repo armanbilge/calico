@@ -13,7 +13,7 @@ import fs2.concurrent.*
 
 case class Person(firstName: String, lastName: String, age: Int)
 
-val app = SigRef[IO].of(Person("", "", 0)).toResource.flatMap { person =>
+val app = SignallingRef[IO].of(Person("", "", 0)).toResource.flatMap { person =>
   div(
     div(h3("View"), Widget.view(person)),
     div(h3("Edit"), Widget.edit(person))

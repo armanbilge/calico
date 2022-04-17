@@ -56,7 +56,7 @@ import cats.effect.syntax.all.*
 import fs2.*
 import fs2.concurrent.*
 
-val component = SigRef[IO].of("world").toResource.flatMap { nameRef =>
+val component = SignallingRef[IO].of("world").toResource.flatMap { nameRef =>
   div(
     label("Your name: "),
     input(
