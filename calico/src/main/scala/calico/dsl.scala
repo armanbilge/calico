@@ -289,7 +289,10 @@ final class ClassAttr[F[_]] private[calico]
 
 final class Children[F[_]] private[calico]:
   def <--(cs: Stream[F, List[Resource[F, dom.Node]]])(using Monad[F]): Children.Modified[F] =
-    Children.Modified(cs.map(_.sequence))
+    this <-- cs.map(_.sequence)
+
+  def <--(cs: Stream[F, Resource[F, List[dom.Node]]]): Children.Modified[F] =
+    Children.Modified(cs)
 
 object Children:
   final class Modified[F[_]] private[calico] (val cs: Stream[F, Resource[F, List[dom.Node]]])
