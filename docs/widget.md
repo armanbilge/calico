@@ -1,5 +1,7 @@
 # Widgets
 
+This is _definitely_ experimental, so do not take this example too seriously, but it explores the idea of using shapeless to automatically derive "widgets" for `case class`es.
+
 ```scala mdoc:js
 import calico.*
 import calico.dsl.io.*
