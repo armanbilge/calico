@@ -78,11 +78,15 @@ extension [F[_], A, B](pipe: Pipe[F, A, B])
     yield ch
 
 extension [F[_]](events: Stream[F, dom.Event])
-  def mapToTargetValue: Stream[F, String] =
-    events.map(_.target).collect {
-      case button: dom.HTMLButtonElement => button.value
-      case input: dom.HTMLInputElement => input.value
-      case option: dom.HTMLOptionElement => option.value
-      case select: dom.HTMLSelectElement => select.value
-      case textArea: dom.HTMLTextAreaElement => textArea.value
-    }
+  def mapToTargetValue(using F: Sync[F]): Stream[F, String] =
+    events
+      .map(_.target)
+      .evalMap {
+        case button: dom.HTMLButtonElement => F.delay(button.value.some)
+        case input: dom.HTMLInputElement => F.delay(input.value.some)
+        case option: dom.HTMLOptionElement => F.delay(option.value.some)
+        case select: dom.HTMLSelectElement => F.delay(select.value.some)
+        case textArea: dom.HTMLTextAreaElement => F.delay(textArea.value.some)
+        case _ => F.pure(None)
+      }
+      .unNone
