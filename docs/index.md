@@ -1,11 +1,11 @@
 {% laika.title = Introduction %}
 
-# calico
+# Calico
 
-**calico** is an (early-stage) "framework" for building web applications in [Scala.js](https://www.scala-js.org/) with [Cats Effect 3](https://typelevel.org/cats-effect/) and [fs2](https://fs2.io/). I say "framework" because **calico** introduces no new concepts of its own; it is effectively a DSL. If you enjoy working with Cats Effect and fs2 then (I hope) you will like **calico** as well.
+**Calico** is a UI library for the Typelevel.js ecosystem. It leverages the abstractions provided by [Cats Effect](https://typelevel.org/cats-effect/) and [FS2](https://fs2.io/) to provide a fluent DSL for building web applications that are composable, reactive, and safe. If you enjoy working with Cats Effect and FS2 then I hope that you will like **Calico** as well.
 
 ### Acknowledgements
-**calico** is heavily inspired by [Laminar](https://Laminar.dev/). I have yet only had time to plagiarize the DSL and a few of the examples ;)
+**Calico** is heavily inspired by [Laminar](https://Laminar.dev/). I have yet only had time to plagiarize the DSL and a few of the examples ;)
 
 ### Try it!
 
@@ -13,11 +13,13 @@
 libraryDependencies += "com.armanbilge" %%% "calico" % "@VERSION@"
 ```
 
+Please open issues (and PRs!) for anything and everything :)
+
 ## Core concepts
 
 ### Components and resource management
 
-The most important idea behind **calico** is that each component of your app (and in fact your app itself) should be expressed as a `Resource[IO, HTMLElement]`.
+The most important idea behind **Calico** is that each component of your app (and in fact your app itself) should be expressed as a `Resource[IO, HTMLElement]`.
 
 ```scala
 import cats.effect.*
@@ -34,7 +36,7 @@ This `Resource` completely manages the lifecycle of that element and its childre
 
 Because `Resource[IO, HTMLElement]` is referentially-transparent, it naturally behaves as a "builder". Your component can be re-used in multiple places in your application as well as un-mounted and re-mounted without worrying about crossed-wires or leaked resources. This makes it easy to compose components.
 
-So far, none of this is specific to **calico**: we get all of this for free from Cats Effect. **calico** steps in with a friendly DSL to cut down the boilerplate.
+So far, none of this is specific to **Calico**: we get all of this for free from Cats Effect. **Calico** steps in with a friendly DSL to cut down the boilerplate.
 ```scala mdoc:js:compile-only
 import calico.dsl.io.*
 import cats.effect.*
@@ -56,20 +58,20 @@ import cats.effect.syntax.all.*
 import fs2.*
 import fs2.concurrent.*
 
-val component = SignallingRef[IO].of("world").toResource.flatMap { nameRef =>
+val component = SignallingRef[IO].of("world").toResource.flatMap { name =>
   div(
     label("Your name: "),
     input(
       placeholder := "Enter your name here",
       // here, input events are run through the given Pipe
       // this starts background fibers within the lifecycle of the <input> element
-      onInput --> (_.mapToTargetValue.foreach(nameRef.set))
+      onInput --> (_.mapToTargetValue.foreach(name.set))
     ),
     span(
       " Hello, ",
       // here, a Stream is rendered into the HTML
       // this starts background fibers within the life cycle of the <span> element
-      nameRef.discrete.map(_.toUpperCase)
+      name.discrete.map(_.toUpperCase)
     )
   )
 }
