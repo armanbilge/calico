@@ -12,6 +12,9 @@ ThisBuild / tlUntaggedAreSnapshots := false
 ThisBuild / crossScalaVersions := Seq("3.1.2")
 ThisBuild / scalacOptions ++= Seq("-new-syntax", "-indent", "-source:future")
 
+ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17"))
+ThisBuild / tlJdkRelease := Some(8)
+
 lazy val root = tlCrossRootProject.aggregate(calico, widget, example, todoMvc)
 
 lazy val calico = project

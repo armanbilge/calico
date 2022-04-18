@@ -176,17 +176,22 @@ object Modifier:
       e2.evalMap(e2 => F.delay(e.appendChild(e2)))
 
   given forElementStream[F[_], E <: dom.Node, E2 <: dom.Node](
-      using F: Async[F]): Modifier[F, E, Stream[F, Resource[F, E2]]] with
-    def modify(e2s: Stream[F, Resource[F, E2]], e: E) =
+      using F: Async[F]): Modifier[F, E, Stream[F, Resource[F, E2]]] =
+    forOptionElementStream.contramap(_.map(Some(_)))
+
+  given forOptionElementStream[F[_], E <: dom.Node, E2 <: dom.Node](
+      using F: Async[F]): Modifier[F, E, Stream[F, Option[Resource[F, E2]]]] with
+    def modify(e2s: Stream[F, Option[Resource[F, E2]]], e: E) =
       for
-        (hs, c) <- Hotswap[F, dom.Node](Resource.eval(F.delay(dom.document.createComment(""))))
+        (hs, c) <- Hotswap[F, dom.Node](F.delay(dom.document.createComment("")).toResource)
+        _ <- F.delay(e.appendChild(c)).toResource
         prev <- F.ref(c).toResource
         _ <- e2s
           .evalMap { next =>
             for
-              n <- hs.swap(next.widen)
+              n <- hs.swap(next.getOrElse(c.pure))
               p <- prev.get
-              _ <- F.delay(e.replaceChild(p, n))
+              _ <- F.delay(e.replaceChild(n, p))
               _ <- prev.set(n)
             yield ()
           }
