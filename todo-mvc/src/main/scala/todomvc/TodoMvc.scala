@@ -120,7 +120,7 @@ object TodoMvc extends IOWebApp:
         cls := "todo-count",
         activeCount.discrete.map {
           case 1 => "1 item left"
-          case n => s"$n items left"
+          case n => n.toString + " items left"
         }
       ),
       ul(
