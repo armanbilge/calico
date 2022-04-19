@@ -61,6 +61,7 @@ extension [F[_], A](sigRef: SignallingRef[F, A])
       def discrete = sigRef.map(lens.get).discrete.changes(Eq.fromUniversalEquals)
 
 extension [F[_], A](stream: Stream[F, A])
+  @deprecated("Use Stream#holdOptionResource", "0.1.1")
   def signal(using Concurrent[F]): Resource[F, Signal[F, A]] =
     for
       sig <- SignallingRef[F].of(none[A]).toResource

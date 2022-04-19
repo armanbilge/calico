@@ -19,6 +19,7 @@ package widget
 
 import calico.dsl.Dsl
 import calico.syntax.*
+import cats.data.OptionT
 import cats.effect.kernel.Async
 import cats.effect.kernel.Resource
 import cats.syntax.all.*
@@ -70,7 +71,7 @@ object View:
       val dsl = Dsl[F]
       import dsl.*
 
-      read.signal.flatMap { sig =>
+      read.holdOptionResource.flatMap { sig =>
         val children = inst
           .unfold(List.empty[Resource[F, dom.HTMLElement]]) {
             [a] =>
@@ -78,7 +79,7 @@ object View:
                 val i = acc.size
                 val e = div(
                   b(labelling.elemLabels(i), ": "),
-                  view.of(sig.discrete.map(_.productElement(i).asInstanceOf[a]))
+                  view.of(sig.discrete.unNone.map(_.productElement(i).asInstanceOf[a]))
                 )
                 (acc ::: e :: Nil, Some(null.asInstanceOf[a]))
           }
@@ -118,7 +119,7 @@ object Edit:
       val dsl = Dsl[F]
       import dsl.*
 
-      (read.signal, write.channel).tupled.flatMap { (sig, ch) =>
+      (read.holdOptionResource, write.channel).tupled.flatMap { (sig, ch) =>
         val children = inst
           .unfold(List.empty[Resource[F, dom.HTMLElement]]) {
             [a] =>
@@ -127,13 +128,11 @@ object Edit:
                 val e = div(
                   label(
                     b(labelling.elemLabels(i), ": "),
-                    edit.of(sig.discrete.map(_.productElement(i).asInstanceOf[a]))(
+                    edit.of(sig.discrete.unNone.map(_.productElement(i).asInstanceOf[a]))(
                       _.foreach { a =>
-                        for
-                          oldA <- sig.get
-                          newA = mirror.fromProduct(updatedProduct(oldA, i, a))
-                          _ <- ch.send(newA)
-                        yield ()
+                        OptionT(sig.get)
+                          .map(oldA => mirror.fromProduct(updatedProduct(oldA, i, a)))
+                          .foreachF(ch.send(_).void)
                       }
                     )
                   )
