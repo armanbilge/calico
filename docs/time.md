@@ -16,17 +16,17 @@ import fs2.concurrent.*
 
 import scala.concurrent.duration.*
 
-val app = Stream.fixedRate[IO](1.second).as(1).scanMonoid.signal
+val app = Stream.fixedRate[IO](1.second).as(1).scanMonoid.holdOptionResource
   .flatMap { tick =>
     div(
       div(
         "Tick #: ",
-        tick.discrete.map(_.toString)
+        tick.discrete.unNone.map(_.toString)
       ),
       div(
         "Random #: ",
         Stream.eval(Random.scalaUtilRandom[IO]).flatMap { random =>
-          tick.discrete.evalMap(_ => random.nextInt).map(_ % 100).map(_.toString)
+          tick.discrete.unNone.evalMap(_ => random.nextInt).map(_ % 100).map(_.toString)
         }
       )
     )
@@ -85,18 +85,18 @@ def validateEmail(email: String): Either[String, Unit] =
 
 val app = Channel.unbounded[IO, String].toResource.flatMap { emailCh =>
   val validated = emailCh.stream.debounce(1.second).map(validateEmail)
-  validated.signal.flatMap { validatedSig =>
+  validated.holdOptionResource.flatMap { validatedSig =>
     div(
       span(
         label("Your email: "),
         input(onInput --> (_.mapToTargetValue.through(emailCh.sendAll)))
       ),
       span(
-        cls <-- validatedSig.discrete.map {
+        cls <-- validatedSig.discrete.unNone.map {
           case Left(_) => List("-error")
           case Right(_) => List("-success")
         },
-        validatedSig.discrete.map {
+        validatedSig.discrete.unNone.map {
           case Left(err) => s"Error: $err"
           case Right(()) => "Email ok!"
         }
