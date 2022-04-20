@@ -47,6 +47,7 @@ import fs2.INothing
 import fs2.Pipe
 import fs2.Stream
 import fs2.concurrent.Channel
+import fs2.concurrent.Signal
 import org.scalajs.dom
 import shapeless3.deriving.K0
 
@@ -169,6 +170,10 @@ object Modifier:
   given forResource[F[_], E <: dom.Node, A](
       using M: Modifier[F, E, A]): Modifier[F, E, Resource[F, A]] with
     def modify(a: Resource[F, A], e: E) = a.flatMap(M.modify(_, e))
+
+  given forSignal[F[_], E <: dom.Node, A](
+      using M: Modifier[F, E, Stream[F, A]]): Modifier[F, E, Signal[F, A]] =
+    M.contramap(_.discrete)
 
   given forFoldable[F[_]: Monad, E <: dom.Node, G[_]: Foldable, A](
       using M: Modifier[F, E, A]): Modifier[F, E, G[A]] with
