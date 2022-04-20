@@ -153,13 +153,17 @@ object Modifier:
     forStringStream.contramap(Stream.emit(_))
 
   given forStringStream[F[_], E <: dom.Node](
-      using F: Async[F]): Modifier[F, E, Stream[F, String]] with
-    def modify(s: Stream[F, String], e: E) = for
+      using F: Async[F]): Modifier[F, E, Stream[F, String]] =
+    forOptionStringStream.contramap(_.map(Some(_)))
+
+  given forOptionStringStream[F[_], E <: dom.Node](
+      using F: Async[F]): Modifier[F, E, Stream[F, Option[String]]] with
+    def modify(s: Stream[F, Option[String]], e: E) = for
       n <- F
         .delay(dom.document.createTextNode(""))
         .flatTap(n => F.delay(e.appendChild(n)))
         .toResource
-      _ <- s.foreach(t => F.delay(n.textContent = t)).compile.drain.background
+      _ <- s.foreach(t => F.delay(n.textContent = t.getOrElse(""))).compile.drain.background
     yield ()
 
   given forResource[F[_], E <: dom.Node, A](
