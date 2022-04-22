@@ -213,6 +213,9 @@ final class HtmlAttr[F[_], V] private[calico] (key: String, codec: Codec[V, Stri
   def :=(v: V): HtmlAttr.Modified[F, V] =
     this <-- Stream.emit(v)
 
+  def <--(vs: Signal[F, V]): HtmlAttr.Modified[F, V] =
+    this <-- vs.discrete
+
   def <--(vs: Stream[F, V]): HtmlAttr.Modified[F, V] =
     this <-- Resource.pure(vs)
 
@@ -239,6 +242,9 @@ object HtmlAttr:
 sealed class Prop[F[_], V, J] private[calico] (name: String, codec: Codec[V, J]):
   def :=(v: V): Prop.Modified[F, V, J] =
     this <-- Stream.emit(v)
+
+  def <--(vs: Signal[F, V]): Prop.Modified[F, V, J] =
+    this <-- vs.discrete
 
   def <--(vs: Stream[F, V]): Prop.Modified[F, V, J] =
     this <-- Resource.pure(vs)
@@ -302,8 +308,14 @@ final class ClassAttr[F[_]] private[calico]
     this := List(cls)
 
 final class Children[F[_]] private[calico]:
+  def <--(cs: Signal[F, List[Resource[F, dom.Node]]])(using Monad[F]): Children.Modified[F] =
+    this <-- cs.discrete
+
   def <--(cs: Stream[F, List[Resource[F, dom.Node]]])(using Monad[F]): Children.Modified[F] =
     this <-- cs.map(_.sequence)
+
+  def <--(cs: Signal[F, Resource[F, List[dom.Node]]]): Children.Modified[F] =
+    this <-- cs.discrete
 
   def <--(cs: Stream[F, Resource[F, List[dom.Node]]]): Children.Modified[F] =
     Children.Modified(cs)
@@ -324,6 +336,9 @@ object Children:
         .void
 
 final class KeyedChildren[F[_], K] private[calico] (f: K => Resource[F, dom.Node]):
+  def <--(ks: Signal[F, List[K]]): KeyedChildren.Modified[F, K] =
+    this <-- ks.discrete
+
   def <--(ks: Stream[F, List[K]]): KeyedChildren.Modified[F, K] =
     KeyedChildren.Modified(f, ks)
 
