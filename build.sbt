@@ -25,6 +25,7 @@ lazy val frp = crossProject(JVMPlatform, JSPlatform)
   .in(file("frp"))
   .settings(
     name := "calico-frp",
+    tlVersionIntroduced := Map("3" -> "0.1.1"),
     libraryDependencies ++= Seq(
       "org.typelevel" %%% "cats-core" % CatsVersion,
       "org.typelevel" %%% "cats-effect" % CatsEffectVersion,
