@@ -21,6 +21,7 @@ import cats.effect.kernel.Resource
 import cats.effect.testkit.TestControl
 import cats.effect.testkit.TestInstances
 import cats.kernel.Eq
+import cats.laws.discipline.FunctorTests
 import cats.syntax.all.*
 import fs2.Stream
 import fs2.concurrent.Signal
@@ -62,3 +63,7 @@ class SignalSuite extends DisciplineSuite, TestInstances:
       ) *> ref.get
     }
   }
+
+  given Ticker = Ticker()
+
+  checkAll("Signal", FunctorTests[Signal[IO, _]].functor[Int, Int, Int])
