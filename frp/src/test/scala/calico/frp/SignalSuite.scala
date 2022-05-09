@@ -21,6 +21,7 @@ import cats.effect.kernel.Resource
 import cats.effect.testkit.TestControl
 import cats.effect.testkit.TestInstances
 import cats.kernel.Eq
+import cats.laws.discipline.ApplicativeTests
 import cats.laws.discipline.FunctorTests
 import cats.syntax.all.*
 import fs2.Stream
@@ -31,7 +32,6 @@ import org.scalacheck.Arbitrary
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen
 
-import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration.*
 
 class SignalSuite extends DisciplineSuite, TestInstances:
@@ -66,4 +66,4 @@ class SignalSuite extends DisciplineSuite, TestInstances:
 
   given Ticker = Ticker()
 
-  checkAll("Signal", FunctorTests[Signal[IO, _]].functor[Int, Int, Int])
+  checkAll("Signal", ApplicativeTests[Signal[IO, _]].applicative[Int, Int, Int])
