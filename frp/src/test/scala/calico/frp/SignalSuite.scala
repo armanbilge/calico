@@ -18,16 +18,22 @@ package calico.frp
 
 import cats.effect.IO
 import cats.effect.kernel.Resource
+import cats.effect.testkit.TestControl
+import cats.effect.testkit.TestInstances
+import cats.kernel.Eq
+import cats.syntax.all.*
 import fs2.Stream
 import fs2.concurrent.Signal
 import fs2.concurrent.SignallingRef
 import munit.DisciplineSuite
 import org.scalacheck.Arbitrary
 import org.scalacheck.Arbitrary.arbitrary
+import org.scalacheck.Gen
 
 import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.*
 
-class SignalSuite extends DisciplineSuite:
+class SignalSuite extends DisciplineSuite, TestInstances:
 
   class TestSignal[A](initial: A, values: List[(FiniteDuration, A)]) extends Signal[IO, A]:
     def discrete: Stream[IO, A] =
@@ -36,9 +42,23 @@ class SignalSuite extends DisciplineSuite:
     def continuous = Stream.never
 
   given [A: Arbitrary]: Arbitrary[Signal[IO, A]] =
+    given Arbitrary[FiniteDuration] = Arbitrary(Gen.posNum[Byte].map(_.toLong.nanos))
     Arbitrary(
       for
         initial <- arbitrary[A]
         tail <- arbitrary[List[(FiniteDuration, A)]]
       yield TestSignal(initial, tail)
     )
+
+  given [A: Eq](using Eq[IO[List[(A, FiniteDuration)]]]): Eq[Signal[IO, A]] = Eq.by { sig =>
+    IO.ref(List.empty[(A, FiniteDuration)]).flatMap { ref =>
+      TestControl.executeEmbed(
+        sig
+          .discrete
+          .evalMap(IO.realTime.tupleLeft(_))
+          .evalMap(x => ref.update(_ :+ x))
+          .compile
+          .drain
+      ) *> ref.get
+    }
+  }
