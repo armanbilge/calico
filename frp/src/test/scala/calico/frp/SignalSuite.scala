@@ -16,8 +16,29 @@
 
 package calico.frp
 
+import cats.effect.IO
+import cats.effect.kernel.Resource
+import fs2.Stream
 import fs2.concurrent.Signal
+import fs2.concurrent.SignallingRef
 import munit.DisciplineSuite
 import org.scalacheck.Arbitrary
+import org.scalacheck.Arbitrary.arbitrary
 
-class SignalSuite extends DisciplineSuite
+import scala.concurrent.duration.FiniteDuration
+
+class SignalSuite extends DisciplineSuite:
+
+  class TestSignal[A](initial: A, values: List[(FiniteDuration, A)]) extends Signal[IO, A]:
+    def discrete: Stream[IO, A] =
+      Stream.emit(initial) ++ Stream.emits(values).evalMap(IO.sleep(_).as(_))
+    def get = IO.never
+    def continuous = Stream.never
+
+  given [A: Arbitrary]: Arbitrary[Signal[IO, A]] =
+    Arbitrary(
+      for
+        initial <- arbitrary[A]
+        tail <- arbitrary[List[(FiniteDuration, A)]]
+      yield TestSignal(initial, tail)
+    )
