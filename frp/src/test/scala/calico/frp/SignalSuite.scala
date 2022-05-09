@@ -22,7 +22,7 @@ import cats.effect.testkit.TestControl
 import cats.effect.testkit.TestInstances
 import cats.kernel.Eq
 import cats.laws.discipline.ApplicativeTests
-import cats.laws.discipline.FunctorTests
+import cats.laws.discipline.MonadTests
 import cats.syntax.all.*
 import fs2.Stream
 import fs2.concurrent.Signal
@@ -67,4 +67,4 @@ class SignalSuite extends DisciplineSuite, TestInstances:
 
   given Ticker = Ticker()
 
-  checkAll("Signal", ApplicativeTests[Signal[IO, _]].applicative[Int, Int, Int])
+  checkAll("Signal", MonadTests[Signal[IO, _]].stackUnsafeMonad[Int, Int, Int])
