@@ -14,6 +14,9 @@ ThisBuild / scalacOptions ++= Seq("-new-syntax", "-indent", "-source:future")
 ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17"))
 ThisBuild / tlJdkRelease := Some(8)
 
+val CatsEffectVersion = "3.3.11"
+val MonocleVersion = "3.1.0"
+
 lazy val root = tlCrossRootProject.aggregate(frp, calico, widget, example, todoMvc, unidocs)
 
 lazy val frp = crossProject(JVMPlatform, JSPlatform)
@@ -23,9 +26,11 @@ lazy val frp = crossProject(JVMPlatform, JSPlatform)
     name := "calico-frp",
     libraryDependencies ++= Seq(
       "org.typelevel" %%% "cats-core" % "2.7.0",
-      "org.typelevel" %%% "cats-effect" % "3.3.11",
+      "org.typelevel" %%% "cats-effect" % CatsEffectVersion,
       "co.fs2" %%% "fs2-core" % "3.2.7",
-    )    
+      "org.typelevel" %%% "cats-effect-testkit" % CatsEffectVersion % Test,
+      "org.scalameta" %%% "munit-scalacheck" % "0.7.29" % Test
+    )
   )
 
 lazy val calico = project
@@ -35,7 +40,7 @@ lazy val calico = project
     name := "calico",
     libraryDependencies ++= Seq(
       "org.typelevel" %%% "shapeless3-deriving" % "3.0.4",
-      "dev.optics" %%% "monocle-core" % "3.1.0",
+      "dev.optics" %%% "monocle-core" % MonocleVersion,
       "com.raquo" %%% "domtypes" % "0.16.0-RC2",
       "org.scala-js" %%% "scalajs-dom" % "2.1.0"
     )
@@ -62,7 +67,7 @@ lazy val example = project
         .withModuleSplitStyle(ModuleSplitStyle.SmallModulesFor(List("calico")))
     },
     libraryDependencies ++= Seq(
-      "dev.optics" %%% "monocle-macro" % "3.1.0"
+      "dev.optics" %%% "monocle-macro" % MonocleVersion
     )
   )
 
@@ -78,7 +83,7 @@ lazy val todoMvc = project
         .withModuleSplitStyle(ModuleSplitStyle.SmallModulesFor(List("todomvc")))
     },
     libraryDependencies ++= Seq(
-      "dev.optics" %%% "monocle-macro" % "3.1.0"
+      "dev.optics" %%% "monocle-macro" % MonocleVersion
     )
   )
 
