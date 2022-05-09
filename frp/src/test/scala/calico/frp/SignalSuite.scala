@@ -59,7 +59,8 @@ class SignalSuite extends DisciplineSuite, TestInstances:
           .evalMap(IO.realTime.tupleLeft(_))
           .evalMap(x => ref.update(_ :+ x))
           .compile
-          .drain
+          .drain,
+        seed = Some(scalaCheckInitialSeed)
       ) *> ref.get
     }
   }
