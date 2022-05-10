@@ -78,11 +78,11 @@ class SignalSuite extends DisciplineSuite, TestInstances:
           sig
             .discrete
             .evalMap(IO.realTime.tupleLeft(_))
-            .evalMap(x => ref.update(_ :+ x))
+            .evalMap(x => ref.update(x :: _))
             .compile
             .drain
             .timeoutTo(Long.MaxValue.nanos, IO.unit)
-        ) *> ref.get
+        ) *> ref.get.map(_.distinctBy(_._2))
       }
       .attempt
       .flatTap(IO.println)
