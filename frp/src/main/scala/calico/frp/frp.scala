@@ -50,6 +50,9 @@ import fs2.concurrent.Signal
 given [F[_]: Concurrent]: Monad[Signal[F, _]] = new StackSafeMonad[Signal[F, _]]:
   def pure[A](a: A) = Signal.constant(a)
 
+  override def map[A, B](siga: Signal[F, A])(f: A => B) =
+    Signal.mapped(siga)(f)
+
   def flatMap[A, B](siga: Signal[F, A])(f: A => Signal[F, B]) = new:
     def get = siga.get.flatMap(f(_).get)
     def continuous = Stream.repeatEval(get)
