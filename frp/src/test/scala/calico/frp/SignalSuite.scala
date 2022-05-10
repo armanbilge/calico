@@ -38,8 +38,10 @@ import cats.data.NonEmptyList
 
 class SignalSuite extends DisciplineSuite, TestInstances:
 
-  // // override def scalaCheckTestParameters =
-  //   super.scalaCheckTestParameters.withMaxSize(10)
+  override def scalaCheckTestParameters =
+    if sys.props("java.vm.name").contains("Scala.js") then
+      super.scalaCheckTestParameters.withMinSuccessfulTests(10).withMaxSize(10)
+    else super.scalaCheckTestParameters
 
   case class TestSignal[A](events: NonEmptyList[(FiniteDuration, A)]) extends Signal[IO, A]:
     def discrete: Stream[IO, A] = Stream.eval(IO.realTime).flatMap { now =>
