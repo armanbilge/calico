@@ -42,7 +42,7 @@ object TodoMvc extends IOWebApp:
           ul(
             cls := "todo-list",
             children[Int](id => TodoItem(store.entry(id))) <--
-              (filter: Signal[IO, Filter]).flatMap(store.ids(_)).discrete
+              (filter: Signal[IO, Filter]).flatMap(store.ids(_))
           )
         ),
         store
@@ -76,9 +76,9 @@ object TodoMvc extends IOWebApp:
           val completed = Option.when(t.exists(_.completed))("completed")
           val editing = Option.when(e)("editing").toList
           completed.toList ++ editing.toList
-        }.discrete,
+        },
         onDblClick --> (_.foreach(_ => editing.set(true))),
-        children <-- editing.discrete.map {
+        children <-- editing.map {
           case true =>
             List(
               input { self =>
@@ -88,7 +88,7 @@ object TodoMvc extends IOWebApp:
 
                 (
                   cls := "edit",
-                  defaultValue <-- todo.discrete.unNone.map(_.text),
+                  defaultValue <-- todo.map(_.foldMap(_.text)),
                   onKeyPress --> {
                     _.filter(_.keyCode == KeyCode.Enter).foreach(_ => endEdit)
                   },
@@ -102,13 +102,13 @@ object TodoMvc extends IOWebApp:
                 (
                   cls := "toggle",
                   typ := "checkbox",
-                  checked <-- todo.discrete.unNone.map(_.completed),
+                  checked <-- todo.map(_.fold(false)(_.completed)),
                   onInput --> {
                     _.foreach(_ => todo.update(_.map(_.copy(completed = self.checked))))
                   }
                 )
               },
-              label(todo.discrete.unNone.map(_.text)),
+              label(todo.map(_.map(_.text))),
               button(cls := "destroy", onClick --> (_.foreach(_ => todo.set(None))))
             )
         }
@@ -120,10 +120,10 @@ object TodoMvc extends IOWebApp:
       cls := "footer",
       span(
         cls := "todo-count",
-        activeCount.discrete.map {
+        activeCount.map {
           case 1 => "1 item left"
           case n => n.toString + " items left"
-        }
+        }.discrete // TODO dotty bug
       ),
       ul(
         cls := "filters",
@@ -133,7 +133,7 @@ object TodoMvc extends IOWebApp:
           .map { f =>
             li(
               a(
-                cls <-- filter.discrete.map(_ == f).map(Option.when(_)("selected").toList),
+                cls <-- filter.map(_ == f).map(Option.when(_)("selected").toList),
                 onClick --> (_.foreach(_ => filter.set(f))),
                 f.toString
               )

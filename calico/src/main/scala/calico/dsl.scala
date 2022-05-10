@@ -47,6 +47,7 @@ import fs2.INothing
 import fs2.Pipe
 import fs2.Stream
 import fs2.concurrent.Channel
+import fs2.concurrent.Signal
 import org.scalajs.dom
 import shapeless3.deriving.K0
 
@@ -162,9 +163,23 @@ object Modifier:
       _ <- s.foreach(t => F.delay(n.textContent = t)).compile.drain.background
     yield ()
 
+  given forOptionStringStream[F[_], E <: dom.Node](
+      using F: Async[F]): Modifier[F, E, Stream[F, Option[String]]] with
+    def modify(s: Stream[F, Option[String]], e: E) = for
+      n <- F
+        .delay(dom.document.createTextNode(""))
+        .flatTap(n => F.delay(e.appendChild(n)))
+        .toResource
+      _ <- s.foreach(t => F.delay(n.textContent = t.getOrElse(""))).compile.drain.background
+    yield ()
+
   given forResource[F[_], E <: dom.Node, A](
       using M: Modifier[F, E, A]): Modifier[F, E, Resource[F, A]] with
     def modify(a: Resource[F, A], e: E) = a.flatMap(M.modify(_, e))
+
+  given forSignal[F[_], E <: dom.Node, A](
+      using M: Modifier[F, E, Stream[F, A]]): Modifier[F, E, Signal[F, A]] =
+    M.contramap(_.discrete)
 
   given forFoldable[F[_]: Monad, E <: dom.Node, G[_]: Foldable, A](
       using M: Modifier[F, E, A]): Modifier[F, E, G[A]] with
@@ -204,6 +219,9 @@ final class HtmlAttr[F[_], V] private[calico] (key: String, codec: Codec[V, Stri
   def :=(v: V): HtmlAttr.Modified[F, V] =
     this <-- Stream.emit(v)
 
+  def <--(vs: Signal[F, V]): HtmlAttr.Modified[F, V] =
+    this <-- vs.discrete
+
   def <--(vs: Stream[F, V]): HtmlAttr.Modified[F, V] =
     this <-- Resource.pure(vs)
 
@@ -230,6 +248,9 @@ object HtmlAttr:
 sealed class Prop[F[_], V, J] private[calico] (name: String, codec: Codec[V, J]):
   def :=(v: V): Prop.Modified[F, V, J] =
     this <-- Stream.emit(v)
+
+  def <--(vs: Signal[F, V]): Prop.Modified[F, V, J] =
+    this <-- vs.discrete
 
   def <--(vs: Stream[F, V]): Prop.Modified[F, V, J] =
     this <-- Resource.pure(vs)
@@ -293,8 +314,14 @@ final class ClassAttr[F[_]] private[calico]
     this := List(cls)
 
 final class Children[F[_]] private[calico]:
+  def <--(cs: Signal[F, List[Resource[F, dom.Node]]])(using Monad[F]): Children.Modified[F] =
+    this <-- cs.discrete
+
   def <--(cs: Stream[F, List[Resource[F, dom.Node]]])(using Monad[F]): Children.Modified[F] =
     this <-- cs.map(_.sequence)
+
+  def <--(cs: Signal[F, Resource[F, List[dom.Node]]]): Children.Modified[F] =
+    this <-- cs.discrete
 
   def <--(cs: Stream[F, Resource[F, List[dom.Node]]]): Children.Modified[F] =
     Children.Modified(cs)
@@ -315,6 +342,9 @@ object Children:
         .void
 
 final class KeyedChildren[F[_], K] private[calico] (f: K => Resource[F, dom.Node]):
+  def <--(ks: Signal[F, List[K]]): KeyedChildren.Modified[F, K] =
+    this <-- ks.discrete
+
   def <--(ks: Stream[F, List[K]]): KeyedChildren.Modified[F, K] =
     KeyedChildren.Modified(f, ks)
 
