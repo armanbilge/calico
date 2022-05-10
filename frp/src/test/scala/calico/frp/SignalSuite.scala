@@ -88,4 +88,5 @@ class SignalSuite extends DisciplineSuite, TestInstances:
 
   given Ticker = Ticker()
 
+  // it is stack-safe, but expensive to test
   checkAll("Signal", MonadTests[Signal[IO, _]].stackUnsafeMonad[Int, Int, Int])
