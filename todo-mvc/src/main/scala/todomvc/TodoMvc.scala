@@ -18,6 +18,7 @@ package todomvc
 
 import calico.*
 import calico.dsl.io.*
+import calico.frp.given
 import calico.syntax.*
 import cats.effect.*
 import cats.effect.std.*
@@ -40,7 +41,8 @@ object TodoMvc extends IOWebApp:
           cls := "main",
           ul(
             cls := "todo-list",
-            children[Int](id => TodoItem(store.entry(id))) <-- store.ids(filter)
+            children[Int](id => TodoItem(store.entry(id))) <--
+              (filter: Signal[IO, Filter]).flatMap(store.ids(_))
           )
         ),
         store
@@ -147,8 +149,8 @@ class TodoStore(map: SignallingRef[IO, SortedMap[Int, Todo]], nextId: Ref[IO, In
   def entry(id: Int): SignallingRef[IO, Option[Todo]] =
     map.zoom(At.atSortedMap[Int, Todo].at(id))
 
-  def ids(filter: Signal[IO, Filter]): Signal[IO, List[Int]] =
-    (map, filter).mapN((m, f) => m.filter((_, t) => f.pred(t)).keySet.toList)
+  def ids(filter: Filter): Signal[IO, List[Int]] =
+    map.map(_.filter((_, t) => filter.pred(t)).keySet.toList)
 
   def size: Signal[IO, Int] = map.map(_.size)
 

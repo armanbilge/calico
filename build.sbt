@@ -14,7 +14,28 @@ ThisBuild / scalacOptions ++= Seq("-new-syntax", "-indent", "-source:future")
 ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17"))
 ThisBuild / tlJdkRelease := Some(8)
 
-lazy val root = tlCrossRootProject.aggregate(calico, widget, example, todoMvc, unidocs)
+val CatsVersion = "2.7.0"
+val CatsEffectVersion = "3.3.11"
+val MonocleVersion = "3.1.0"
+
+lazy val root = tlCrossRootProject.aggregate(frp, calico, widget, example, todoMvc, unidocs)
+
+lazy val frp = crossProject(JVMPlatform, JSPlatform)
+  .crossType(CrossType.Pure)
+  .in(file("frp"))
+  .settings(
+    name := "calico-frp",
+    tlVersionIntroduced := Map("3" -> "0.1.1"),
+    libraryDependencies ++= Seq(
+      "org.typelevel" %%% "cats-core" % CatsVersion,
+      "org.typelevel" %%% "cats-effect" % CatsEffectVersion,
+      "co.fs2" %%% "fs2-core" % "3.2.7",
+      "org.typelevel" %%% "cats-laws" % CatsVersion % Test,
+      "org.typelevel" %%% "cats-effect-testkit" % CatsEffectVersion % Test,
+      "org.typelevel" %%% "discipline-munit" % "1.0.9" % Test,
+      "org.scalameta" %%% "munit-scalacheck" % "0.7.29" % Test
+    )
+  )
 
 lazy val calico = project
   .in(file("calico"))
@@ -22,15 +43,13 @@ lazy val calico = project
   .settings(
     name := "calico",
     libraryDependencies ++= Seq(
-      "org.typelevel" %%% "cats-core" % "2.7.0",
-      "org.typelevel" %%% "cats-effect" % "3.3.11",
-      "co.fs2" %%% "fs2-core" % "3.2.7",
       "org.typelevel" %%% "shapeless3-deriving" % "3.0.4",
-      "dev.optics" %%% "monocle-core" % "3.1.0",
+      "dev.optics" %%% "monocle-core" % MonocleVersion,
       "com.raquo" %%% "domtypes" % "0.16.0-RC2",
       "org.scala-js" %%% "scalajs-dom" % "2.1.0"
     )
   )
+  .dependsOn(frp.js)
 
 lazy val widget = project
   .in(file("widget"))
@@ -52,7 +71,7 @@ lazy val example = project
         .withModuleSplitStyle(ModuleSplitStyle.SmallModulesFor(List("calico")))
     },
     libraryDependencies ++= Seq(
-      "dev.optics" %%% "monocle-macro" % "3.1.0"
+      "dev.optics" %%% "monocle-macro" % MonocleVersion
     )
   )
 
@@ -68,7 +87,7 @@ lazy val todoMvc = project
         .withModuleSplitStyle(ModuleSplitStyle.SmallModulesFor(List("todomvc")))
     },
     libraryDependencies ++= Seq(
-      "dev.optics" %%% "monocle-macro" % "3.1.0"
+      "dev.optics" %%% "monocle-macro" % MonocleVersion
     )
   )
 
@@ -77,7 +96,7 @@ lazy val unidocs = project
   .enablePlugins(ScalaJSPlugin, TypelevelUnidocPlugin)
   .settings(
     name := "calico-docs",
-    ScalaUnidoc / unidoc / unidocProjectFilter := inProjects(calico)
+    ScalaUnidoc / unidoc / unidocProjectFilter := inProjects(frp.js, calico)
   )
 
 lazy val jsdocs = project.dependsOn(calico, widget).enablePlugins(ScalaJSPlugin)
