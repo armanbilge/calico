@@ -31,12 +31,16 @@ import munit.DisciplineSuite
 import org.scalacheck.Arbitrary
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen
+import org.scalacheck.rng.Seed
 
 import scala.concurrent.duration.*
 
 class SignalSuite extends DisciplineSuite, TestInstances:
 
-  class TestSignal[A](initial: A, values: List[(FiniteDuration, A)]) extends Signal[IO, A]:
+  // override def scalaCheckTestParameters =
+  //   super.scalaCheckTestParameters.withMinSuccessfulTests(1)
+
+  case class TestSignal[A](initial: A, values: List[(FiniteDuration, A)]) extends Signal[IO, A]:
     def discrete: Stream[IO, A] =
       Stream.emit(initial) ++ Stream.emits(values).evalMap(IO.sleep(_).as(_))
     def get = IO.never
@@ -52,19 +56,23 @@ class SignalSuite extends DisciplineSuite, TestInstances:
     )
 
   given [A: Eq](using Eq[IO[List[(A, FiniteDuration)]]]): Eq[Signal[IO, A]] = Eq.by { sig =>
-    IO.ref(List.empty[(A, FiniteDuration)]).flatMap { ref =>
-      TestControl.executeEmbed(
-        sig
-          .discrete
-          .evalMap(IO.realTime.tupleLeft(_))
-          .evalMap(x => ref.update(_ :+ x))
-          .compile
-          .drain,
-        seed = Some(scalaCheckInitialSeed)
-      ) *> ref.get
-    }
+    IO.ref(List.empty[(A, FiniteDuration)])
+      .flatMap { ref =>
+        TestControl.executeEmbed(
+          sig
+            .discrete
+            .evalMap(IO.realTime.tupleLeft(_))
+            .evalMap(x => ref.update(_ :+ x))
+            .compile
+            .drain
+            .timeoutTo(Long.MaxValue.nanos, IO.unit)
+        ) *> ref.get
+      }
+      .attempt
+      .flatTap(IO.println)
+      .rethrow
   }
 
   given Ticker = Ticker()
 
-  checkAll("Signal", MonadTests[Signal[IO, _]].stackUnsafeMonad[Int, Int, Int])
+  checkAll("Signal", MonadTests[Signal[IO, _]].semigroupal[Int, Int, Int])
