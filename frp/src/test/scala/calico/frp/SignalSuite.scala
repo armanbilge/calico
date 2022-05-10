@@ -34,15 +34,27 @@ import org.scalacheck.Gen
 import org.scalacheck.rng.Seed
 
 import scala.concurrent.duration.*
+import cats.data.NonEmptyList
 
 class SignalSuite extends DisciplineSuite, TestInstances:
 
   // override def scalaCheckTestParameters =
   //   super.scalaCheckTestParameters.withMinSuccessfulTests(1)
 
-  case class TestSignal[A](initial: A, values: List[(FiniteDuration, A)]) extends Signal[IO, A]:
-    def discrete: Stream[IO, A] =
-      Stream.emit(initial) ++ Stream.emits(values).evalMap(IO.sleep(_).as(_))
+  case class TestSignal[A](events: NonEmptyList[(FiniteDuration, A)]) extends Signal[IO, A]:
+    def discrete: Stream[IO, A] = Stream.eval(IO.realTime).flatMap { now =>
+      def go(events: NonEmptyList[(FiniteDuration, A)]): (A, List[(FiniteDuration, A)]) =
+        events match
+          case NonEmptyList((_, a), Nil) => (a, Nil)
+          case NonEmptyList((t0, a0), tail @ ((t1, a1) :: _)) =>
+            if t1 > now then (a0, tail)
+            else go(NonEmptyList.fromListUnsafe(tail))
+
+      val (current, remaining) = go(events)
+      Stream.emit(current) ++ Stream.emits(remaining).evalMap { (when, a) =>
+        IO.realTime.map(when - _).flatMap(IO.sleep).as(a)
+      }
+    }
     def get = IO.never
     def continuous = Stream.never
 
@@ -52,7 +64,11 @@ class SignalSuite extends DisciplineSuite, TestInstances:
       for
         initial <- arbitrary[A]
         tail <- arbitrary[List[(FiniteDuration, A)]]
-      yield TestSignal(initial, tail)
+        events = tail.scanLeft(Duration.Zero -> initial) {
+          case ((prevTime, _), (sleep, a)) =>
+            (prevTime + sleep) -> a
+        }
+      yield TestSignal(NonEmptyList.fromListUnsafe(events))
     )
 
   given [A: Eq](using Eq[IO[List[(A, FiniteDuration)]]]): Eq[Signal[IO, A]] = Eq.by { sig =>
