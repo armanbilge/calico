@@ -38,6 +38,7 @@
 package calico
 package frp
 
+import cats.Monad
 import cats.StackSafeMonad
 import cats.data.OptionT
 import cats.effect.kernel.Concurrent
@@ -46,7 +47,7 @@ import fs2.Pull
 import fs2.Stream
 import fs2.concurrent.Signal
 
-given [F[_]: Concurrent]: StackSafeMonad[Signal[F, _]] with
+given [F[_]: Concurrent]: Monad[Signal[F, _]] = new StackSafeMonad[Signal[F, _]]:
   def pure[A](a: A) = Signal.constant(a)
 
   def flatMap[A, B](siga: Signal[F, A])(f: A => Signal[F, B]) = new:
