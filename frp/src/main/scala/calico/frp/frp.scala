@@ -39,12 +39,12 @@ package calico
 package frp
 
 import cats.StackSafeMonad
+import cats.data.OptionT
 import cats.effect.kernel.Concurrent
 import cats.syntax.all.*
+import fs2.Pull
 import fs2.Stream
 import fs2.concurrent.Signal
-import cats.data.OptionT
-import fs2.Pull
 
 given [F[_]: Concurrent]: StackSafeMonad[Signal[F, _]] with
   def pure[A](a: A) = Signal.constant(a)
