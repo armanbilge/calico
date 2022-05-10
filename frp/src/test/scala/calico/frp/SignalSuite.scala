@@ -38,8 +38,8 @@ import cats.data.NonEmptyList
 
 class SignalSuite extends DisciplineSuite, TestInstances:
 
-  override def scalaCheckTestParameters =
-    super.scalaCheckTestParameters.withMinSuccessfulTests(10).withMaxSize(2)
+  // // override def scalaCheckTestParameters =
+  //   super.scalaCheckTestParameters.withMaxSize(10)
 
   case class TestSignal[A](events: NonEmptyList[(FiniteDuration, A)]) extends Signal[IO, A]:
     def discrete: Stream[IO, A] = Stream.eval(IO.realTime).flatMap { now =>
@@ -72,23 +72,22 @@ class SignalSuite extends DisciplineSuite, TestInstances:
     )
 
   given [A: Eq](using Eq[IO[List[(A, FiniteDuration)]]]): Eq[Signal[IO, A]] = Eq.by { sig =>
-    IO.ref(List.empty[(A, FiniteDuration)])
-      .flatMap { ref =>
-        TestControl.executeEmbed(
-          sig
-            .discrete
-            .evalMap(IO.realTime.tupleLeft(_))
-            .evalMap(x => ref.update(x :: _))
-            .compile
-            .drain
-            .timeoutTo(Long.MaxValue.nanos, IO.unit)
-        ) *> ref.get.map(_.distinctBy(_._2))
-      }
-      .attempt
-      .flatTap(IO.println)
-      .rethrow
+    IO.ref(List.empty[(A, FiniteDuration)]).flatMap { ref =>
+      TestControl.executeEmbed(
+        sig
+          .discrete
+          .evalMap(IO.realTime.tupleLeft(_))
+          .evalMap(x => ref.update(x :: _))
+          .compile
+          .drain
+          .timeoutTo(Long.MaxValue.nanos, IO.unit)
+      ) *> ref.get.map(_.distinctBy(_._2))
+    }
+  // .attempt
+  // .flatTap(IO.println)
+  // .rethrow
   }
 
   given Ticker = Ticker()
 
-  checkAll("Signal", MonadTests[Signal[IO, _]].semigroupal[Int, Int, Int])
+  checkAll("Signal", MonadTests[Signal[IO, _]].stackUnsafeMonad[Int, Int, Int])
