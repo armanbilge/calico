@@ -50,7 +50,7 @@ given [F[_]: Concurrent]: StackSafeMonad[Signal[F, _]] with
   def pure[A](a: A) = Signal.constant(a)
 
   def flatMap[A, B](siga: Signal[F, A])(f: A => Signal[F, B]) = new:
-    def get = siga.get.flatMap(a => f(a).get)
+    def get = siga.get.flatMap(f(_).get)
     def continuous = Stream.repeatEval(get)
     def discrete = siga.discrete.switchMap(f(_).discrete)
 
