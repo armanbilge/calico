@@ -58,7 +58,7 @@ extension [F[_], A](sigRef: SignallingRef[F, A])
       def set(b: B) = ref.set(b)
       def get = ref.get
       def continuous = sigRef.map(lens.get).continuous
-      def discrete = sigRef.map(lens.get).discrete.changes(Eq.fromUniversalEquals)
+      def discrete = sigRef.map(lens.get).discrete
 
 extension [F[_], A](stream: Stream[F, A])
   @deprecated("This is not a valid signal; use Stream#holdOptionResource instead", "0.1.1")
