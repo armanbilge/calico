@@ -134,7 +134,7 @@
           </span><span class="identifier">cls</span><span> := </span><span class="string-literal">&quot;main&quot;</span><span>,
           </span><span class="identifier">ul</span><span>(
             </span><span class="identifier">cls</span><span> := </span><span class="string-literal">&quot;todo-list&quot;</span><span>,
-            </span><span class="identifier">children</span><span>[</span><span class="type-name">Int</span><span>](</span><span class="identifier">id</span><span> =&gt; </span><span class="type-name">TodoItem</span><span>(</span><span class="identifier">store</span><span>.</span><span class="identifier">entry</span><span>(</span><span class="identifier">id</span><span>))) &lt;-- </span><span class="identifier">store</span><span>.</span><span class="identifier">ids</span><span>(</span><span class="identifier">filter</span><span>).</span><span class="identifier">discrete</span><span>
+            </span><span class="identifier">children</span><span>[</span><span class="type-name">Int</span><span>](</span><span class="identifier">id</span><span> =&gt; </span><span class="type-name">TodoItem</span><span>(</span><span class="identifier">store</span><span>.</span><span class="identifier">entry</span><span>(</span><span class="identifier">id</span><span>))) &lt;-- </span><span class="identifier">store</span><span>.</span><span class="identifier">ids</span><span>(</span><span class="identifier">filter</span><span>)
           )
         ),
         </span><span class="identifier">store</span><span>
@@ -168,9 +168,9 @@
           </span><span class="keyword">val</span><span> </span><span class="identifier">completed</span><span> = </span><span class="type-name">Option</span><span>.</span><span class="identifier">when</span><span>(</span><span class="identifier">t</span><span>.</span><span class="identifier">exists</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">completed</span><span>))(</span><span class="string-literal">&quot;completed&quot;</span><span>)
           </span><span class="keyword">val</span><span> </span><span class="identifier">editing</span><span> = </span><span class="type-name">Option</span><span>.</span><span class="identifier">when</span><span>(</span><span class="identifier">e</span><span>)(</span><span class="string-literal">&quot;editing&quot;</span><span>).</span><span class="identifier">toList</span><span>
           </span><span class="identifier">completed</span><span>.</span><span class="identifier">toList</span><span> ++ </span><span class="identifier">editing</span><span>.</span><span class="identifier">toList</span><span>
-        }.</span><span class="identifier">discrete</span><span>,
+        },
         </span><span class="identifier">onDblClick</span><span> --&gt; (</span><span class="identifier">_</span><span>.</span><span class="identifier">foreach</span><span>(</span><span class="identifier">_</span><span> =&gt; </span><span class="identifier">editing</span><span>.</span><span class="identifier">set</span><span>(</span><span class="boolean-literal">true</span><span>))),
-        </span><span class="identifier">children</span><span> &lt;-- </span><span class="identifier">editing</span><span>.</span><span class="identifier">discrete</span><span>.</span><span class="identifier">map</span><span> {
+        </span><span class="identifier">children</span><span> &lt;-- </span><span class="identifier">editing</span><span>.</span><span class="identifier">map</span><span> {
           </span><span class="keyword">case</span><span> </span><span class="boolean-literal">true</span><span> =&gt;
             </span><span class="type-name">List</span><span>(
               </span><span class="identifier">input</span><span> { </span><span class="identifier">self</span><span> =&gt;
@@ -180,7 +180,7 @@
 
                 (
                   </span><span class="identifier">cls</span><span> := </span><span class="string-literal">&quot;edit&quot;</span><span>,
-                  </span><span class="identifier">defaultValue</span><span> &lt;-- </span><span class="identifier">todo</span><span>.</span><span class="identifier">discrete</span><span>.</span><span class="identifier">unNone</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">text</span><span>),
+                  </span><span class="identifier">defaultValue</span><span> &lt;-- </span><span class="identifier">todo</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">foldMap</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">text</span><span>)),
                   </span><span class="identifier">onKeyPress</span><span> --&gt; {
                     </span><span class="identifier">_</span><span>.</span><span class="identifier">filter</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">keyCode</span><span> == </span><span class="type-name">KeyCode</span><span>.</span><span class="type-name">Enter</span><span>).</span><span class="identifier">foreach</span><span>(</span><span class="identifier">_</span><span> =&gt; </span><span class="identifier">endEdit</span><span>)
                   },
@@ -194,13 +194,13 @@
                 (
                   </span><span class="identifier">cls</span><span> := </span><span class="string-literal">&quot;toggle&quot;</span><span>,
                   </span><span class="identifier">typ</span><span> := </span><span class="string-literal">&quot;checkbox&quot;</span><span>,
-                  </span><span class="identifier">checked</span><span> &lt;-- </span><span class="identifier">todo</span><span>.</span><span class="identifier">discrete</span><span>.</span><span class="identifier">unNone</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">completed</span><span>),
+                  </span><span class="identifier">checked</span><span> &lt;-- </span><span class="identifier">todo</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">fold</span><span>(</span><span class="boolean-literal">false</span><span>)(</span><span class="identifier">_</span><span>.</span><span class="identifier">completed</span><span>)),
                   </span><span class="identifier">onInput</span><span> --&gt; {
                     </span><span class="identifier">_</span><span>.</span><span class="identifier">foreach</span><span>(</span><span class="identifier">_</span><span> =&gt; </span><span class="identifier">todo</span><span>.</span><span class="identifier">update</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">copy</span><span>(</span><span class="identifier">completed</span><span> = </span><span class="identifier">self</span><span>.</span><span class="identifier">checked</span><span>))))
                   }
                 )
               },
-              </span><span class="identifier">label</span><span>(</span><span class="identifier">todo</span><span>.</span><span class="identifier">discrete</span><span>.</span><span class="identifier">unNone</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">text</span><span>)),
+              </span><span class="identifier">label</span><span>(</span><span class="identifier">todo</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">text</span><span>))),
               </span><span class="identifier">button</span><span>(</span><span class="identifier">cls</span><span> := </span><span class="string-literal">&quot;destroy&quot;</span><span>, </span><span class="identifier">onClick</span><span> --&gt; (</span><span class="identifier">_</span><span>.</span><span class="identifier">foreach</span><span>(</span><span class="identifier">_</span><span> =&gt; </span><span class="identifier">todo</span><span>.</span><span class="identifier">set</span><span>(</span><span class="type-name">None</span><span>))))
             )
         }
@@ -212,11 +212,11 @@
       </span><span class="identifier">cls</span><span> := </span><span class="string-literal">&quot;footer&quot;</span><span>,
       </span><span class="identifier">span</span><span>(
         </span><span class="identifier">cls</span><span> := </span><span class="string-literal">&quot;todo-count&quot;</span><span>,
-        </span><span class="identifier">activeCount</span><span>.</span><span class="identifier">discrete</span><span>.</span><span class="identifier">map</span><span> {
+        </span><span class="identifier">activeCount</span><span>.</span><span class="identifier">map</span><span> {
           </span><span class="keyword">case</span><span> </span><span class="number-literal">1</span><span> =&gt; </span><span class="string-literal">&quot;1 item left&quot;</span><span>
           </span><span class="keyword">case</span><span> </span><span class="identifier">n</span><span> =&gt; </span><span class="identifier">n</span><span>.</span><span class="identifier">toString</span><span> + </span><span class="string-literal">&quot; items left&quot;</span><span>
-        }
-      ),
+        }.</span><span class="identifier">discrete</span><span> </span><span class="comment">// TODO dotty bug
+</span><span>      ),
       </span><span class="identifier">ul</span><span>(
         </span><span class="identifier">cls</span><span> := </span><span class="string-literal">&quot;filters&quot;</span><span>,
         </span><span class="type-name">Filter</span><span>
@@ -225,7 +225,7 @@
           .</span><span class="identifier">map</span><span> { </span><span class="identifier">f</span><span> =&gt;
             </span><span class="identifier">li</span><span>(
               </span><span class="identifier">a</span><span>(
-                </span><span class="identifier">cls</span><span> &lt;-- </span><span class="identifier">filter</span><span>.</span><span class="identifier">discrete</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span> == </span><span class="identifier">f</span><span>).</span><span class="identifier">map</span><span>(</span><span class="type-name">Option</span><span>.</span><span class="identifier">when</span><span>(</span><span class="identifier">_</span><span>)(</span><span class="string-literal">&quot;selected&quot;</span><span>).</span><span class="identifier">toList</span><span>),
+                </span><span class="identifier">cls</span><span> &lt;-- </span><span class="identifier">filter</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span> == </span><span class="identifier">f</span><span>).</span><span class="identifier">map</span><span>(</span><span class="type-name">Option</span><span>.</span><span class="identifier">when</span><span>(</span><span class="identifier">_</span><span>)(</span><span class="string-literal">&quot;selected&quot;</span><span>).</span><span class="identifier">toList</span><span>),
                 </span><span class="identifier">onClick</span><span> --&gt; (</span><span class="identifier">_</span><span>.</span><span class="identifier">foreach</span><span>(</span><span class="identifier">_</span><span> =&gt; </span><span class="identifier">filter</span><span>.</span><span class="identifier">set</span><span>(</span><span class="identifier">f</span><span>))),
                 </span><span class="identifier">f</span><span>.</span><span class="identifier">toString</span><span>
               )
