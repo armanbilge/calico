@@ -38,8 +38,8 @@ import cats.data.NonEmptyList
 
 class SignalSuite extends DisciplineSuite, TestInstances:
 
-  // override def scalaCheckTestParameters =
-  //   super.scalaCheckTestParameters.withMinSuccessfulTests(1)
+  override def scalaCheckTestParameters =
+    super.scalaCheckTestParameters.withMinSuccessfulTests(10).withMaxSize(2)
 
   case class TestSignal[A](events: NonEmptyList[(FiniteDuration, A)]) extends Signal[IO, A]:
     def discrete: Stream[IO, A] = Stream.eval(IO.realTime).flatMap { now =>
@@ -59,7 +59,7 @@ class SignalSuite extends DisciplineSuite, TestInstances:
     def continuous = Stream.never
 
   given [A: Arbitrary]: Arbitrary[Signal[IO, A]] =
-    given Arbitrary[FiniteDuration] = Arbitrary(Gen.posNum[Byte].map(_.toLong.nanos))
+    given Arbitrary[FiniteDuration] = Arbitrary(Gen.posNum[Byte].map(_.toLong.millis))
     Arbitrary(
       for
         initial <- arbitrary[A]
