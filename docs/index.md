@@ -109,8 +109,8 @@ However, there are certain situations where running a task with high-priority ma
 ```scala mdoc:js:compile-only
 import calico.unsafe.MacrotaskExecutor
 
-val expensiveOp: IO[Unit] = ???
-expensiveOp.evalOn(MacrotaskExecutor)
+val expensiveComputation: IO[Unit] = ???
+expensiveComputation.evalOn(MacrotaskExecutor)
 ```
 
 The [`MacrotaskExecutor`](https://github.com/scala-js/scala-js-macrotask-executor) schedules macrotasks with equal priority to event processing and UI rendering. Conceptually, it is somewhat analogous to using `IO.blocking(...)` on the JVM, in that running these tasks on a separate `ExecutionContext` preserves fairness and enables your application to continue responding to incoming events. Conversely, forgetting to use `.evalOn(MacrotaskExecutor)` or `IO.blocking(...)` could cause your application to become unresponsive.
