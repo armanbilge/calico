@@ -16,6 +16,7 @@
 
 package calico.frp
 
+import cats.data.NonEmptyList
 import cats.effect.IO
 import cats.effect.kernel.Resource
 import cats.effect.testkit.TestControl
@@ -31,10 +32,8 @@ import munit.DisciplineSuite
 import org.scalacheck.Arbitrary
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen
-import org.scalacheck.rng.Seed
 
 import scala.concurrent.duration.*
-import cats.data.NonEmptyList
 
 class SignalSuite extends DisciplineSuite, TestInstances:
 
@@ -85,9 +84,6 @@ class SignalSuite extends DisciplineSuite, TestInstances:
           .timeoutTo(Long.MaxValue.nanos, IO.unit)
       ) *> ref.get.map(_.distinctBy(_._2))
     }
-  // .attempt
-  // .flatTap(IO.println)
-  // .rethrow
   }
 
   given Ticker = Ticker()
