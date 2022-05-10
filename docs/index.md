@@ -88,3 +88,31 @@ The ideas are very much the same as the prior example.
 3. `div(...)` is a `Resource` composed of the `input(...)` and `span(...)` `Resource`s, and therefore (indirectly) manages the `Fiber`s of its child components.
 
 And there we have it: a self-contained component consisting of non-trivial resources, that can be safely used, reused, and torn down.
+
+### Task scheduling and glitch-free rendering
+
+A JavaScript webapp typically has a flow like:
+
+1. An event fires. Examples:
+  - a user event, such a button click
+  - a scheduled timer event
+  - an I/O event, such as an HTTP response or WebSocket message
+2. An event-handler is triggered, starting (potentially concurrent) tasks to update the application state and the UI.
+3. The UI re-renders.
+
+**calico** is highly-optimized for this use-case and by default schedules all tasks as so-called "microtasks". These microtasks have very high-priority: while there is still work to be done, the UI will not re-render and no further events will be processed. Only once all microtasks are complete, will the UI re-render and events will start being processed again.
+
+Notice that this scheduling strategy guarantees glitch-free rendering, such that the user will never see inconsistent state in the UI.
+
+However, there are certain situations where running a task with high-priority may not be desirable and you would prefer that it runs in the "background" while your application continues to be responsive, typically if you are doing an expensive calculation or processing. In these situations, you should schedule that task as a macrotask, like so:
+
+```scala
+import calico.unsafe.MacrotaskExecutor
+
+val expensiveOp: IO[Unit] = ???
+expensiveOp.evalOn(MacrotaskExecutor)
+```
+
+Conceptually, this is similar to `IO.blocking(...)` on the JVM.
+
+However, I suspect situations in which you need to use the `MacrotaskExecutor` in webapp are rare. If you truly have a long-running, compute-intensive task that you do not want to compromise the responsiveness of your application, you should seriously consider running it in a background thread via a [WebWorker](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API) instead.
