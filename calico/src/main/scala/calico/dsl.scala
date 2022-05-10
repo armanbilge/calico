@@ -154,8 +154,7 @@ object Modifier:
     forStringStream.contramap(Stream.emit(_))
 
   given forStringStream[F[_], E <: dom.Node](
-      using F: Async[F]
-  ): Modifier[F, E, Stream[F, String]] with
+      using F: Async[F]): Modifier[F, E, Stream[F, String]] with
     def modify(s: Stream[F, String], e: E) = for
       n <- F
         .delay(dom.document.createTextNode(""))
