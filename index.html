@@ -102,6 +102,7 @@
           <li class="level1"><a href="#try-it">Try it!</a></li>
           <li class="level1"><a href="#core-concepts">Core concepts</a></li>
           <li class="level2"><a href="#components-and-resource-management">Components and resource management</a></li>
+          <li class="level2"><a href="#task-scheduling-and-glitch-free-rendering">Task scheduling and glitch-free rendering</a></li>
         </ul>
 
         <p class="footer"></p>
@@ -173,7 +174,32 @@
           <li><code>span(...)</code> is a <code>Resource</code> that creates a <code>&lt;span&gt;</code> element and also manages <code>Fiber</code>s that handle rendering of the name.</li>
           <li><code>div(...)</code> is a <code>Resource</code> composed of the <code>input(...)</code> and <code>span(...)</code> <code>Resource</code>s, and therefore (indirectly) manages the <code>Fiber</code>s of its child components.</li>
         </ol>
-        <p>And there we have it: a self-contained component consisting of non-trivial resources, that can be safely used, reused, and torn down.
+        <p>And there we have it: a self-contained component consisting of non-trivial resources, that can be safely used, reused, and torn down.</p>
+        
+        <h3 id="task-scheduling-and-glitch-free-rendering" class="section">Task scheduling and glitch-free rendering<a class="anchor-link right" href="#task-scheduling-and-glitch-free-rendering"><i class="icofont-laika">&#xef71;</i></a></h3>
+        <p>A JavaScript webapp typically has a flow like:</p>
+        <ol class="arabic">
+          <li>
+            An event fires. Examples:
+            <ul>
+              <li>a user event, such a button click</li>
+              <li>a scheduled timer event</li>
+              <li>an I/O event, such as an HTTP response or WebSocket message</li>
+            </ul>
+          </li>
+          <li>An event handler is triggered, starting (potentially concurrent) tasks to update the application state and the UI. These tasks may also setup new event emitters, for example by scheduling timers or initiating an HTTP request.</li>
+          <li>The UI re-renders.</li>
+        </ol>
+        <p><strong>Calico</strong> is highly-optimized for this pattern and by default schedules all tasks as so-called <em>microtasks</em>. These microtasks have very high-priority: while there is still work to be done, the UI will not re-render and no further events will be processed. Only once all microtasks are complete, will the UI re-render and events will start being processed again.</p>
+        <p>Notice that this scheduling strategy guarantees glitch-free rendering. Because all tasks triggered by an event must complete before the view re-renders, the user will never see inconsistent state in the UI.</p>
+        <p>However, there are certain situations where running a task with high-priority may not be desirable and you would prefer that it runs in the &quot;background&quot; while your application continues to be responsive, typically if you are doing an expensive calculation or processing. In these cases, you should schedule that task as a so-called <em>macrotask</em>:</p>
+        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.</span><span class="identifier">unsafe</span><span>.</span><span class="type-name">MacrotaskExecutor</span><span>
+
+</span><span class="keyword">val</span><span> </span><span class="identifier">expensiveTask</span><span>: </span><span class="type-name">IO</span><span>[</span><span class="type-name">Unit</span><span>] = ???
+</span><span class="identifier">expensiveTask</span><span>.</span><span class="identifier">evalOn</span><span>(</span><span class="type-name">MacrotaskExecutor</span><span>)</span></code></pre>
+        <p>The <a href="https://github.com/scala-js/scala-js-macrotask-executor"><code>MacrotaskExecutor</code></a> schedules macrotasks with equal priority to event processing and UI rendering. Conceptually, it is somewhat analogous to using <code>IO.blocking(...)</code> on the JVM, in that running these tasks on a separate <code>ExecutionContext</code> preserves fairness and enables your application to continue responding to incoming events. Conversely, forgetting to use <code>.evalOn(MacrotaskExecutor)</code> or <code>IO.blocking(...)</code> could cause your application to become unresponsive.</p>
+        <p>However, I suspect situations where you need to use the <code>MacrotaskExecutor</code> in webapp are rare. If you truly have a long-running, compute-intensive task that you do not want to compromise the responsiveness of your application, you should consider running it in a background thread via a <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API">WebWorker</a> instead.</p>
+        <p>To learn more about microtasks and macrotasks I recommend <a href="https://javascript.info/event-loop">this article about the JavaScript event loop</a>.
         <script type="text/javascript" src="index.md.js" defer></script>
         <script type="text/javascript" src="mdoc.js" defer></script></p>
 
