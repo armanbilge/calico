@@ -100,7 +100,7 @@ A JavaScript webapp typically has a flow like:
 2. An event handler is triggered, starting (potentially concurrent) tasks to update the application state and the UI. These tasks may also setup new event emitters, for example by scheduling timers or initiating an HTTP request.
 3. The UI re-renders.
 
-**calico** is highly-optimized for this use-case and by default schedules all tasks as so-called "microtasks". These microtasks have very high-priority: while there is still work to be done, the UI will not re-render and no further events will be processed. Only once all microtasks are complete, will the UI re-render and events will start being processed again.
+**Calico** is highly-optimized for this pattern and by default schedules all tasks as so-called "microtasks". These microtasks have very high-priority: while there is still work to be done, the UI will not re-render and no further events will be processed. Only once all microtasks are complete, will the UI re-render and events will start being processed again.
 
 Notice that this scheduling strategy guarantees glitch-free rendering. Because all tasks triggered by an event must complete before the view re-renders, the user will never see inconsistent state in the UI.
 
