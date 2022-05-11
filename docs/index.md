@@ -100,11 +100,11 @@ A JavaScript webapp typically has a flow like:
 2. An event handler is triggered, starting (potentially concurrent) tasks to update the application state and the UI. These tasks may also setup new event emitters, for example by scheduling timers or initiating an HTTP request.
 3. The UI re-renders.
 
-**Calico** is highly-optimized for this pattern and by default schedules all tasks as so-called "microtasks". These microtasks have very high-priority: while there is still work to be done, the UI will not re-render and no further events will be processed. Only once all microtasks are complete, will the UI re-render and events will start being processed again.
+**Calico** is highly-optimized for this pattern and by default schedules all tasks as so-called _microtasks_. These microtasks have very high-priority: while there is still work to be done, the UI will not re-render and no further events will be processed. Only once all microtasks are complete, will the UI re-render and events will start being processed again.
 
 Notice that this scheduling strategy guarantees glitch-free rendering. Because all tasks triggered by an event must complete before the view re-renders, the user will never see inconsistent state in the UI.
 
-However, there are certain situations where running a task with high-priority may not be desirable and you would prefer that it runs in the "background" while your application continues to be responsive, typically if you are doing an expensive calculation or processing. In these cases, you should schedule that task as a so-called "macrotask":
+However, there are certain situations where running a task with high-priority may not be desirable and you would prefer that it runs in the "background" while your application continues to be responsive, typically if you are doing an expensive calculation or processing. In these cases, you should schedule that task as a so-called _macrotask_:
 
 ```scala mdoc:js:compile-only
 import calico.unsafe.MacrotaskExecutor
