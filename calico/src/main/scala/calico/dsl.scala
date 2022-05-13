@@ -294,7 +294,8 @@ object EventProp:
             e.addEventListener(
               prop.key,
               e => d.unsafeRunAndForget(ch.send(e.asInstanceOf[V])),
-              js.Dynamic.literal(signal = c.signal).asInstanceOf[dom.EventListenerOptions]
+              new dom.EventListenerOptions:
+                signal = c.signal
             )
           }
         }
