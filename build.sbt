@@ -46,7 +46,7 @@ lazy val calico = project
       "org.typelevel" %%% "shapeless3-deriving" % "3.0.4",
       "dev.optics" %%% "monocle-core" % MonocleVersion,
       "com.raquo" %%% "domtypes" % "0.16.0-RC2",
-      "org.scala-js" %%% "scalajs-dom" % "2.1.0"
+      "org.scala-js" %%% "scalajs-dom" % "2.2.0"
     )
   )
   .dependsOn(frp.js)
