@@ -372,7 +372,7 @@ object KeyedChildren:
                   val newNodes = List.newBuilder[K]
                   ks.foreach { k =>
                     currentNodes.remove(k) match
-                      case Some(v) => nextNodes += (k -> v)
+                      case Some(v) => nextNodes += k -> v
                       case None => newNodes += k
                   }
 

@@ -47,7 +47,7 @@ class SignalSuite extends DisciplineSuite, TestInstances:
       def go(events: NonEmptyList[(FiniteDuration, A)]): (A, List[(FiniteDuration, A)]) =
         events match
           case NonEmptyList((_, a), Nil) => (a, Nil)
-          case NonEmptyList((t0, a0), tail @ ((t1, a1) :: _)) =>
+          case NonEmptyList((t0, a0), tail @ (t1, a1 :: _)) =>
             if t1 > now then (a0, tail)
             else go(NonEmptyList.fromListUnsafe(tail))
 
@@ -67,7 +67,7 @@ class SignalSuite extends DisciplineSuite, TestInstances:
         tail <- arbitrary[List[(FiniteDuration, A)]]
         events = tail.scanLeft(Duration.Zero -> initial) {
           case ((prevTime, _), (sleep, a)) =>
-            (prevTime + sleep) -> a
+            prevTime + sleep -> a
         }
       yield TestSignal(NonEmptyList.fromListUnsafe(events))
     )
