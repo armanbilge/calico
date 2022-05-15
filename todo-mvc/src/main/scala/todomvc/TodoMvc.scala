@@ -60,7 +60,7 @@ object TodoMvc extends IOWebApp:
         cls := "new-todo",
         placeholder := "What needs to be done?",
         autoFocus := true,
-        onKeyPress --> {
+        onKeyDown --> {
           _.filter(_.keyCode == KeyCode.Enter)
             .mapToTargetValue
             .filterNot(_.isEmpty)
