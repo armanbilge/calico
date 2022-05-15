@@ -183,7 +183,7 @@
                 (
                   </span><span class="identifier">cls</span><span> := </span><span class="string-literal">&quot;edit&quot;</span><span>,
                   </span><span class="identifier">defaultValue</span><span> &lt;-- </span><span class="identifier">todo</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">foldMap</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">text</span><span>)),
-                  </span><span class="identifier">onKeyPress</span><span> --&gt; {
+                  </span><span class="identifier">onKeyDown</span><span> --&gt; {
                     </span><span class="identifier">_</span><span>.</span><span class="identifier">filter</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">keyCode</span><span> == </span><span class="type-name">KeyCode</span><span>.</span><span class="type-name">Enter</span><span>).</span><span class="identifier">foreach</span><span>(</span><span class="identifier">_</span><span> =&gt; </span><span class="identifier">endEdit</span><span>)
                   },
                   </span><span class="identifier">onBlur</span><span> --&gt; (</span><span class="identifier">_</span><span>.</span><span class="identifier">foreach</span><span>(</span><span class="identifier">_</span><span> =&gt; </span><span class="identifier">endEdit</span><span>))
