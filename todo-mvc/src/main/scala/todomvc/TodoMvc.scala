@@ -89,7 +89,7 @@ object TodoMvc extends IOWebApp:
                 (
                   cls := "edit",
                   defaultValue <-- todo.map(_.foldMap(_.text)),
-                  onKeyPress --> {
+                  onKeyDown --> {
                     _.filter(_.keyCode == KeyCode.Enter).foreach(_ => endEdit)
                   },
                   onBlur --> (_.foreach(_ => endEdit))
