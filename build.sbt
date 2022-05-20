@@ -43,7 +43,7 @@ lazy val calico = project
   .settings(
     name := "calico",
     libraryDependencies ++= Seq(
-      "org.typelevel" %%% "shapeless3-deriving" % "3.0.4",
+      "org.typelevel" %%% "shapeless3-deriving" % "3.1.0",
       "dev.optics" %%% "monocle-core" % MonocleVersion,
       "com.raquo" %%% "domtypes" % "0.16.0-RC2",
       "org.scala-js" %%% "scalajs-dom" % "2.2.0"
