@@ -118,12 +118,19 @@ lazy val docs = project
     ),
     laikaInputs := {
       import laika.ast.Path.Root
+      val jsArtifact = (todoMvc / Compile / fullOptJS / artifactPath).value
+      val sourcemap = jsArtifact.getName + ".map"
       laikaInputs
         .value
         .delegate
         .addFile(
-          (todoMvc / Compile / fullOptJS / artifactPath).value,
-          Root / "todomvc" / "index.js")
+          jsArtifact,
+          Root / "todomvc" / "index.js"
+        )
+        .addFile(
+          jsArtifact.toPath.resolveSibling(sourcemap).toFile,
+          Root / "todomvc" / sourcemap
+        )
     },
     mdocVariables += {
       val src = IO.readLines(
