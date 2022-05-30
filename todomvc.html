@@ -136,7 +136,7 @@
           </span><span class="identifier">ul</span><span>(
             </span><span class="identifier">cls</span><span> := </span><span class="string-literal">&quot;todo-list&quot;</span><span>,
             </span><span class="identifier">children</span><span>[</span><span class="type-name">Int</span><span>](</span><span class="identifier">id</span><span> =&gt; </span><span class="type-name">TodoItem</span><span>(</span><span class="identifier">store</span><span>.</span><span class="identifier">entry</span><span>(</span><span class="identifier">id</span><span>))) &lt;--
-              (</span><span class="identifier">filter</span><span>: </span><span class="type-name">Signal</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">Filter</span><span>]).</span><span class="identifier">flatMap</span><span>(</span><span class="identifier">store</span><span>.</span><span class="identifier">ids</span><span>(</span><span class="identifier">_</span><span>))
+              (</span><span class="identifier">filter</span><span>: </span><span class="type-name">Signal</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">Filter</span><span>]).</span><span class="identifier">flatMap</span><span>(</span><span class="identifier">store</span><span>.</span><span class="identifier">ids</span><span>(</span><span class="identifier">_</span><span>)).</span><span class="identifier">discrete</span><span>.</span><span class="identifier">changes</span><span>
           )
         ),
         </span><span class="identifier">store</span><span>
