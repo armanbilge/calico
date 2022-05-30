@@ -42,7 +42,7 @@ object TodoMvc extends IOWebApp:
           ul(
             cls := "todo-list",
             children[Int](id => TodoItem(store.entry(id))) <--
-              (filter: Signal[IO, Filter]).flatMap(store.ids(_))
+              (filter: Signal[IO, Filter]).flatMap(store.ids(_)).discrete.changes
           )
         ),
         store
