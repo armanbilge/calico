@@ -137,5 +137,5 @@ lazy val docs = project
         (todoMvc / sourceDirectory).value / "main" / "scala" / "todomvc" / "TodoMvc.scala")
       "TODO_MVC_SRC" -> src.dropWhile(!_.startsWith("package")).mkString("\n")
     },
-    laikaSite := laikaSite.dependsOn((todoMvc / Compile / fullOptJS)).value
+    laikaSite := laikaSite.dependsOn(todoMvc / Compile / fullOptJS).value
   )
