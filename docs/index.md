@@ -104,7 +104,9 @@ A JavaScript webapp typically has a flow like:
 
 Notice that this scheduling strategy guarantees glitch-free rendering. Because all tasks triggered by an event must complete before the view re-renders, the user will never see inconsistent state in the UI.
 
-However, there are certain situations where running a task with high-priority may not be desirable and you would prefer that it runs in the "background" while your application continues to be responsive, typically if you are doing an expensive calculation or processing. In these cases, you should break that task into smaller steps and schedule it as a so-called _macrotask_:
+However, there are certain situations where running a task with high-priority may not be desirable and you would prefer that it runs in the "background" while your application continues to be responsive. This is relevant only if you are doing an expensive calculation or processing task; for example, there is no need to explicitly background I/O tasks since they operate via the event-driven flow described above.
+
+In these cases, you should break that expensive task into smaller steps and schedule it as a so-called _macrotask_:
 
 ```scala
 import calico.unsafe.MacrotaskExecutor
