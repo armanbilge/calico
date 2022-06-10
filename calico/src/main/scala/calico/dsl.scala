@@ -279,9 +279,7 @@ final class EventProp[F[_], E] private[calico] (key: String):
   def -->(sink: Pipe[F, E, Nothing]): EventProp.Modified[F, E] = EventProp.Modified(key, sink)
 
 object EventProp:
-  final class Modified[F[_], E] private[calico] (
-      val key: String,
-      val sink: Pipe[F, E, Nothing])
+  final class Modified[F[_], E] private[calico] (val key: String, val sink: Pipe[F, E, Nothing])
 
   given [F[_], E <: dom.EventTarget, V](using F: Async[F]): Modifier[F, E, Modified[F, V]] with
     def modify(prop: Modified[F, V], e: E) = for
