@@ -23,7 +23,6 @@ import cats.data.OptionT
 import cats.effect.kernel.Async
 import cats.effect.kernel.Resource
 import cats.syntax.all.*
-import fs2.INothing
 import fs2.Pipe
 import fs2.Stream
 import fs2.concurrent.Signal
@@ -46,7 +45,7 @@ object Widget:
       using Edit[F, A]): Resource[F, dom.HTMLElement] =
     edit(sigRef.discrete)(_.foreach(sigRef.set(_)))
 
-  def edit[F[_], A](read: Stream[F, A])(write: Pipe[F, A, INothing])(
+  def edit[F[_], A](read: Stream[F, A])(write: Pipe[F, A, Nothing])(
       using edit: Edit[F, A]): Resource[F, dom.HTMLElement] = edit.of(read)(write)
 
 trait View[F[_], A]:
@@ -89,18 +88,18 @@ object View:
       }
 
 trait Edit[F[_], A]:
-  def of(read: Stream[F, A])(write: Pipe[F, A, INothing]): Resource[F, dom.HTMLElement]
+  def of(read: Stream[F, A])(write: Pipe[F, A, Nothing]): Resource[F, dom.HTMLElement]
 
 object Edit:
   given string[F[_]: Async]: Edit[F, String] with
-    def of(read: Stream[F, String])(write: Pipe[F, String, INothing]) =
+    def of(read: Stream[F, String])(write: Pipe[F, String, Nothing]) =
       val dsl = Dsl[F]
       import dsl.*
 
       input(value <-- read, onInput --> (_.mapToTargetValue.through(write)))
 
   given int[F[_]: Async]: Edit[F, Int] with
-    def of(read: Stream[F, Int])(write: Pipe[F, Int, INothing]) =
+    def of(read: Stream[F, Int])(write: Pipe[F, Int, Nothing]) =
       val dsl = Dsl[F]
       import dsl.*
 
@@ -115,7 +114,7 @@ object Edit:
       mirror: Mirror.ProductOf[A],
       labelling: Labelling[A]
   ): Edit[F, A] with
-    def of(read: Stream[F, A])(write: Pipe[F, A, INothing]) =
+    def of(read: Stream[F, A])(write: Pipe[F, A, Nothing]) =
       val dsl = Dsl[F]
       import dsl.*
 

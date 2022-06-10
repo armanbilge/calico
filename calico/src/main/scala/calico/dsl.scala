@@ -43,7 +43,6 @@ import com.raquo.domtypes.generic.defs.props.*
 import com.raquo.domtypes.generic.defs.reflectedAttrs.*
 import com.raquo.domtypes.jsdom.defs.eventProps.*
 import com.raquo.domtypes.jsdom.defs.tags.*
-import fs2.INothing
 import fs2.Pipe
 import fs2.Stream
 import fs2.concurrent.Channel
@@ -277,12 +276,12 @@ object Prop:
       }
 
 final class EventProp[F[_], E] private[calico] (key: String):
-  def -->(sink: Pipe[F, E, INothing]): EventProp.Modified[F, E] = EventProp.Modified(key, sink)
+  def -->(sink: Pipe[F, E, Nothing]): EventProp.Modified[F, E] = EventProp.Modified(key, sink)
 
 object EventProp:
   final class Modified[F[_], E] private[calico] (
       val key: String,
-      val sink: Pipe[F, E, INothing])
+      val sink: Pipe[F, E, Nothing])
 
   given [F[_], E <: dom.EventTarget, V](using F: Async[F]): Modifier[F, E, Modified[F, V]] with
     def modify(prop: Modified[F, V], e: E) = for
