@@ -29,7 +29,7 @@ lazy val frp = crossProject(JVMPlatform, JSPlatform)
     libraryDependencies ++= Seq(
       "org.typelevel" %%% "cats-core" % CatsVersion,
       "org.typelevel" %%% "cats-effect" % CatsEffectVersion,
-      "co.fs2" %%% "fs2-core" % "3.2.8",
+      "co.fs2" %%% "fs2-core" % "3.2.9",
       "org.typelevel" %%% "cats-laws" % CatsVersion % Test,
       "org.typelevel" %%% "cats-effect-testkit" % CatsEffectVersion % Test,
       "org.typelevel" %%% "discipline-munit" % "1.0.9" % Test,
