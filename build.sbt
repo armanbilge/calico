@@ -15,7 +15,7 @@ ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17"))
 ThisBuild / tlJdkRelease := Some(8)
 
 val CatsVersion = "2.8.0"
-val CatsEffectVersion = "3.3.13"
+val CatsEffectVersion = "3.3.14"
 val MonocleVersion = "3.1.0"
 
 lazy val root = tlCrossRootProject.aggregate(frp, calico, widget, example, todoMvc, unidocs)
