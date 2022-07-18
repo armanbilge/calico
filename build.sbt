@@ -77,7 +77,7 @@ lazy val example = project
 
 lazy val todoMvc = project
   .in(file("todo-mvc"))
-  .enablePlugins(ScalaJSPlugin, NoPublishPlugin)
+  .enablePlugins(ScalaJSPlugin, BundleMonPlugin, NoPublishPlugin)
   .dependsOn(calico)
   .settings(
     scalaJSUseMainModuleInitializer := true,
@@ -88,7 +88,17 @@ lazy val todoMvc = project
     },
     libraryDependencies ++= Seq(
       "dev.optics" %%% "monocle-macro" % MonocleVersion
-    )
+    ),
+    bundleMonCheckRun := true,
+    bundleMonCommitStatus := false,
+    bundleMonPrComment := false
+  )
+
+ThisBuild / githubWorkflowBuild +=
+  WorkflowStep.Sbt(
+    List("bundleMon"),
+    name = Some("Monitor artifact size"),
+    cond = Some("matrix.project == 'rootJS'")
   )
 
 lazy val unidocs = project
