@@ -77,7 +77,7 @@ lazy val example = project
 
 lazy val todoMvc = project
   .in(file("todo-mvc"))
-  .enablePlugins(BundleMonPlugin, NoPublishPlugin)
+  .enablePlugins(ScalaJSPlugin, BundleMonPlugin, NoPublishPlugin)
   .dependsOn(calico)
   .settings(
     scalaJSUseMainModuleInitializer := true,
