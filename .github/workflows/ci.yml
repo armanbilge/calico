@@ -88,6 +88,10 @@ jobs:
         if: matrix.java == 'temurin@17'
         run: sbt 'project ${{ matrix.project }}' '++${{ matrix.scala }}' doc
 
+      - name: Monitor artifact size
+        if: matrix.project == 'rootJS'
+        run: sbt 'project ${{ matrix.project }}' '++${{ matrix.scala }}' bundleMon
+
       - name: Make target directories
         if: github.event_name != 'pull_request' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main')
         run: mkdir -p frp/.js/target todo-mvc/target target unidocs/target .js/target site/target widget/target jsdocs/target .jvm/target .native/target example/target frp/.jvm/target calico/target project/target
