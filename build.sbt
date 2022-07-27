@@ -18,7 +18,8 @@ val CatsVersion = "2.8.0"
 val CatsEffectVersion = "3.3.14"
 val MonocleVersion = "3.1.0"
 
-lazy val root = tlCrossRootProject.aggregate(frp, calico, widget, example, todoMvc, unidocs)
+lazy val root =
+  tlCrossRootProject.aggregate(frp, std, calico, widget, example, todoMvc, unidocs)
 
 lazy val frp = crossProject(JVMPlatform, JSPlatform)
   .crossType(CrossType.Pure)
@@ -37,6 +38,19 @@ lazy val frp = crossProject(JVMPlatform, JSPlatform)
     )
   )
 
+lazy val std = project
+  .in(file("std"))
+  .enablePlugins(ScalaJSPlugin)
+  .settings(
+    name := "calico-std",
+    tlVersionIntroduced := Map("3" -> "0.1.2"),
+    libraryDependencies ++= Seq(
+      "org.typelevel" %%% "cats-core" % CatsVersion,
+      "org.typelevel" %%% "cats-effect-std" % CatsEffectVersion,
+      "org.scala-js" %%% "scalajs-dom" % "2.2.0"
+    )
+  )
+
 lazy val calico = project
   .in(file("calico"))
   .enablePlugins(ScalaJSPlugin)
@@ -45,11 +59,10 @@ lazy val calico = project
     libraryDependencies ++= Seq(
       "org.typelevel" %%% "shapeless3-deriving" % "3.1.0",
       "dev.optics" %%% "monocle-core" % MonocleVersion,
-      "com.raquo" %%% "domtypes" % "0.16.0-RC2",
-      "org.scala-js" %%% "scalajs-dom" % "2.2.0"
+      "com.raquo" %%% "domtypes" % "0.16.0-RC2"
     )
   )
-  .dependsOn(frp.js)
+  .dependsOn(frp.js, std)
 
 lazy val widget = project
   .in(file("widget"))
