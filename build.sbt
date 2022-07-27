@@ -47,7 +47,8 @@ lazy val std = project
     libraryDependencies ++= Seq(
       "org.typelevel" %%% "cats-core" % CatsVersion,
       "org.typelevel" %%% "cats-effect-std" % CatsEffectVersion,
-      "org.scala-js" %%% "scalajs-dom" % "2.2.0"
+      "org.scala-js" %%% "scalajs-dom" % "2.2.0",
+      "io.circe" %%% "circe-scalajs" % "0.14.2"
     )
   )
 
