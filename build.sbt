@@ -16,6 +16,7 @@ ThisBuild / tlJdkRelease := Some(8)
 
 val CatsVersion = "2.8.0"
 val CatsEffectVersion = "3.3.14"
+val Fs2Version = "3.2.11"
 val MonocleVersion = "3.1.0"
 
 lazy val root =
@@ -30,7 +31,7 @@ lazy val frp = crossProject(JVMPlatform, JSPlatform)
     libraryDependencies ++= Seq(
       "org.typelevel" %%% "cats-core" % CatsVersion,
       "org.typelevel" %%% "cats-effect" % CatsEffectVersion,
-      "co.fs2" %%% "fs2-core" % "3.2.11",
+      "co.fs2" %%% "fs2-core" % Fs2Version,
       "org.typelevel" %%% "cats-laws" % CatsVersion % Test,
       "org.typelevel" %%% "cats-effect-testkit" % CatsEffectVersion % Test,
       "org.typelevel" %%% "discipline-munit" % "1.0.9" % Test,
@@ -47,6 +48,7 @@ lazy val std = project
     libraryDependencies ++= Seq(
       "org.typelevel" %%% "cats-core" % CatsVersion,
       "org.typelevel" %%% "cats-effect-std" % CatsEffectVersion,
+      "co.fs2" %%% "fs2-core" % Fs2Version,
       "org.scala-js" %%% "scalajs-dom" % "2.2.0",
       "io.circe" %%% "circe-scalajs" % "0.14.2"
     )
