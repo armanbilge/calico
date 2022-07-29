@@ -20,7 +20,7 @@ val Fs2Version = "3.2.11"
 val MonocleVersion = "3.1.0"
 
 lazy val root =
-  tlCrossRootProject.aggregate(frp, std, calico, widget, example, todoMvc, unidocs)
+  tlCrossRootProject.aggregate(frp, std, calico, router, widget, example, todoMvc, unidocs)
 
 lazy val frp = crossProject(JVMPlatform, JSPlatform)
   .crossType(CrossType.Pure)
@@ -66,6 +66,17 @@ lazy val calico = project
     )
   )
   .dependsOn(frp.js, std)
+
+lazy val router = project
+  .in(file("router"))
+  .enablePlugins(ScalaJSPlugin)
+  .settings(
+    name := "calico-router",
+    libraryDependencies ++= Seq(
+      "org.http4s" %%% "http4s-core" % "0.23.14"
+    )
+  )
+  .dependsOn(std)
 
 lazy val widget = project
   .in(file("widget"))
