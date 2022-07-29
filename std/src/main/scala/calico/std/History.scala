@@ -19,7 +19,6 @@ package calico.std
 import cats.effect.kernel.Async
 import cats.effect.kernel.Resource
 import cats.effect.std.Dispatcher
-import cats.effect.std.Dispatcher.apply
 import cats.syntax.all.*
 import fs2.Stream
 import fs2.concurrent.Channel
