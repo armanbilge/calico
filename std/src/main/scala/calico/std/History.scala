@@ -75,6 +75,15 @@ object History:
         def go = asyncPopState(window.history.go())
         def go(delta: Int) = asyncPopState(window.history.go(delta))
 
+        def pushState(state: S) = asyncPopState(window.history.pushState(state.asJsAny, ""))
+        def pushState(state: S, url: URL) =
+          asyncPopState(window.history.pushState(state.asJsAny, "", url.toString))
+
+        def replaceState(state: S) =
+          asyncPopState(window.history.replaceState(state.asJsAny, ""))
+        def replaceState(state: S, url: URL) =
+          asyncPopState(window.history.replaceState(state.asJsAny, "", url.toString))
+
         def asyncPopState(thunk: => Unit): F[Unit] = F.async_[Unit] { cb =>
           window.addEventListener[PopStateEvent](
             "popstate",
@@ -84,13 +93,5 @@ object History:
           )
           thunk
         }
-
-        def pushState(state: S) = F.delay(window.history.pushState(state.asJsAny, ""))
-        def pushState(state: S, url: URL) =
-          F.delay(window.history.pushState(state.asJsAny, "", url.toString))
-
-        def replaceState(state: S) = F.delay(window.history.replaceState(state.asJsAny, ""))
-        def replaceState(state: S, url: URL) =
-          F.delay(window.history.replaceState(state.asJsAny, "", url.toString))
 
     }
