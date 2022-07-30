@@ -19,7 +19,6 @@ package calico.router
 import cats.effect.kernel.Concurrent
 import cats.effect.kernel.RefSink
 import cats.effect.kernel.Resource
-import cats.effect.kernel.Unique
 import cats.syntax.all.*
 import fs2.concurrent.Signal
 import fs2.concurrent.SignallingRef
@@ -29,18 +28,13 @@ import org.scalajs.dom.HTMLElement
 sealed abstract class Routes[F[_]]:
   def apply(path: Path): Resource[F, Option[HTMLElement]] = ???
 
-object Routes:
-  private final class Route[F[_], A](
-      token: Unique.Token,
-      matcher: PartialFunction[Path, A],
-      builder: Signal[F, A] => Resource[F, HTMLElement]
-  )(using F: Concurrent[F]):
-    def make(path: Path): Resource[F, (RefSink[F, Path], HTMLElement)] =
-      Resource.eval(SignallingRef[F].of(matcher(path))).flatMap { sigRef =>
-        builder(sigRef).tupleLeft((sigRef: RefSink[F, A]).contramap(matcher(_)))
-      }
+private final class Route[F[_], A](
+    matcher: PartialFunction[Path, A],
+    builder: Signal[F, A] => Resource[F, HTMLElement]
+):
+  def make(path: Path)(using F: Concurrent[F]): Resource[F, (RefSink[F, Path], HTMLElement)] =
+    Resource.eval(SignallingRef[F].of(matcher(path))).flatMap { sigRef =>
+      builder(sigRef).tupleLeft((sigRef: RefSink[F, A]).contramap(matcher(_)))
+    }
 
-  private final case class Pages[F[_]](
-      children: List[Routes[F]]
-  ) extends Routes[F]
-
+object Routes
