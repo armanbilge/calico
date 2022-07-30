@@ -70,10 +70,20 @@ object History:
           def get = F.delay(window.history.state).flatMap(decodeJs[S](_).liftTo[F])
           def continuous = Stream.repeatEval(get)
 
-        def forward = F.delay(window.history.forward())
-        def back = F.delay(window.history.back())
-        def go = F.delay(window.history.go())
-        def go(delta: Int) = F.delay(window.history.go(delta))
+        def forward = asyncPopState(window.history.forward())
+        def back = asyncPopState(window.history.back())
+        def go = asyncPopState(window.history.go())
+        def go(delta: Int) = asyncPopState(window.history.go(delta))
+
+        def asyncPopState(thunk: => Unit): F[Unit] = F.async_[Unit] { cb =>
+          window.addEventListener[PopStateEvent](
+            "popstate",
+            _ => cb(Either.unit),
+            new EventListenerOptions:
+              once = true
+          )
+          thunk
+        }
 
         def pushState(state: S) = F.delay(window.history.pushState(state.asJsAny, ""))
         def pushState(state: S, url: URL) =
