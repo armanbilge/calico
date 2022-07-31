@@ -22,16 +22,16 @@ import cats.effect.kernel.RefSink
 import cats.effect.kernel.Resource
 import cats.syntax.all.*
 import fs2.concurrent.Signal
-import org.http4s.Uri.Path
+import org.http4s.Uri
 import org.scalajs.dom
 
 trait Router[F[_]]:
   def forward: F[Unit]
   def back: F[Unit]
   def go(delta: Int): F[Unit]
-  def push(path: Path): F[Unit]
-  def replace(path: Path): F[Unit]
-  def location: Signal[F, Path]
+  def push(uri: Uri): F[Unit]
+  def replace(uri: Uri): F[Unit]
+  def location: Signal[F, Uri]
 
 object Router:
   def apply[F[_]](history: History[F, Unit])(f: Router[F] => Routes[F])(
@@ -39,14 +39,14 @@ object Router:
 
     val router = new Router[F]:
       export history.{back, forward, go}
-      def push(path: Path) = history.pushState((), new dom.URL(path.renderString))
-      def replace(path: Path) = history.replaceState((), new dom.URL(path.renderString))
+      def push(uri: Uri) = history.pushState((), new dom.URL(uri.renderString))
+      def replace(uri: Uri) = history.replaceState((), new dom.URL(uri.renderString))
       def location = ???
 
     Resource
       .eval(F.delay(dom.document.createElement("div").asInstanceOf[dom.HTMLDivElement]))
       .flatTap { container =>
-        Resource.eval(F.ref(Option.empty[(RefSink[F, Path], F[Unit])])).flatMap { currentNode =>
+        Resource.eval(F.ref(Option.empty[(RefSink[F, Uri], F[Unit])])).flatMap { currentNode =>
           ???
         }
       }

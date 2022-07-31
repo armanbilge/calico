@@ -26,20 +26,20 @@ import cats.kernel.Monoid
 import cats.syntax.all.*
 import fs2.concurrent.Signal
 import fs2.concurrent.SignallingRef
-import org.http4s.Uri.Path
+import org.http4s.Uri
 import org.scalajs.dom.HTMLElement
 
-opaque type Routes[F[_]] = Kleisli[F, Path, Option[Route[F]]]
+opaque type Routes[F[_]] = Kleisli[F, Uri, Option[Route[F]]]
 
 trait Route[F[_]]:
   def key: Unique.Token
-  def build(path: Path): Resource[F, (RefSink[F, Path], HTMLElement)]
+  def build(uri: Uri): Resource[F, (RefSink[F, Uri], HTMLElement)]
 
 object Routes:
 
   extension [F[_]](routes: Routes[F])
-    def apply(path: Path): F[Option[Route[F]]] =
-      routes.run(path)
+    def apply(uri: Uri): F[Option[Route[F]]] =
+      routes.run(uri)
 
   given [F[_]](using F: Applicative[F]): Monoid[Routes[F]] =
     given Monoid[F[Option[Route[F]]]] with
@@ -49,18 +49,18 @@ object Routes:
 
     Kleisli.catsDataMonoidForKleisli
 
-  def apply[F[_]](f: Path => F[Option[Route[F]]]): Routes[F] = Kleisli(f)
+  def apply[F[_]](f: Uri => F[Option[Route[F]]]): Routes[F] = Kleisli(f)
 
-  def one[F[_], A](matcher: PartialFunction[Path, A])(
+  def one[F[_], A](matcher: PartialFunction[Uri, A])(
       builder: Signal[F, A] => Resource[F, HTMLElement])(using F: Concurrent[F]): F[Routes[F]] =
     F.unique.map { token =>
       val route = new Route[F]:
         def key = token
 
-        def build(path: Path): Resource[F, (RefSink[F, Path], HTMLElement)] =
-          Resource.eval(SignallingRef[F].of(matcher(path))).flatMap { sigRef =>
+        def build(uri: Uri): Resource[F, (RefSink[F, Uri], HTMLElement)] =
+          Resource.eval(SignallingRef[F].of(matcher(uri))).flatMap { sigRef =>
             builder(sigRef).tupleLeft((sigRef: RefSink[F, A]).contramap(matcher(_)))
           }
 
-      new Routes(path => Option.when(matcher.isDefinedAt(path))(route).pure)
+      new Routes(uri => Option.when(matcher.isDefinedAt(uri))(route).pure)
     }
