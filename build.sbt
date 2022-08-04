@@ -72,6 +72,7 @@ lazy val router = project
   .enablePlugins(ScalaJSPlugin)
   .settings(
     name := "calico-router",
+    tlVersionIntroduced := Map("3" -> "0.1.2"),
     libraryDependencies ++= Seq(
       "org.http4s" %%% "http4s-core" % "0.23.14"
     )
