@@ -90,7 +90,7 @@ lazy val widget = project
 lazy val example = project
   .in(file("example"))
   .enablePlugins(ScalaJSPlugin, NoPublishPlugin)
-  .dependsOn(calico, widget)
+  .dependsOn(calico, widget, router)
   .settings(
     scalaJSUseMainModuleInitializer := true,
     Compile / fastLinkJS / scalaJSLinkerConfig ~= {

@@ -17,36 +17,55 @@
 package calico
 
 import calico.dsl.io.*
+import calico.router.*
+import calico.std.*
 import calico.syntax.*
-import calico.widget.*
 import cats.effect.*
 import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import fs2.*
 import fs2.concurrent.*
 import monocle.macros.GenLens
+import org.http4s.Uri
+import org.http4s.syntax.all.*
 
 object Example extends IOWebApp:
 
-  final case class Person(firstName: String, lastName: String, age: Int)
-  final case class TwoPeople(one: Person, two: Person)
+  def render = History.make[IO, Unit].flatMap { history =>
 
-  def render =
-    SignallingRef[IO].of(TwoPeople(Person("", "", 0), Person("", "", 0))).toResource.flatMap {
-      persons =>
-        div(
-          div(
-            h3("View"),
-            Widget.view(persons.discrete)
-          ),
-          div(
-            h3("Edit 1"),
-            Widget.edit(persons.zoom(GenLens[TwoPeople](_.one)))
-          ),
-          div(
-            h3("Edit 2"),
-            Widget.edit(persons.zoom(GenLens[TwoPeople](_.two)))
-          )
+    def helloUri(who: String) =
+      uri"/hello" +? ("who" -> who)
+
+    def countUri(n: Int) =
+      uri"/count" +? ("n" -> n)
+
+    val routes = Router(history) { router =>
+
+      val helloRoute = Routes.one[IO] {
+        case uri if uri.path == path"/hello" =>
+          uri.query.params.getOrElse("who", "world")
+      } { who => div("Hello ", who) }
+
+      val countRoute = Routes.one[IO] {
+        case uri if uri.path == path"/count" =>
+          uri.query.params.get("n").flatMap(_.toIntOption).getOrElse(0)
+      } { n =>
+        p(
+          "Count: ",
+          n.map(_.toString),
+          button("+", onClick --> (_.foreach(_ => n.get.map(countUri).flatMap(router.push))))
         )
+      }
 
+      (helloRoute |+| countRoute).toResource
     }
+
+    // div(
+    //   ul(
+    //     li(a(onClick --> (_.foreach(_ => router.push(helloUri("Shaun"))))))
+    //   ),
+    //   routes
+    // )
+
+    routes
+  }

@@ -51,7 +51,10 @@ object Routes:
 
   def apply[F[_]](f: Uri => F[Option[Route[F]]]): Routes[F] = Kleisli(f)
 
-  def one[F[_], A](matcher: PartialFunction[Uri, A])(
+  def one[F[_]]: OneRouteBuilder[F] = new OneRouteBuilder
+
+  final class OneRouteBuilder[F[_]] private[Routes]:
+    def apply[A](matcher: PartialFunction[Uri, A])(
       builder: Signal[F, A] => Resource[F, HTMLElement])(using F: Concurrent[F]): F[Routes[F]] =
     F.unique.map { token =>
       val route = new Route[F]:
