@@ -33,9 +33,10 @@ import org.scalajs.dom.window
 
 import scala.scalajs.js
 
-trait History[F[_], S]:
+sealed trait History[F[_], S]:
 
   def state: Signal[F, S]
+  def length: Signal[F, Int]
 
   def forward: F[Unit]
   def back: F[Unit]
@@ -68,6 +69,25 @@ object History:
             }
           }
           def get = F.delay(window.history.state).flatMap(decodeJs[S](_).liftTo[F])
+          def continuous = Stream.repeatEval(get)
+
+        def length = new:
+          def discrete = Stream.eval(Channel.unbounded[F, Int]).flatMap { ch =>
+            Stream.resource(AbortController[F].control).flatMap { sig =>
+              Stream.eval {
+                get <* F.delay {
+                  window.addEventListener[PopStateEvent](
+                    "popstate",
+                    e =>
+                      dispatcher.unsafeRunAndForget(F.delay(window.history.length) >>= ch.send),
+                    new EventListenerOptions:
+                      signal = sig
+                  )
+                }
+              } ++ ch.stream
+            }
+          }
+          def get = F.delay(window.history.length)
           def continuous = Stream.repeatEval(get)
 
         def forward = asyncPopState(window.history.forward())
