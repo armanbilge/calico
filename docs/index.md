@@ -9,7 +9,7 @@
 
 ### Try it!
 
-With special thanks to [@yurique](https://github.com/yurique/), you can now try **Calico** right in your browser at [scribble.ninja](https://scribble.ninja/u/armanbilge/cibcktoaxpbzhocdpxnnlodzqwux)!
+With special thanks to [@yurique](https://github.com/yurique/), you can now try **Calico** right in your browser at [scribble.ninja](https://scribble.ninja/)!
 
 ```scala
 libraryDependencies += "com.armanbilge" %%% "calico" % "@VERSION@"
