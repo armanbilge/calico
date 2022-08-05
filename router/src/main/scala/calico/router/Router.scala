@@ -35,30 +35,28 @@ trait Router[F[_]]:
   def push(uri: Uri): F[Unit]
   def replace(uri: Uri): F[Unit]
   def location: Signal[F, Uri]
+  def length: Signal[F, Int]
+
+  def foo(routes: Routes[F]): Resource[F, dom.HTMLElement]
 
 object Router:
-  def apply[F[_]](history: History[F, Unit])(f: Router[F] => Resource[F, Routes[F]])(
-      using F: Async[F]): Resource[F, dom.HTMLElement] =
+  def apply[F[_]](history: History[F, Unit])(using F: Async[F]): Router[F] = new:
+    export history.{back, forward, go, length}
+    def push(uri: Uri) = history.pushState((), new dom.URL(uri.renderString))
+    def replace(uri: Uri) = history.replaceState((), new dom.URL(uri.renderString))
+    def location = new:
+      def get = F.delay(dom.window.location.href).flatMap(Uri.fromString(_).liftTo[F])
+      def continuous = Stream.repeatEval(get)
+      def discrete = history.state.discrete.evalMap(_ => get)
 
-    val router = new Router[F]:
-      export history.{back, forward, go}
-      def push(uri: Uri) = history.pushState((), new dom.URL(uri.renderString))
-      def replace(uri: Uri) = history.replaceState((), new dom.URL(uri.renderString))
-      def location = new:
-        def get = F.delay(dom.window.location.href).flatMap(Uri.fromString(_).liftTo[F])
-        def continuous = Stream.repeatEval(get)
-        def discrete = history.state.discrete.evalMap(_ => get)
-
-    for
+    def foo(routes: Routes[F]) = for
       container <- F.delay {
         dom.document.createElement("div").asInstanceOf[dom.HTMLDivElement]
       }.toResource
-      routes <- f(router)
       currentRoute <- Resource.make(
         F.ref(Option.empty[(Unique.Token, RefSink[F, Uri], F[Unit])]))(
         _.get.flatMap(_.fold(F.unit)(_._3)))
-      _ <- router
-        .location
+      _ <- location
         .discrete
         .foreach { uri =>
           (currentRoute.get, routes(uri)).flatMapN {
