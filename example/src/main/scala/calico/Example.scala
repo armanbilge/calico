@@ -52,7 +52,7 @@ object Example extends IOWebApp:
       } { n =>
         p(
           "Count: ",
-          n.map(_.toString),
+          n.map(_.toString).discrete,
           button("+", onClick --> (_.foreach(_ => n.get.map(countUri).flatMap(router.push))))
         )
       }
