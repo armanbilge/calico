@@ -55,15 +55,16 @@ object Routes:
 
   final class OneRouteBuilder[F[_]] private[Routes]:
     def apply[A](matcher: PartialFunction[Uri, A])(
-      builder: Signal[F, A] => Resource[F, HTMLElement])(using F: Concurrent[F]): F[Routes[F]] =
-    F.unique.map { token =>
-      val route = new Route[F]:
-        def key = token
+        builder: Signal[F, A] => Resource[F, HTMLElement])(
+        using F: Concurrent[F]): F[Routes[F]] =
+      F.unique.map { token =>
+        val route = new Route[F]:
+          def key = token
 
-        def build(uri: Uri): Resource[F, (RefSink[F, Uri], HTMLElement)] =
-          Resource.eval(SignallingRef[F].of(matcher(uri))).flatMap { sigRef =>
-            builder(sigRef).tupleLeft((sigRef: RefSink[F, A]).contramap(matcher(_)))
-          }
+          def build(uri: Uri): Resource[F, (RefSink[F, Uri], HTMLElement)] =
+            Resource.eval(SignallingRef[F].of(matcher(uri))).flatMap { sigRef =>
+              builder(sigRef).tupleLeft((sigRef: RefSink[F, A]).contramap(matcher(_)))
+            }
 
-      new Routes(uri => Option.when(matcher.isDefinedAt(uri))(route).pure)
-    }
+        new Routes(uri => Option.when(matcher.isDefinedAt(uri))(route).pure)
+      }
