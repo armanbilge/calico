@@ -31,9 +31,7 @@ import org.http4s.syntax.all.*
 
 object Example extends IOWebApp:
 
-  def render = History.make[IO, Unit].flatMap { history =>
-
-    val router = Router(history)
+  def render = History.make[IO, Unit].evalMap(Router(_)).flatMap { router =>
 
     def helloUri(who: String) =
       uri"/hello" +? ("who" -> who)
