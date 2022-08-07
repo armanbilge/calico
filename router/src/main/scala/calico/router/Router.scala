@@ -42,8 +42,10 @@ trait Router[F[_]]:
 object Router:
   def apply[F[_]](history: History[F, Unit])(using F: Async[F]): Router[F] = new:
     export history.{back, forward, go, length}
-    def push(uri: Uri) = history.pushState((), new dom.URL(uri.renderString))
-    def replace(uri: Uri) = history.replaceState((), new dom.URL(uri.renderString))
+    def push(uri: Uri) =
+      history.pushState((), new dom.URL(uri.renderString, dom.window.location.toString))
+    def replace(uri: Uri) =
+      history.replaceState((), new dom.URL(uri.renderString, dom.window.location.toString))
     def location = new:
       def get = F.delay(dom.window.location.href).flatMap(Uri.fromString(_).liftTo[F])
       def continuous = Stream.repeatEval(get)

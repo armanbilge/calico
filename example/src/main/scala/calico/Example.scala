@@ -61,7 +61,10 @@ object Example extends IOWebApp:
 
     div(
       ul(
-        li(a(onClick --> (_.foreach(_ => router.push(helloUri("Shaun"))))))
+        List("Shaun", "Shirley", "Timmy", "Nuts").map { sheep =>
+          li(a(onClick --> (_.foreach(_ => router.push(helloUri(sheep)))), s"Hello, $sheep"))
+        },
+        li(a(onClick --> (_.foreach(_ => router.push(countUri(0)))), "Let's count!"))
       ),
       content
     )
