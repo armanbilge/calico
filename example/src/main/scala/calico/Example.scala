@@ -33,39 +33,37 @@ object Example extends IOWebApp:
 
   def render = History.make[IO, Unit].flatMap { history =>
 
+    val router = Router(history)
+
     def helloUri(who: String) =
       uri"/hello" +? ("who" -> who)
 
     def countUri(n: Int) =
       uri"/count" +? ("n" -> n)
 
-    val routes = Router(history) { router =>
+    val helloRoute = Routes.one[IO] {
+      case uri if uri.path == path"/hello" =>
+        uri.query.params.getOrElse("who", "world")
+    } { who => div("Hello ", who) }
 
-      val helloRoute = Routes.one[IO] {
-        case uri if uri.path == path"/hello" =>
-          uri.query.params.getOrElse("who", "world")
-      } { who => div("Hello ", who) }
-
-      val countRoute = Routes.one[IO] {
-        case uri if uri.path == path"/count" =>
-          uri.query.params.get("n").flatMap(_.toIntOption).getOrElse(0)
-      } { n =>
-        p(
-          "Count: ",
-          n.map(_.toString).discrete,
-          button("+", onClick --> (_.foreach(_ => n.get.map(countUri).flatMap(router.push))))
-        )
-      }
-
-      (helloRoute |+| countRoute).toResource
+    val countRoute = Routes.one[IO] {
+      case uri if uri.path == path"/count" =>
+        uri.query.params.get("n").flatMap(_.toIntOption).getOrElse(0)
+    } { n =>
+      p(
+        "Count: ",
+        n.map(_.toString).discrete,
+        button("+", onClick --> (_.foreach(_ => n.get.map(countUri).flatMap(router.push))))
+      )
     }
 
-    // div(
-    //   ul(
-    //     li(a(onClick --> (_.foreach(_ => router.push(helloUri("Shaun"))))))
-    //   ),
-    //   routes
-    // )
+    val content = (helloRoute |+| countRoute).toResource.flatMap(router.dispatch)
 
-    routes
+    div(
+      ul(
+        li(a(onClick --> (_.foreach(_ => router.push(helloUri("Shaun"))))))
+      ),
+      content
+    )
+
   }

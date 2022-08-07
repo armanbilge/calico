@@ -37,7 +37,7 @@ trait Router[F[_]]:
   def location: Signal[F, Uri]
   def length: Signal[F, Int]
 
-  def foo(routes: Routes[F]): Resource[F, dom.HTMLElement]
+  def dispatch(routes: Routes[F]): Resource[F, dom.HTMLElement]
 
 object Router:
   def apply[F[_]](history: History[F, Unit])(using F: Async[F]): Router[F] = new:
@@ -49,7 +49,7 @@ object Router:
       def continuous = Stream.repeatEval(get)
       def discrete = history.state.discrete.evalMap(_ => get)
 
-    def foo(routes: Routes[F]) = for
+    def dispatch(routes: Routes[F]) = for
       container <- F.delay {
         dom.document.createElement("div").asInstanceOf[dom.HTMLDivElement]
       }.toResource
