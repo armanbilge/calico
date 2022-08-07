@@ -32,57 +32,65 @@ import org.http4s.syntax.all.*
 object Example extends IOWebApp:
 
   def render = History.make[IO, Unit].evalMap(Router(_)).flatMap { router =>
+    (SignallingRef[IO].of(0), SignallingRef[IO].of(0)).tupled.toResource.flatMap {
+      (helloCounter, countCounter) =>
 
-    def helloUri(who: String) =
-      uri"" +? ("page" -> "hello") +? ("who" -> who)
+        def helloUri(who: String) =
+          uri"" +? ("page" -> "hello") +? ("who" -> who)
 
-    def countUri(n: Int) =
-      uri"" +? ("page" -> "count") +? ("n" -> n)
+        def countUri(n: Int) =
+          uri"" +? ("page" -> "count") +? ("n" -> n)
 
-    val helloRoute = Routes.one[IO] {
-      case uri if uri.query.params.get("page").contains("hello") =>
-        uri.query.params.getOrElse("who", "world")
-    } { who => div("Hello, ", who) }
+        val helloRoute = Routes.one[IO] {
+          case uri if uri.query.params.get("page").contains("hello") =>
+            uri.query.params.getOrElse("who", "world")
+        } { who => Resource.eval(helloCounter.update(_ + 1)) *> div("Hello, ", who) }
 
-    val countRoute = Routes.one[IO] {
-      case uri if uri.query.params.get("page").contains("count") =>
-        uri.query.params.get("n").flatMap(_.toIntOption).getOrElse(0)
-    } { n =>
-      p(
-        "Sheep: ",
-        n.map(_.toString).discrete,
-        " ",
-        button(
-          "+",
-          onClick --> {
-            _.foreach(_ => n.get.map(i => countUri(i + 1)).flatMap(router.navigate))
-          }
-        )
-      )
-    }
-
-    val content = (helloRoute |+| countRoute).toResource.flatMap(router.dispatch)
-
-    div(
-      ul(
-        List("Shaun", "Shirley", "Timmy", "Nuts").map { sheep =>
-          li(
-            a(
-              href := "#",
-              onClick --> (_.foreach(_ => router.navigate(helloUri(sheep)))),
-              s"Hello, $sheep"
+        val countRoute = Routes.one[IO] {
+          case uri if uri.query.params.get("page").contains("count") =>
+            uri.query.params.get("n").flatMap(_.toIntOption).getOrElse(0)
+        } { n =>
+          Resource.eval(countCounter.update(_ + 1)) *>
+            p(
+              "Sheep: ",
+              n.map(_.toString).discrete,
+              " ",
+              button(
+                "+",
+                onClick --> {
+                  _.foreach(_ => n.get.map(i => countUri(i + 1)).flatMap(router.navigate))
+                }
+              )
             )
-          )
-        },
-        li(
-          a(
-            href := "#",
-            onClick --> (_.foreach(_ => router.navigate(countUri(0)))),
-            "Let's count!"
-          )
+        }
+
+        val content = (helloRoute |+| countRoute).toResource.flatMap(router.dispatch)
+
+        div(
+          p("Created hello page ", helloCounter.map(_.toString).discrete, " times."),
+          p("Created count page ", countCounter.map(_.toString).discrete, " times."),
+          h4("Navigation"),
+          ul(
+            List("Shaun", "Shirley", "Timmy", "Nuts").map { sheep =>
+              li(
+                a(
+                  href := "#",
+                  onClick --> (_.foreach(_ => router.navigate(helloUri(sheep)))),
+                  s"Hello, $sheep"
+                )
+              )
+            },
+            li(
+              a(
+                href := "#",
+                onClick --> (_.foreach(_ => router.navigate(countUri(0)))),
+                "Let's count!"
+              )
+            )
+          ),
+          h4("Content"),
+          content
         )
-      ),
-      content
-    )
+    }
 
   }
