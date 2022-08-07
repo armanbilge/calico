@@ -137,7 +137,7 @@ lazy val unidocs = project
     ScalaUnidoc / unidoc / unidocProjectFilter := inProjects(frp.js, calico)
   )
 
-lazy val jsdocs = project.dependsOn(calico, widget).enablePlugins(ScalaJSPlugin)
+lazy val jsdocs = project.dependsOn(calico, router, widget).enablePlugins(ScalaJSPlugin)
 lazy val docs = project
   .in(file("site"))
   .enablePlugins(TypelevelSitePlugin)
