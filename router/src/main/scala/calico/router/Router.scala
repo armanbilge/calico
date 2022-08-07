@@ -32,8 +32,8 @@ trait Router[F[_]]:
   def forward: F[Unit]
   def back: F[Unit]
   def go(delta: Int): F[Unit]
-  def push(uri: Uri): F[Unit]
-  def replace(uri: Uri): F[Unit]
+  def navigate(uri: Uri): F[Unit]
+  def teleport(uri: Uri): F[Unit]
   def location: Signal[F, Uri]
   def length: Signal[F, Int]
 
@@ -42,10 +42,24 @@ trait Router[F[_]]:
 object Router:
   def apply[F[_]](history: History[F, Unit])(using F: Async[F]): Router[F] = new:
     export history.{back, forward, go, length}
-    def push(uri: Uri) =
-      history.pushState((), new dom.URL(uri.renderString, dom.window.location.toString))
-    def replace(uri: Uri) =
-      history.replaceState((), new dom.URL(uri.renderString, dom.window.location.toString))
+
+    def navigate(uri: Uri) = for
+      absUri <- mkAbsolute(uri)
+      url <- F.catchNonFatal(new dom.URL(absUri.renderString))
+      _ <- history.pushState((), url)
+    yield ()
+
+    def teleport(uri: Uri) = for
+      absUri <- mkAbsolute(uri)
+      url <- F.catchNonFatal(new dom.URL(absUri.renderString))
+      _ <- history.pushState((), url)
+    yield ()
+
+    private def mkAbsolute(uri: Uri): F[Uri] =
+      F.delay(dom.window.location.toString)
+        .flatMap(Uri.fromString(_).liftTo)
+        .map(_.resolve(uri))
+
     def location = new:
       def get = F.delay(dom.window.location.href).flatMap(Uri.fromString(_).liftTo[F])
       def continuous = Stream.repeatEval(get)
