@@ -42,16 +42,22 @@ object Example extends IOWebApp:
     val helloRoute = Routes.one[IO] {
       case uri if uri.path == path"/hello" =>
         uri.query.params.getOrElse("who", "world")
-    } { who => div("Hello ", who) }
+    } { who => div("Hello, ", who) }
 
     val countRoute = Routes.one[IO] {
       case uri if uri.path == path"/count" =>
         uri.query.params.get("n").flatMap(_.toIntOption).getOrElse(0)
     } { n =>
       p(
-        "Count: ",
+        "Sheep: ",
         n.map(_.toString).discrete,
-        button("+", onClick --> (_.foreach(_ => n.get.map(countUri).flatMap(router.navigate))))
+        " ",
+        button(
+          "+",
+          onClick --> {
+            _.foreach(_ => n.get.map(i => countUri(i + 1)).flatMap(router.navigate))
+          }
+        )
       )
     }
 
@@ -61,10 +67,20 @@ object Example extends IOWebApp:
       ul(
         List("Shaun", "Shirley", "Timmy", "Nuts").map { sheep =>
           li(
-            a(onClick --> (_.foreach(_ => router.navigate(helloUri(sheep)))), s"Hello, $sheep")
+            a(
+              href := "#",
+              onClick --> (_.foreach(_ => router.navigate(helloUri(sheep)))),
+              s"Hello, $sheep"
+            )
           )
         },
-        li(a(onClick --> (_.foreach(_ => router.navigate(countUri(0)))), "Let's count!"))
+        li(
+          a(
+            href := "#",
+            onClick --> (_.foreach(_ => router.navigate(countUri(0)))),
+            "Let's count!"
+          )
+        )
       ),
       content
     )
