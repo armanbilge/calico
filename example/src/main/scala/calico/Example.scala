@@ -34,18 +34,18 @@ object Example extends IOWebApp:
   def render = History.make[IO, Unit].evalMap(Router(_)).flatMap { router =>
 
     def helloUri(who: String) =
-      uri"/hello" +? ("who" -> who)
+      uri"" +? ("page" -> "hello") +? ("who" -> who)
 
     def countUri(n: Int) =
-      uri"/count" +? ("n" -> n)
+      uri"" +? ("page" -> "count") +? ("n" -> n)
 
     val helloRoute = Routes.one[IO] {
-      case uri if uri.path == path"/hello" =>
+      case uri if uri.query.params.get("page").contains("hello") =>
         uri.query.params.getOrElse("who", "world")
     } { who => div("Hello, ", who) }
 
     val countRoute = Routes.one[IO] {
-      case uri if uri.path == path"/count" =>
+      case uri if uri.query.params.get("page").contains("count") =>
         uri.query.params.get("n").flatMap(_.toIntOption).getOrElse(0)
     } { n =>
       p(
