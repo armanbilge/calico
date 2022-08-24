@@ -16,7 +16,7 @@ ThisBuild / tlJdkRelease := Some(8)
 
 val CatsVersion = "2.8.0"
 val CatsEffectVersion = "3.3.14"
-val Fs2Version = "3.2.11"
+val Fs2Version = "3.2.12"
 val MonocleVersion = "3.1.0"
 
 lazy val root =
