@@ -44,6 +44,13 @@ extension [F[_]](component: Resource[F, dom.Node])
       Resource.make(F.delay(root.appendChild(e)))(_ => F.delay(root.removeChild(e))).void
     }
 
+extension [F[_], A](sigA: Signal[F, A])
+  def mapCache[B](f: A => B)(using F: Concurrent[F]): Resource[F, Signal[F, B]] =
+    given Eq[B] = (x, y) => x.asInstanceOf[js.Any] eq y.asInstanceOf[js.Any]
+    sigA.get.flatMap(a => SignallingRef[F].of(f(a))).toResource.flatTap { sigB =>
+      sigA.discrete.map(f).changes.foreach(sigB.set).compile.drain.background
+    }
+
 extension [F[_], A](sigRef: SignallingRef[F, A])
   def zoom[B <: AnyRef](lens: Lens[A, B])(using Sync[F]): SignallingRef[F, B] =
     val ref = Ref.lens[F, A, B](sigRef)(lens.get(_), a => b => lens.replace(b)(a))
