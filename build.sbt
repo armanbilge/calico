@@ -8,7 +8,7 @@ ThisBuild / developers := List(
 
 ThisBuild / tlSonatypeUseLegacyHost := false
 
-ThisBuild / crossScalaVersions := Seq("3.1.3")
+ThisBuild / crossScalaVersions := Seq("3.2.0")
 ThisBuild / scalacOptions ++= Seq("-new-syntax", "-indent", "-source:future")
 
 ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17"))
