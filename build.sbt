@@ -45,7 +45,7 @@ lazy val calico = project
     libraryDependencies ++= Seq(
       "org.typelevel" %%% "shapeless3-deriving" % "3.2.0",
       "dev.optics" %%% "monocle-core" % MonocleVersion,
-      "com.raquo" %%% "domtypes" % "0.16.0-RC2",
+      "com.raquo" %%% "domtypes" % "0.16.0-RC3",
       "org.scala-js" %%% "scalajs-dom" % "2.3.0"
     )
   )
