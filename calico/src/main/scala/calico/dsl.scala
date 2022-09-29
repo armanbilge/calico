@@ -331,25 +331,24 @@ object Children:
     def modify(children: Modified[F], e: E) =
       for
         hs <- Hotswap.create[F, List[dom.Node]]
-        placeholder <- Resource.make(
+        placeholder <- Resource.eval(
           F.delay(e.appendChild(dom.document.createComment("")))
-        )(
-          placeholder => F.delay(e.removeChild(placeholder))
         )
-        _ <- children.cs.evalScan(List.empty[dom.Node])((prevChildren, c) => {
-          val sibling = prevChildren.headOption.orNull
-          hs.swap(c.evalMap { c =>
-            F.delay {
-              prevChildren.foreach(e.removeChild)
-              c.foreach(e.insertBefore(_, placeholder))
-              c
-            }
+        _ <- children
+          .cs
+          .evalScan(List.empty[dom.Node])((prevChildren, c) => {
+            hs.swap(c.evalMap { c =>
+              F.delay {
+                prevChildren.foreach(e.removeChild)
+                c.foreach(e.insertBefore(_, placeholder))
+                c
+              }
+            })
           })
-        })
-        .compile
-        .drain
-        .background
-        .void
+          .compile
+          .drain
+          .background
+          .void
       yield ()
 
 final class KeyedChildren[F[_], K] private[calico] (f: K => Resource[F, dom.Node]):
