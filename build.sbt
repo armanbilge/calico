@@ -126,6 +126,7 @@ lazy val docs = project
     tlSiteRelatedProjects ++= Seq(
       TypelevelProject.CatsEffect,
       TypelevelProject.Fs2,
+      "fs2-dom" -> url("https://github.com/armanbilge/fs2-dom/"),
       "http4s-dom" -> url("https://http4s.github.io/http4s-dom/")
     ),
     laikaInputs := {
