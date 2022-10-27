@@ -329,15 +329,27 @@ object Children:
 
   given [F[_], E <: dom.Element](using F: Async[F]): Modifier[F, E, Modified[F]] with
     def modify(children: Modified[F], e: E) =
-      Stream
-        .resource(Hotswap.create[F, Unit])
-        .flatMap { hs =>
-          children.cs.evalMap(c => hs.swap(c.evalMap(c => F.delay(e.replaceChildren(c*)))))
-        }
-        .compile
-        .drain
-        .background
-        .void
+      for
+        hs <- Hotswap.create[F, List[dom.Node]]
+        placeholder <- Resource.eval(
+          F.delay(e.appendChild(dom.document.createComment("")))
+        )
+        _ <- children
+          .cs
+          .evalScan(List.empty[dom.Node])((prevChildren, c) => {
+            hs.swap(c.evalMap { c =>
+              F.delay {
+                prevChildren.foreach(e.removeChild)
+                c.foreach(e.insertBefore(_, placeholder))
+                c
+              }
+            })
+          })
+          .compile
+          .drain
+          .background
+          .void
+      yield ()
 
 final class KeyedChildren[F[_], K] private[calico] (f: K => Resource[F, dom.Node]):
   def <--(ks: Signal[F, List[K]]): KeyedChildren.Modified[F, K] =

@@ -8,7 +8,7 @@ ThisBuild / developers := List(
 
 ThisBuild / tlSonatypeUseLegacyHost := false
 
-ThisBuild / crossScalaVersions := Seq("3.1.3")
+ThisBuild / crossScalaVersions := Seq("3.2.0")
 ThisBuild / scalacOptions ++= Seq("-new-syntax", "-indent", "-source:future")
 
 ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17"))
@@ -16,7 +16,7 @@ ThisBuild / tlJdkRelease := Some(8)
 
 val CatsVersion = "2.8.0"
 val CatsEffectVersion = "3.3.14"
-val Fs2Version = "3.2.12"
+val Fs2Version = "3.3.0"
 val MonocleVersion = "3.1.0"
 
 lazy val root =
@@ -60,9 +60,10 @@ lazy val calico = project
   .settings(
     name := "calico",
     libraryDependencies ++= Seq(
-      "org.typelevel" %%% "shapeless3-deriving" % "3.1.0",
+      "org.typelevel" %%% "shapeless3-deriving" % "3.2.0",
       "dev.optics" %%% "monocle-core" % MonocleVersion,
-      "com.raquo" %%% "domtypes" % "0.16.0-RC2"
+      "com.raquo" %%% "domtypes" % "0.16.0-RC3",
+      "org.scala-js" %%% "scalajs-dom" % "2.3.0"
     )
   )
   .dependsOn(frp.js, std)
