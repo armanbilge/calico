@@ -284,7 +284,7 @@ object EventProp:
   given [F[_], E <: dom.EventTarget, V](using F: Async[F]): Modifier[F, E, Modified[F, V]] with
     def modify(prop: Modified[F, V], e: E) = for
       ch <- Resource.make(Channel.unbounded[F, V])(_.close.void)
-      d <- Dispatcher[F]
+      d <- Dispatcher.sequential[F]
       _ <- Resource.make {
         F.delay(new dom.AbortController).flatTap { c =>
           F.delay {

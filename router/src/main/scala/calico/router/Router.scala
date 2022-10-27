@@ -16,7 +16,6 @@
 
 package calico.router
 
-import calico.std.History
 import cats.effect.kernel.Async
 import cats.effect.kernel.RefSink
 import cats.effect.kernel.Resource
@@ -25,6 +24,7 @@ import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import fs2.Stream
 import fs2.concurrent.Signal
+import fs2.dom.History
 import org.http4s.Uri
 import org.scalajs.dom
 import fs2.concurrent.Topic
@@ -48,15 +48,13 @@ object Router:
 
         def navigate(uri: Uri) = for
           absUri <- mkAbsolute(uri)
-          url <- F.catchNonFatal(new dom.URL(absUri.renderString))
-          _ <- history.pushState((), url)
+          _ <- history.pushState((), absUri.renderString)
           _ <- gps.publish1(absUri)
         yield ()
 
         def teleport(uri: Uri) = for
           absUri <- mkAbsolute(uri)
-          url <- F.catchNonFatal(new dom.URL(absUri.renderString))
-          _ <- history.pushState((), url)
+          _ <- history.pushState((), absUri.renderString)
           _ <- gps.publish1(absUri)
         yield ()
 

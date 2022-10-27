@@ -17,10 +17,11 @@ ThisBuild / tlJdkRelease := Some(8)
 val CatsVersion = "2.8.0"
 val CatsEffectVersion = "3.3.14"
 val Fs2Version = "3.3.0"
+val Fs2DomVersion = "0.1.0-M1"
 val MonocleVersion = "3.1.0"
 
 lazy val root =
-  tlCrossRootProject.aggregate(frp, std, calico, router, widget, example, todoMvc, unidocs)
+  tlCrossRootProject.aggregate(frp, calico, router, widget, example, todoMvc, unidocs)
 
 lazy val frp = crossProject(JVMPlatform, JSPlatform)
   .crossType(CrossType.Pure)
@@ -39,34 +40,20 @@ lazy val frp = crossProject(JVMPlatform, JSPlatform)
     )
   )
 
-lazy val std = project
-  .in(file("std"))
-  .enablePlugins(ScalaJSPlugin)
-  .settings(
-    name := "calico-std",
-    tlVersionIntroduced := Map("3" -> "0.1.2"),
-    libraryDependencies ++= Seq(
-      "org.typelevel" %%% "cats-core" % CatsVersion,
-      "org.typelevel" %%% "cats-effect-std" % CatsEffectVersion,
-      "co.fs2" %%% "fs2-core" % Fs2Version,
-      "org.scala-js" %%% "scalajs-dom" % "2.2.0",
-      "io.circe" %%% "circe-scalajs" % "0.14.2"
-    )
-  )
-
 lazy val calico = project
   .in(file("calico"))
   .enablePlugins(ScalaJSPlugin)
   .settings(
     name := "calico",
     libraryDependencies ++= Seq(
+      "com.armanbilge" %%% "fs2-dom" % Fs2DomVersion,
       "org.typelevel" %%% "shapeless3-deriving" % "3.2.0",
       "dev.optics" %%% "monocle-core" % MonocleVersion,
       "com.raquo" %%% "domtypes" % "0.16.0-RC3",
       "org.scala-js" %%% "scalajs-dom" % "2.3.0"
     )
   )
-  .dependsOn(frp.js, std)
+  .dependsOn(frp.js)
 
 lazy val router = project
   .in(file("router"))
@@ -75,10 +62,10 @@ lazy val router = project
     name := "calico-router",
     tlVersionIntroduced := Map("3" -> "0.1.2"),
     libraryDependencies ++= Seq(
+      "com.armanbilge" %%% "fs2-dom" % Fs2DomVersion,
       "org.http4s" %%% "http4s-core" % "0.23.14"
     )
   )
-  .dependsOn(std)
 
 lazy val widget = project
   .in(file("widget"))
@@ -135,7 +122,7 @@ lazy val unidocs = project
   .enablePlugins(ScalaJSPlugin, TypelevelUnidocPlugin)
   .settings(
     name := "calico-docs",
-    ScalaUnidoc / unidoc / unidocProjectFilter := inProjects(frp.js, calico, std, router)
+    ScalaUnidoc / unidoc / unidocProjectFilter := inProjects(frp.js, calico, router)
   )
 
 lazy val jsdocs = project.dependsOn(calico, router, widget).enablePlugins(ScalaJSPlugin)
