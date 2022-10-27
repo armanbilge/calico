@@ -18,19 +18,19 @@ package calico
 
 import calico.dsl.io.*
 import calico.router.*
-import calico.std.*
 import calico.syntax.*
 import cats.effect.*
 import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import fs2.*
 import fs2.concurrent.*
+import fs2.dom.*
 import org.http4s.*
 import org.http4s.syntax.all.*
 
 object Example extends IOWebApp:
 
-  def render = History.make[IO, Unit].evalMap(Router(_)).flatMap { router =>
+  def render = Resource.eval(Router(History[IO, Unit])).flatMap { router =>
     (SignallingRef[IO].of(0), SignallingRef[IO].of(0)).tupled.toResource.flatMap {
       (helloCounter, countCounter) =>
 

@@ -29,7 +29,6 @@ In the following demo all routing is done by matching on the query portion of th
 ```scala mdoc:js
 import calico.dsl.io.*
 import calico.router.*
-import calico.std.*
 import calico.syntax.*
 import calico.unsafe.given
 import cats.effect.*
@@ -37,10 +36,11 @@ import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import fs2.*
 import fs2.concurrent.*
+import fs2.dom.*
 import org.http4s.*
 import org.http4s.syntax.all.*
 
-val app = History.make[IO, Unit].evalMap(Router(_)).flatMap { router =>
+val app = Resource.eval(Router(History[IO, Unit])).flatMap { router =>
   (SignallingRef[IO].of(0), SignallingRef[IO].of(0)).tupled.toResource.flatMap {
     (helloCounter, countCounter) =>
 
