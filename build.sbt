@@ -94,7 +94,7 @@ lazy val example = project
 lazy val todoMvc = project
   .in(file("todo-mvc"))
   .enablePlugins(ScalaJSPlugin, BundleMonPlugin, NoPublishPlugin)
-  .dependsOn(calico)
+  .dependsOn(calico, router)
   .settings(
     scalaJSUseMainModuleInitializer := true,
     Compile / fastLinkJS / scalaJSLinkerConfig ~= {

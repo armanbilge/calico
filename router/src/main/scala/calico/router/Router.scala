@@ -29,7 +29,7 @@ import org.http4s.Uri
 import org.scalajs.dom
 import fs2.concurrent.Topic
 
-trait Router[F[_]]:
+sealed trait Router[F[_]]:
   def forward: F[Unit]
   def back: F[Unit]
   def go(delta: Int): F[Unit]
@@ -39,6 +39,8 @@ trait Router[F[_]]:
   def length: Signal[F, Int]
 
   def dispatch(routes: Routes[F]): Resource[F, dom.HTMLElement]
+  def dispatch(routes: F[Routes[F]]): Resource[F, dom.HTMLElement] =
+    Resource.eval(routes).flatMap(dispatch)
 
 object Router:
   def apply[F[_]](history: History[F, Unit])(using F: Async[F]): F[Router[F]] =
