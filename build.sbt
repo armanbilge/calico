@@ -15,11 +15,13 @@ ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17"))
 ThisBuild / tlJdkRelease := Some(8)
 
 val CatsVersion = "2.8.0"
-val CatsEffectVersion = "3.4.0-RC2"
-val Fs2Dom = "0.1.0-M1"
+val CatsEffectVersion = "3.3.14"
+val Fs2Version = "3.3.0"
+val Fs2DomVersion = "0.1.0-M1"
 val MonocleVersion = "3.1.0"
 
-lazy val root = tlCrossRootProject.aggregate(frp, calico, widget, example, todoMvc, unidocs)
+lazy val root =
+  tlCrossRootProject.aggregate(frp, calico, router, widget, example, todoMvc, unidocs)
 
 lazy val frp = crossProject(JVMPlatform, JSPlatform)
   .crossType(CrossType.Pure)
@@ -30,7 +32,7 @@ lazy val frp = crossProject(JVMPlatform, JSPlatform)
     libraryDependencies ++= Seq(
       "org.typelevel" %%% "cats-core" % CatsVersion,
       "org.typelevel" %%% "cats-effect" % CatsEffectVersion,
-      "co.fs2" %%% "fs2-core" % "3.3.0",
+      "co.fs2" %%% "fs2-core" % Fs2Version,
       "org.typelevel" %%% "cats-laws" % CatsVersion % Test,
       "org.typelevel" %%% "cats-effect-testkit" % CatsEffectVersion % Test,
       "org.typelevel" %%% "discipline-munit" % "1.0.9" % Test,
@@ -44,7 +46,7 @@ lazy val calico = project
   .settings(
     name := "calico",
     libraryDependencies ++= Seq(
-      "com.armanbilge" %%% "fs2-dom" % Fs2Dom,
+      "com.armanbilge" %%% "fs2-dom" % Fs2DomVersion,
       "org.typelevel" %%% "shapeless3-deriving" % "3.2.0",
       "dev.optics" %%% "monocle-core" % MonocleVersion,
       "com.raquo" %%% "domtypes" % "0.16.0-RC3",
@@ -52,6 +54,18 @@ lazy val calico = project
     )
   )
   .dependsOn(frp.js)
+
+lazy val router = project
+  .in(file("router"))
+  .enablePlugins(ScalaJSPlugin)
+  .settings(
+    name := "calico-router",
+    tlVersionIntroduced := Map("3" -> "0.1.2"),
+    libraryDependencies ++= Seq(
+      "com.armanbilge" %%% "fs2-dom" % Fs2DomVersion,
+      "org.http4s" %%% "http4s-core" % "0.23.14"
+    )
+  )
 
 lazy val widget = project
   .in(file("widget"))
@@ -64,7 +78,7 @@ lazy val widget = project
 lazy val example = project
   .in(file("example"))
   .enablePlugins(ScalaJSPlugin, NoPublishPlugin)
-  .dependsOn(calico, widget)
+  .dependsOn(calico, widget, router)
   .settings(
     scalaJSUseMainModuleInitializer := true,
     Compile / fastLinkJS / scalaJSLinkerConfig ~= {
@@ -80,7 +94,7 @@ lazy val example = project
 lazy val todoMvc = project
   .in(file("todo-mvc"))
   .enablePlugins(ScalaJSPlugin, BundleMonPlugin, NoPublishPlugin)
-  .dependsOn(calico)
+  .dependsOn(calico, router)
   .settings(
     scalaJSUseMainModuleInitializer := true,
     Compile / fastLinkJS / scalaJSLinkerConfig ~= {
@@ -108,10 +122,10 @@ lazy val unidocs = project
   .enablePlugins(ScalaJSPlugin, TypelevelUnidocPlugin)
   .settings(
     name := "calico-docs",
-    ScalaUnidoc / unidoc / unidocProjectFilter := inProjects(frp.js, calico)
+    ScalaUnidoc / unidoc / unidocProjectFilter := inProjects(frp.js, calico, router)
   )
 
-lazy val jsdocs = project.dependsOn(calico, widget).enablePlugins(ScalaJSPlugin)
+lazy val jsdocs = project.dependsOn(calico, router, widget).enablePlugins(ScalaJSPlugin)
 lazy val docs = project
   .in(file("site"))
   .enablePlugins(TypelevelSitePlugin)

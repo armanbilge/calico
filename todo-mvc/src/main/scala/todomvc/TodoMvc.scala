@@ -19,40 +19,52 @@ package todomvc
 import calico.*
 import calico.dsl.io.*
 import calico.frp.given
+import calico.router.*
 import calico.syntax.*
 import cats.effect.*
 import cats.effect.std.*
 import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import fs2.concurrent.*
+import fs2.dom.History
 import monocle.function.*
+import org.http4s.*
 import org.scalajs.dom.*
 
 import scala.collection.immutable.SortedMap
 
 object TodoMvc extends IOWebApp:
 
-  def render = (TodoStore.empty, SignallingRef[IO].of(Filter.All)).tupled.toResource.flatMap {
-    (store, filter) =>
-      div(
-        cls := "todoapp",
-        div(cls := "header", h1("todos"), TodoInput(store)),
-        div(
-          cls := "main",
-          ul(
-            cls := "todo-list",
-            children[Int](id => TodoItem(store.entry(id))) <--
-              (filter: Signal[IO, Filter]).flatMap(store.ids(_)).discrete.changes
+  def render =
+    (TodoStore.empty, Router(History[IO, Unit])).tupled.toResource.flatMap { (store, router) =>
+      router.dispatch {
+        Routes.one[IO] {
+          case uri if uri.fragment == Some("/active") => Filter.Active
+          case uri if uri.fragment == Some("/completed") => Filter.Completed
+          case _ => Filter.All
+        } { filter =>
+          div(
+            cls := "todoapp",
+            div(cls := "header", h1("todos"), TodoInput(store)),
+            div(
+              cls := "main",
+              ul(
+                cls := "todo-list",
+                children[Int](id => TodoItem(store.entry(id))) <--
+                  filter.flatMap(store.ids(_)).discrete.changes
+              )
+            ),
+            store
+              .size
+              .discrete
+              .map(_ > 0)
+              .changes
+              .map(if _ then StatusBar(store.activeCount, filter, router).some else None)
           )
-        ),
-        store
-          .size
-          .discrete
-          .map(_ > 0)
-          .changes
-          .map(if _ then StatusBar(store.activeCount, filter).some else None)
-      )
-  }
+        }
+
+      }
+    }
 
   def TodoInput(store: TodoStore) =
     input { self =>
@@ -115,7 +127,7 @@ object TodoMvc extends IOWebApp:
       )
     }
 
-  def StatusBar(activeCount: Signal[IO, Int], filter: SignallingRef[IO, Filter]) =
+  def StatusBar(activeCount: Signal[IO, Int], filter: Signal[IO, Filter], router: Router[IO]) =
     footer(
       cls := "footer",
       span(
@@ -134,7 +146,7 @@ object TodoMvc extends IOWebApp:
             li(
               a(
                 cls <-- filter.map(_ == f).map(Option.when(_)("selected").toList),
-                onClick --> (_.foreach(_ => filter.set(f))),
+                onClick --> (_.foreach(_ => router.navigate(Uri(fragment = f.fragment.some)))),
                 f.toString
               )
             )
@@ -164,7 +176,7 @@ object TodoStore:
 
 case class Todo(text: String, completed: Boolean)
 
-enum Filter(val pred: Todo => Boolean):
-  case All extends Filter(_ => true)
-  case Active extends Filter(!_.completed)
-  case Completed extends Filter(_.completed)
+enum Filter(val fragment: String, val pred: Todo => Boolean):
+  case All extends Filter("/", _ => true)
+  case Active extends Filter("/active", !_.completed)
+  case Completed extends Filter("/completed", _.completed)
