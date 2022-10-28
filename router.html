@@ -87,6 +87,8 @@
         
           <li class="level2"><a href="https://fs2.io/">fs2</a></li>
         
+          <li class="level2"><a href="https://github.com/armanbilge/fs2-dom/">fs2-dom</a></li>
+        
           <li class="level2"><a href="https://http4s.github.io/http4s-dom/">http4s-dom</a></li>
         
       </ul>
@@ -126,7 +128,6 @@
         <p>In the following demo all routing is done by matching on the query portion of the URI since this is compatible with GitHub Pages hosting. A production application can match on the path portion for a friendlier UX.</p>
         <pre><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.</span><span class="identifier">dsl</span><span>.</span><span class="identifier">io</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.</span><span class="identifier">router</span><span>.*
-</span><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.</span><span class="identifier">std</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.</span><span class="identifier">syntax</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.</span><span class="identifier">unsafe</span><span>.</span><span class="keyword">given</span><span>
 </span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.*
@@ -134,10 +135,11 @@
 </span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">syntax</span><span>.</span><span class="identifier">all</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">fs2</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">fs2</span><span>.</span><span class="identifier">concurrent</span><span>.*
+</span><span class="keyword">import</span><span> </span><span class="identifier">fs2</span><span>.</span><span class="identifier">dom</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">org</span><span>.</span><span class="identifier">http4s</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">org</span><span>.</span><span class="identifier">http4s</span><span>.</span><span class="identifier">syntax</span><span>.</span><span class="identifier">all</span><span>.*
 
-</span><span class="keyword">val</span><span> </span><span class="identifier">app</span><span> = </span><span class="type-name">History</span><span>.</span><span class="identifier">make</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">Unit</span><span>].</span><span class="identifier">evalMap</span><span>(</span><span class="type-name">Router</span><span>(</span><span class="identifier">_</span><span>)).</span><span class="identifier">flatMap</span><span> { </span><span class="identifier">router</span><span> =&gt;
+</span><span class="keyword">val</span><span> </span><span class="identifier">app</span><span> = </span><span class="type-name">Resource</span><span>.</span><span class="identifier">eval</span><span>(</span><span class="type-name">Router</span><span>(</span><span class="type-name">History</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">Unit</span><span>])).</span><span class="identifier">flatMap</span><span> { </span><span class="identifier">router</span><span> =&gt;
   (</span><span class="type-name">SignallingRef</span><span>[</span><span class="type-name">IO</span><span>].</span><span class="identifier">of</span><span>(</span><span class="number-literal">0</span><span>), </span><span class="type-name">SignallingRef</span><span>[</span><span class="type-name">IO</span><span>].</span><span class="identifier">of</span><span>(</span><span class="number-literal">0</span><span>)).</span><span class="identifier">tupled</span><span>.</span><span class="identifier">toResource</span><span>.</span><span class="identifier">flatMap</span><span> {
     (</span><span class="identifier">helloCounter</span><span>, </span><span class="identifier">countCounter</span><span>) =&gt;
 

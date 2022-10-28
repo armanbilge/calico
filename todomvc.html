@@ -74,6 +74,7 @@
         <li class="level1"><a href="counter.html">Counter</a></li>
         <li class="level1"><a href="time.html">Time</a></li>
         <li class="level1 active"><a href="#">TodoMVC</a></li>
+        <li class="level1"><a href="router.html">Router</a></li>
         <li class="level1"><a href="widget.html">Widgets</a></li>
       </ul>
 
@@ -115,40 +116,52 @@
 </span><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.</span><span class="identifier">dsl</span><span>.</span><span class="identifier">io</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.</span><span class="identifier">frp</span><span>.</span><span class="keyword">given</span><span>
+</span><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.</span><span class="identifier">router</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.</span><span class="identifier">syntax</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.</span><span class="identifier">std</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.</span><span class="identifier">syntax</span><span>.</span><span class="identifier">all</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">syntax</span><span>.</span><span class="identifier">all</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">fs2</span><span>.</span><span class="identifier">concurrent</span><span>.*
+</span><span class="keyword">import</span><span> </span><span class="identifier">fs2</span><span>.</span><span class="identifier">dom</span><span>.</span><span class="type-name">History</span><span>
 </span><span class="keyword">import</span><span> </span><span class="identifier">monocle</span><span>.</span><span class="identifier">function</span><span>.*
+</span><span class="keyword">import</span><span> </span><span class="identifier">org</span><span>.</span><span class="identifier">http4s</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">org</span><span>.</span><span class="identifier">scalajs</span><span>.</span><span class="identifier">dom</span><span>.*
 
 </span><span class="keyword">import</span><span> </span><span class="identifier">scala</span><span>.</span><span class="identifier">collection</span><span>.</span><span class="identifier">immutable</span><span>.</span><span class="type-name">SortedMap</span><span>
 
 </span><span class="keyword">object</span><span> </span><span class="type-name">TodoMvc</span><span> </span><span class="keyword">extends</span><span> </span><span class="type-name">IOWebApp</span><span>:
 
-  </span><span class="keyword">def</span><span> </span><span class="declaration-name">render</span><span> = (</span><span class="type-name">TodoStore</span><span>.</span><span class="identifier">empty</span><span>, </span><span class="type-name">SignallingRef</span><span>[</span><span class="type-name">IO</span><span>].</span><span class="identifier">of</span><span>(</span><span class="type-name">Filter</span><span>.</span><span class="type-name">All</span><span>)).</span><span class="identifier">tupled</span><span>.</span><span class="identifier">toResource</span><span>.</span><span class="identifier">flatMap</span><span> {
-    (</span><span class="identifier">store</span><span>, </span><span class="identifier">filter</span><span>) =&gt;
-      </span><span class="identifier">div</span><span>(
-        </span><span class="identifier">cls</span><span> := </span><span class="string-literal">&quot;todoapp&quot;</span><span>,
-        </span><span class="identifier">div</span><span>(</span><span class="identifier">cls</span><span> := </span><span class="string-literal">&quot;header&quot;</span><span>, </span><span class="identifier">h1</span><span>(</span><span class="string-literal">&quot;todos&quot;</span><span>), </span><span class="type-name">TodoInput</span><span>(</span><span class="identifier">store</span><span>)),
-        </span><span class="identifier">div</span><span>(
-          </span><span class="identifier">cls</span><span> := </span><span class="string-literal">&quot;main&quot;</span><span>,
-          </span><span class="identifier">ul</span><span>(
-            </span><span class="identifier">cls</span><span> := </span><span class="string-literal">&quot;todo-list&quot;</span><span>,
-            </span><span class="identifier">children</span><span>[</span><span class="type-name">Int</span><span>](</span><span class="identifier">id</span><span> =&gt; </span><span class="type-name">TodoItem</span><span>(</span><span class="identifier">store</span><span>.</span><span class="identifier">entry</span><span>(</span><span class="identifier">id</span><span>))) &lt;--
-              (</span><span class="identifier">filter</span><span>: </span><span class="type-name">Signal</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">Filter</span><span>]).</span><span class="identifier">flatMap</span><span>(</span><span class="identifier">store</span><span>.</span><span class="identifier">ids</span><span>(</span><span class="identifier">_</span><span>)).</span><span class="identifier">discrete</span><span>.</span><span class="identifier">changes</span><span>
+  </span><span class="keyword">def</span><span> </span><span class="declaration-name">render</span><span> =
+    (</span><span class="type-name">TodoStore</span><span>.</span><span class="identifier">empty</span><span>, </span><span class="type-name">Router</span><span>(</span><span class="type-name">History</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">Unit</span><span>])).</span><span class="identifier">tupled</span><span>.</span><span class="identifier">toResource</span><span>.</span><span class="identifier">flatMap</span><span> { (</span><span class="identifier">store</span><span>, </span><span class="identifier">router</span><span>) =&gt;
+      </span><span class="identifier">router</span><span>.</span><span class="identifier">dispatch</span><span> {
+        </span><span class="type-name">Routes</span><span>.</span><span class="identifier">one</span><span>[</span><span class="type-name">IO</span><span>] {
+          </span><span class="keyword">case</span><span> </span><span class="identifier">uri</span><span> </span><span class="keyword">if</span><span> </span><span class="identifier">uri</span><span>.</span><span class="identifier">fragment</span><span> == </span><span class="type-name">Some</span><span>(</span><span class="string-literal">&quot;/active&quot;</span><span>) =&gt; </span><span class="type-name">Filter</span><span>.</span><span class="type-name">Active</span><span>
+          </span><span class="keyword">case</span><span> </span><span class="identifier">uri</span><span> </span><span class="keyword">if</span><span> </span><span class="identifier">uri</span><span>.</span><span class="identifier">fragment</span><span> == </span><span class="type-name">Some</span><span>(</span><span class="string-literal">&quot;/completed&quot;</span><span>) =&gt; </span><span class="type-name">Filter</span><span>.</span><span class="type-name">Completed</span><span>
+          </span><span class="keyword">case</span><span> </span><span class="identifier">_</span><span> =&gt; </span><span class="type-name">Filter</span><span>.</span><span class="type-name">All</span><span>
+        } { </span><span class="identifier">filter</span><span> =&gt;
+          </span><span class="identifier">div</span><span>(
+            </span><span class="identifier">cls</span><span> := </span><span class="string-literal">&quot;todoapp&quot;</span><span>,
+            </span><span class="identifier">div</span><span>(</span><span class="identifier">cls</span><span> := </span><span class="string-literal">&quot;header&quot;</span><span>, </span><span class="identifier">h1</span><span>(</span><span class="string-literal">&quot;todos&quot;</span><span>), </span><span class="type-name">TodoInput</span><span>(</span><span class="identifier">store</span><span>)),
+            </span><span class="identifier">div</span><span>(
+              </span><span class="identifier">cls</span><span> := </span><span class="string-literal">&quot;main&quot;</span><span>,
+              </span><span class="identifier">ul</span><span>(
+                </span><span class="identifier">cls</span><span> := </span><span class="string-literal">&quot;todo-list&quot;</span><span>,
+                </span><span class="identifier">children</span><span>[</span><span class="type-name">Int</span><span>](</span><span class="identifier">id</span><span> =&gt; </span><span class="type-name">TodoItem</span><span>(</span><span class="identifier">store</span><span>.</span><span class="identifier">entry</span><span>(</span><span class="identifier">id</span><span>))) &lt;--
+                  </span><span class="identifier">filter</span><span>.</span><span class="identifier">flatMap</span><span>(</span><span class="identifier">store</span><span>.</span><span class="identifier">ids</span><span>(</span><span class="identifier">_</span><span>)).</span><span class="identifier">discrete</span><span>.</span><span class="identifier">changes</span><span>
+              )
+            ),
+            </span><span class="identifier">store</span><span>
+              .</span><span class="identifier">size</span><span>
+              .</span><span class="identifier">discrete</span><span>
+              .</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span> &gt; </span><span class="number-literal">0</span><span>)
+              .</span><span class="identifier">changes</span><span>
+              .</span><span class="identifier">map</span><span>(</span><span class="keyword">if</span><span> </span><span class="identifier">_</span><span> </span><span class="keyword">then</span><span> </span><span class="type-name">StatusBar</span><span>(</span><span class="identifier">store</span><span>.</span><span class="identifier">activeCount</span><span>, </span><span class="identifier">filter</span><span>, </span><span class="identifier">router</span><span>).</span><span class="identifier">some</span><span> </span><span class="keyword">else</span><span> </span><span class="type-name">None</span><span>)
           )
-        ),
-        </span><span class="identifier">store</span><span>
-          .</span><span class="identifier">size</span><span>
-          .</span><span class="identifier">discrete</span><span>
-          .</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span> &gt; </span><span class="number-literal">0</span><span>)
-          .</span><span class="identifier">changes</span><span>
-          .</span><span class="identifier">map</span><span>(</span><span class="keyword">if</span><span> </span><span class="identifier">_</span><span> </span><span class="keyword">then</span><span> </span><span class="type-name">StatusBar</span><span>(</span><span class="identifier">store</span><span>.</span><span class="identifier">activeCount</span><span>, </span><span class="identifier">filter</span><span>).</span><span class="identifier">some</span><span> </span><span class="keyword">else</span><span> </span><span class="type-name">None</span><span>)
-      )
-  }
+        }
+
+      }
+    }
 
   </span><span class="keyword">def</span><span> </span><span class="declaration-name">TodoInput</span><span>(</span><span class="identifier">store</span><span>: </span><span class="type-name">TodoStore</span><span>) =
     </span><span class="identifier">input</span><span> { </span><span class="identifier">self</span><span> =&gt;
@@ -211,7 +224,7 @@
       )
     }
 
-  </span><span class="keyword">def</span><span> </span><span class="declaration-name">StatusBar</span><span>(</span><span class="identifier">activeCount</span><span>: </span><span class="type-name">Signal</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">Int</span><span>], </span><span class="identifier">filter</span><span>: </span><span class="type-name">SignallingRef</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">Filter</span><span>]) =
+  </span><span class="keyword">def</span><span> </span><span class="declaration-name">StatusBar</span><span>(</span><span class="identifier">activeCount</span><span>: </span><span class="type-name">Signal</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">Int</span><span>], </span><span class="identifier">filter</span><span>: </span><span class="type-name">Signal</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">Filter</span><span>], </span><span class="identifier">router</span><span>: </span><span class="type-name">Router</span><span>[</span><span class="type-name">IO</span><span>]) =
     </span><span class="identifier">footer</span><span>(
       </span><span class="identifier">cls</span><span> := </span><span class="string-literal">&quot;footer&quot;</span><span>,
       </span><span class="identifier">span</span><span>(
@@ -230,7 +243,7 @@
             </span><span class="identifier">li</span><span>(
               </span><span class="identifier">a</span><span>(
                 </span><span class="identifier">cls</span><span> &lt;-- </span><span class="identifier">filter</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span> == </span><span class="identifier">f</span><span>).</span><span class="identifier">map</span><span>(</span><span class="type-name">Option</span><span>.</span><span class="identifier">when</span><span>(</span><span class="identifier">_</span><span>)(</span><span class="string-literal">&quot;selected&quot;</span><span>).</span><span class="identifier">toList</span><span>),
-                </span><span class="identifier">onClick</span><span> --&gt; (</span><span class="identifier">_</span><span>.</span><span class="identifier">foreach</span><span>(</span><span class="identifier">_</span><span> =&gt; </span><span class="identifier">filter</span><span>.</span><span class="identifier">set</span><span>(</span><span class="identifier">f</span><span>))),
+                </span><span class="identifier">onClick</span><span> --&gt; (</span><span class="identifier">_</span><span>.</span><span class="identifier">foreach</span><span>(</span><span class="identifier">_</span><span> =&gt; </span><span class="identifier">router</span><span>.</span><span class="identifier">navigate</span><span>(</span><span class="type-name">Uri</span><span>(</span><span class="identifier">fragment</span><span> = </span><span class="identifier">f</span><span>.</span><span class="identifier">fragment</span><span>.</span><span class="identifier">some</span><span>)))),
                 </span><span class="identifier">f</span><span>.</span><span class="identifier">toString</span><span>
               )
             )
@@ -260,10 +273,10 @@
 
 </span><span class="keyword">case</span><span> </span><span class="keyword">class</span><span> </span><span class="type-name">Todo</span><span>(</span><span class="identifier">text</span><span>: </span><span class="type-name">String</span><span>, </span><span class="identifier">completed</span><span>: </span><span class="type-name">Boolean</span><span>)
 
-</span><span class="keyword">enum</span><span> </span><span class="type-name">Filter</span><span>(</span><span class="keyword">val</span><span> </span><span class="identifier">pred</span><span>: </span><span class="type-name">Todo</span><span> =&gt; </span><span class="type-name">Boolean</span><span>):
-  </span><span class="keyword">case</span><span> </span><span class="type-name">All</span><span> </span><span class="keyword">extends</span><span> </span><span class="type-name">Filter</span><span>(</span><span class="identifier">_</span><span> =&gt; </span><span class="boolean-literal">true</span><span>)
-  </span><span class="keyword">case</span><span> </span><span class="type-name">Active</span><span> </span><span class="keyword">extends</span><span> </span><span class="type-name">Filter</span><span>(!</span><span class="identifier">_</span><span>.</span><span class="identifier">completed</span><span>)
-  </span><span class="keyword">case</span><span> </span><span class="type-name">Completed</span><span> </span><span class="keyword">extends</span><span> </span><span class="type-name">Filter</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">completed</span><span>)</span></code></pre>
+</span><span class="keyword">enum</span><span> </span><span class="type-name">Filter</span><span>(</span><span class="keyword">val</span><span> </span><span class="identifier">fragment</span><span>: </span><span class="type-name">String</span><span>, </span><span class="keyword">val</span><span> </span><span class="identifier">pred</span><span>: </span><span class="type-name">Todo</span><span> =&gt; </span><span class="type-name">Boolean</span><span>):
+  </span><span class="keyword">case</span><span> </span><span class="type-name">All</span><span> </span><span class="keyword">extends</span><span> </span><span class="type-name">Filter</span><span>(</span><span class="string-literal">&quot;/&quot;</span><span>, </span><span class="identifier">_</span><span> =&gt; </span><span class="boolean-literal">true</span><span>)
+  </span><span class="keyword">case</span><span> </span><span class="type-name">Active</span><span> </span><span class="keyword">extends</span><span> </span><span class="type-name">Filter</span><span>(</span><span class="string-literal">&quot;/active&quot;</span><span>, !</span><span class="identifier">_</span><span>.</span><span class="identifier">completed</span><span>)
+  </span><span class="keyword">case</span><span> </span><span class="type-name">Completed</span><span> </span><span class="keyword">extends</span><span> </span><span class="type-name">Filter</span><span>(</span><span class="string-literal">&quot;/completed&quot;</span><span>, </span><span class="identifier">_</span><span>.</span><span class="identifier">completed</span><span>)</span></code></pre>
 
         <hr style="margin-top: 30px"/>
         <footer style="font-size: 90%; text-align: center">
