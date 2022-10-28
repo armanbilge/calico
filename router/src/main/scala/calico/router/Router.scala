@@ -24,21 +24,56 @@ import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import fs2.Stream
 import fs2.concurrent.Signal
+import fs2.concurrent.Topic
 import fs2.dom.History
 import org.http4s.Uri
 import org.scalajs.dom
-import fs2.concurrent.Topic
 
-sealed trait Router[F[_]]:
+abstract class Router[F[_]] private:
+
+  /**
+   * move forward in the session history
+   */
   def forward: F[Unit]
+
+  /**
+   * move backward in the session history
+   */
   def back: F[Unit]
+
+  /**
+   * move forward (positive) or backward (negative) `delta` entries in the session history
+   */
   def go(delta: Int): F[Unit]
+
+  /**
+   * navigate to a [[Uri]] and add an entry to the history
+   */
   def navigate(uri: Uri): F[Unit]
+
+  /**
+   * navigate to a [[Uri]] and replace the current history entry
+   */
   def teleport(uri: Uri): F[Unit]
+
+  /**
+   * the current location
+   */
   def location: Signal[F, Uri]
+
+  /**
+   * the number of entries in the history
+   */
   def length: Signal[F, Int]
 
+  /**
+   * Compile [[Routes]] into a renderable [[dom.HTMLElement]]
+   */
   def dispatch(routes: Routes[F]): Resource[F, dom.HTMLElement]
+
+  /**
+   * Compile [[Routes]] into a renderable [[dom.HTMLElement]]
+   */
   def dispatch(routes: F[Routes[F]]): Resource[F, dom.HTMLElement] =
     Resource.eval(routes).flatMap(dispatch)
 

@@ -51,6 +51,12 @@ object Routes:
 
   def apply[F[_]](f: Uri => F[Option[Route[F]]]): Routes[F] = Kleisli(f)
 
+  /**
+   * Create a [[Routes]] for one "template". The `matcher` [[PartialFunction]] may extract some
+   * state `A` from the [[Uri]] that is communicated to the [[HTMLElement]] via a [[Signal]].
+   * This enables the component to be re-used when the [[Uri]] changes but the same [[Route]]
+   * matches although the extracted state may differ.
+   */
   def one[F[_]]: OneRouteBuilder[F] = new OneRouteBuilder
 
   final class OneRouteBuilder[F[_]] private[Routes]:
