@@ -282,23 +282,8 @@ object EventProp:
   final class Modified[F[_], E] private[calico] (val key: String, val sink: Pipe[F, E, Nothing])
 
   given [F[_], E <: dom.EventTarget, V](using F: Async[F]): Modifier[F, E, Modified[F, V]] with
-    def modify(prop: Modified[F, V], e: E) = for
-      ch <- Resource.make(Channel.unbounded[F, V])(_.close.void)
-      d <- Dispatcher.sequential[F]
-      _ <- Resource.make {
-        F.delay(new dom.AbortController).flatTap { c =>
-          F.delay {
-            e.addEventListener(
-              prop.key,
-              e => d.unsafeRunAndForget(ch.send(e.asInstanceOf[V])),
-              new dom.EventListenerOptions:
-                signal = c.signal
-            )
-          }
-        }
-      } { c => F.delay(c.abort()) }
-      _ <- ch.stream.through(prop.sink).compile.drain.background
-    yield ()
+    def modify(prop: Modified[F, V], e: E) =
+      fs2.dom.events(e, prop.key).through(prop.sink).compile.drain.background.void
 
 final class ClassAttr[F[_]] private[calico]
     extends Prop[F, List[String], String](
