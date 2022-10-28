@@ -15,7 +15,8 @@ ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17"))
 ThisBuild / tlJdkRelease := Some(8)
 
 val CatsVersion = "2.8.0"
-val CatsEffectVersion = "3.3.14"
+val CatsEffectVersion = "3.4.0-RC2"
+val Fs2Dom = "0.1.0-M1"
 val MonocleVersion = "3.1.0"
 
 lazy val root = tlCrossRootProject.aggregate(frp, calico, widget, example, todoMvc, unidocs)
@@ -43,6 +44,7 @@ lazy val calico = project
   .settings(
     name := "calico",
     libraryDependencies ++= Seq(
+      "com.armanbilge" %%% "fs2-dom" % Fs2Dom,
       "org.typelevel" %%% "shapeless3-deriving" % "3.2.0",
       "dev.optics" %%% "monocle-core" % MonocleVersion,
       "com.raquo" %%% "domtypes" % "0.16.0-RC3",
@@ -124,6 +126,7 @@ lazy val docs = project
     tlSiteRelatedProjects ++= Seq(
       TypelevelProject.CatsEffect,
       TypelevelProject.Fs2,
+      "fs2-dom" -> url("https://github.com/armanbilge/fs2-dom/"),
       "http4s-dom" -> url("https://http4s.github.io/http4s-dom/")
     ),
     laikaInputs := {
