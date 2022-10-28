@@ -47,12 +47,12 @@ abstract class Router[F[_]] private ():
   def go(delta: Int): F[Unit]
 
   /**
-   * navigate to a [[Uri]] and add an entry to the history
+   * set the location to a [[Uri]] and add an entry to the history
    */
   def navigate(uri: Uri): F[Unit]
 
   /**
-   * navigate to a [[Uri]] and replace the current history entry
+   * set the location a [[Uri]] and replace the current history entry
    */
   def teleport(uri: Uri): F[Unit]
 
