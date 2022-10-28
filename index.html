@@ -103,6 +103,7 @@
         <ul class="nav-list">
           <li class="level1"><a href="#acknowledgements">Acknowledgements</a></li>
           <li class="level1"><a href="#try-it">Try it!</a></li>
+          <li class="level1"><a href="#integrations">Integrations</a></li>
           <li class="level1"><a href="#core-concepts">Core concepts</a></li>
           <li class="level2"><a href="#components-and-resource-management">Components and resource management</a></li>
           <li class="level2"><a href="#task-scheduling-and-glitch-free-rendering">Task scheduling and glitch-free rendering</a></li>
@@ -117,12 +118,18 @@
         <p><strong>Calico</strong> is a UI library for the <a href="https://typelevel.org/">Typelevel.js</a> ecosystem. It leverages the abstractions provided by <a href="https://typelevel.org/cats-effect/">Cats Effect</a> and <a href="https://fs2.io/">FS2</a> to provide a fluent DSL for building web applications that are composable, reactive, and safe. If you enjoy working with Cats Effect and FS2 then I hope that you will like <strong>Calico</strong> as well.</p>
         
         <h3 id="acknowledgements" class="section">Acknowledgements<a class="anchor-link right" href="#acknowledgements"><i class="icofont-laika">&#xef71;</i></a></h3>
-        <p><strong>Calico</strong> is heavily inspired by <a href="https://Laminar.dev/">Laminar</a>. I have yet only had time to plagiarize the DSL and a few of the examples ;)</p>
+        <p><strong>Calico</strong> was inspired by <a href="https://Laminar.dev/">Laminar</a>. I have yet only had time to plagiarize the DSL and a few of the examples ;) Thanks to <a href="https://github.com/raquo/">@raquo</a> for sharing their wisdom.</p>
+        <p>I am very grateful to <a href="https://github.com/SystemFw/">@SystemFw</a> who gave me a tutorial on all things <a href="https://en.wikipedia.org/wiki/Functional_reactive_programming">Functional Reactive Programming</a> shortly before I embarked on this project.</p>
         
         <h3 id="try-it" class="section">Try it!<a class="anchor-link right" href="#try-it"><i class="icofont-laika">&#xef71;</i></a></h3>
         <p>With special thanks to <a href="https://github.com/yurique/">@yurique</a>, you can now try <strong>Calico</strong> right in your browser at <a href="https://scribble.ninja/">scribble.ninja</a>!</p>
         <pre class="keep-together pdf epub"><code class="nohighlight"><span class="identifier">libraryDependencies</span><span> += </span><span class="string-literal">&quot;com.armanbilge&quot;</span><span> %%% </span><span class="string-literal">&quot;calico&quot;</span><span> % </span><span class="string-literal">&quot;0.1.1&quot;</span></code></pre>
         <p>Please open issues (and PRs!) for anything and everything :)</p>
+        
+        <h3 id="integrations" class="section">Integrations<a class="anchor-link right" href="#integrations"><i class="icofont-laika">&#xef71;</i></a></h3>
+        <ul>
+          <li><a href="https://github.com/kubukoz/calico-smithy4s-demo/">calico-smithy4s-demo</a> showcases a fullstack app and integration with <a href="https://github.com/disneystreaming/smithy4s/">smithy4s</a>. Thank you <a href="https://github.com/kubukoz/">@kubukoz</a>!</li>
+        </ul>
         
         <h2 id="core-concepts" class="section">Core concepts<a class="anchor-link right" href="#core-concepts"><i class="icofont-laika">&#xef71;</i></a></h2>
         
