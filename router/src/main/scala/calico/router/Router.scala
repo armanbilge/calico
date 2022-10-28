@@ -111,7 +111,7 @@ object Router:
           }.toResource
           currentRoute <- Resource.make(
             F.ref(Option.empty[(Unique.Token, RefSink[F, Uri], F[Unit])]))(
-            _.get.flatMap(_.fold(F.unit)(_._3)))
+            _.get.flatMap(_.foldMapA(_._3)))
           _ <- location
             .discrete
             .foreach { uri =>
