@@ -29,7 +29,7 @@ import fs2.dom.History
 import org.http4s.Uri
 import org.scalajs.dom
 
-abstract class Router[F[_]] private:
+abstract class Router[F[_]] private ():
 
   /**
    * move forward in the session history
