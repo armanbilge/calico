@@ -18,7 +18,7 @@ package todomvc
 
 import calico.*
 import calico.dsl.io.*
-import calico.frp.given
+import calico.frp.{*, given}
 import calico.router.*
 import calico.syntax.*
 import cats.effect.*
@@ -154,25 +154,22 @@ object TodoMvc extends IOWebApp:
       )
     )
 
-class TodoStore(map: SignallingRef[IO, SortedMap[Int, Todo]], nextId: Ref[IO, Int]):
+class TodoStore(entries: SignallingSortedMapRef[IO, Int, Todo], nextId: Ref[IO, Int]):
   def create(text: String): IO[Unit] =
-    nextId.getAndUpdate(_ + 1).flatMap(id => map.update(_ + (id -> Todo(text, false))))
+    nextId.getAndUpdate(_ + 1).flatMap(entries(_).set(Some(Todo(text, false))))
 
-  def entry(id: Int): SignallingRef[IO, Option[Todo]] =
-    map.zoom(At.atSortedMap[Int, Todo].at(id))
+  def entry(id: Int): SignallingRef[IO, Option[Todo]] = entries(id)
 
   def ids(filter: Filter): Signal[IO, List[Int]] =
-    map.map(_.filter((_, t) => filter.pred(t)).keySet.toList)
+    entries.map(_.filter((_, t) => filter.pred(t)).keySet.toList)
 
-  def size: Signal[IO, Int] = map.map(_.size)
+  def size: Signal[IO, Int] = entries.map(_.size)
 
-  def activeCount: Signal[IO, Int] = map.map(_.values.count(!_.completed))
+  def activeCount: Signal[IO, Int] = entries.map(_.values.count(!_.completed))
 
 object TodoStore:
-  def empty: IO[TodoStore] = for
-    map <- SignallingRef[IO].of(SortedMap.empty[Int, Todo])
-    nextId <- IO.ref(0)
-  yield TodoStore(map, nextId)
+  def empty: IO[TodoStore] =
+    (SignallingSortedMapRef[IO, Int, Todo], IO.ref(0)).mapN(TodoStore(_, _))
 
 case class Todo(text: String, completed: Boolean)
 
