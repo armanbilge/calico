@@ -28,7 +28,6 @@ import cats.effect.kernel.Resource
 import cats.effect.kernel.Sync
 import cats.effect.std.Dispatcher
 import cats.effect.std.Hotswap
-import cats.effect.std.Supervisor
 import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import com.raquo.domtypes.generic.builders.EventPropBuilder
@@ -352,7 +351,6 @@ object KeyedChildren:
     with
     def modify(children: Modified[F, K], e: E) =
       for
-        sup <- Supervisor[F]
         active <- Resource.make(Ref[F].of(mutable.Map.empty[K, (dom.Node, F[Unit])]))(
           _.get.flatMap(_.values.toList.traverse_(_._2))
         )
