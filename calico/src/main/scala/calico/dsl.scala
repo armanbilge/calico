@@ -380,7 +380,7 @@ object KeyedChildren:
 
                   (update(nextNodes) *>
                     acquireNewNodes *>
-                    renderNextNodes).guarantee(releaseOldNodes)
+                    renderNextNodes).guarantee(releaseOldNodes.evalOn(unsafe.MacrotaskExecutor))
                 }.flatten
               }
             }
