@@ -18,6 +18,7 @@ package calico
 package dsl
 
 import calico.syntax.*
+import calico.util.DomHotswap
 import cats.Foldable
 import cats.Hash
 import cats.Monad
@@ -27,7 +28,6 @@ import cats.effect.kernel.Ref
 import cats.effect.kernel.Resource
 import cats.effect.kernel.Sync
 import cats.effect.std.Dispatcher
-import cats.effect.std.Hotswap
 import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import com.raquo.domtypes.generic.builders.EventPropBuilder
@@ -196,17 +196,12 @@ object Modifier:
       using F: Async[F]): Modifier[F, E, Stream[F, Option[Resource[F, E2]]]] with
     def modify(e2s: Stream[F, Option[Resource[F, E2]]], e: E) =
       for
-        (hs, c) <- Hotswap[F, dom.Node](F.delay(dom.document.createComment("")).toResource)
-        _ <- F.delay(e.appendChild(c)).toResource
-        prev <- F.ref(c).toResource
+        sentinel <- Resource.eval(F.delay(dom.document.createComment("")))
+        hs <- DomHotswap[F, dom.Node](sentinel.pure)
+        _ <- F.delay(e.appendChild(sentinel)).toResource
         _ <- e2s
-          .evalMap { next =>
-            for
-              n <- hs.swap(next.getOrElse(c.pure))
-              p <- prev.get
-              _ <- F.delay(e.replaceChild(n, p))
-              _ <- prev.set(n)
-            yield ()
+          .foreach { next =>
+            hs.swap(next.getOrElse(sentinel.pure)) { (p, n) => F.delay(e.replaceChild(n, p)) }
           }
           .compile
           .drain
@@ -314,21 +309,20 @@ object Children:
   given [F[_], E <: dom.Element](using F: Async[F]): Modifier[F, E, Modified[F]] with
     def modify(children: Modified[F], e: E) =
       for
-        hs <- Hotswap.create[F, List[dom.Node]]
+        hs <- DomHotswap[F, List[dom.Node]](Resource.pure(Nil))
         placeholder <- Resource.eval(
           F.delay(e.appendChild(dom.document.createComment("")))
         )
         _ <- children
           .cs
-          .evalScan(List.empty[dom.Node])((prevChildren, c) => {
-            hs.swap(c.evalMap { c =>
+          .foreach { children =>
+            hs.swap(children) { (prev, next) =>
               F.delay {
-                prevChildren.foreach(e.removeChild)
-                c.foreach(e.insertBefore(_, placeholder))
-                c
+                prev.foreach(e.removeChild)
+                next.foreach(e.insertBefore(_, placeholder))
               }
-            })
-          })
+            }
+          }
           .compile
           .drain
           .background
