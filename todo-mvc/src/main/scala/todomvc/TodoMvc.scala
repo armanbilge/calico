@@ -21,22 +21,25 @@ import calico.dsl.io.*
 import calico.frp.{*, given}
 import calico.router.*
 import calico.syntax.*
+import cats.data.*
 import cats.effect.*
 import cats.effect.std.*
 import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import fs2.concurrent.*
-import fs2.dom.History
-import monocle.function.*
+import fs2.dom.*
+import io.circe.Codec
+import io.circe.jawn
+import io.circe.syntax.*
 import org.http4s.*
-import org.scalajs.dom.*
+import org.scalajs.dom.KeyCode
 
 import scala.collection.immutable.SortedMap
 
 object TodoMvc extends IOWebApp:
 
   def render =
-    (TodoStore.empty, Router(History[IO, Unit])).tupled.toResource.flatMap { (store, router) =>
+    (TodoStore.make, Router(History[IO, Unit]).toResource).flatMapN { (store, router) =>
       router.dispatch {
         Routes.one[IO] {
           case uri if uri.fragment == Some("/active") => Filter.Active
@@ -50,7 +53,7 @@ object TodoMvc extends IOWebApp:
               cls := "main",
               ul(
                 cls := "todo-list",
-                children[Int](id => TodoItem(store.entry(id))) <--
+                children[Long](id => TodoItem(store.entry(id))) <--
                   filter.flatMap(store.ids(_)).discrete.changes
               )
             ),
@@ -154,13 +157,13 @@ object TodoMvc extends IOWebApp:
       )
     )
 
-class TodoStore(entries: SignallingSortedMapRef[IO, Int, Todo], nextId: Ref[IO, Int]):
+class TodoStore(entries: SignallingSortedMapRef[IO, Long, Todo], nextId: IO[Long]):
   def create(text: String): IO[Unit] =
-    nextId.getAndUpdate(_ + 1).flatMap(entries(_).set(Some(Todo(text, false))))
+    nextId.flatMap(entries(_).set(Some(Todo(text, false))))
 
-  def entry(id: Int): SignallingRef[IO, Option[Todo]] = entries(id)
+  def entry(id: Long): SignallingRef[IO, Option[Todo]] = entries(id)
 
-  def ids(filter: Filter): Signal[IO, List[Int]] =
+  def ids(filter: Filter): Signal[IO, List[Long]] =
     entries.map(_.filter((_, t) => filter.pred(t)).keySet.toList)
 
   def size: Signal[IO, Int] = entries.map(_.size)
@@ -168,10 +171,40 @@ class TodoStore(entries: SignallingSortedMapRef[IO, Int, Todo], nextId: Ref[IO, 
   def activeCount: Signal[IO, Int] = entries.map(_.values.count(!_.completed))
 
 object TodoStore:
-  def empty: IO[TodoStore] =
-    (SignallingSortedMapRef[IO, Int, Todo], IO.ref(0)).mapN(TodoStore(_, _))
 
-case class Todo(text: String, completed: Boolean)
+  def make: Resource[IO, TodoStore] =
+    val key = "todos-calico"
+
+    for
+      mapRef <- SignallingSortedMapRef[IO, Long, Todo].toResource
+
+      _ <- Resource.eval {
+        OptionT(Storage.local[IO].getItem(key))
+          .subflatMap(jawn.decode[SortedMap[Long, Todo]](_).toOption)
+          .foreachF(mapRef.set(_))
+      }
+
+      _ <- Storage
+        .local[IO]
+        .events
+        .foreach {
+          case Storage.Event.Updated(`key`, _, value, _) =>
+            jawn.decode[SortedMap[Long, Todo]](value).foldMapM(mapRef.set(_))
+          case _ => IO.unit
+        }
+        .compile
+        .drain
+        .background
+
+      _ <- mapRef
+        .discrete
+        .foreach(todos => Storage.local[IO].setItem(key, todos.asJson.noSpaces))
+        .compile
+        .drain
+        .backgroundOn(calico.unsafe.MacrotaskExecutor)
+    yield TodoStore(mapRef, IO.realTime.map(_.toMillis))
+
+case class Todo(text: String, completed: Boolean) derives Codec.AsObject
 
 enum Filter(val fragment: String, val pred: Todo => Boolean):
   case All extends Filter("/", _ => true)
