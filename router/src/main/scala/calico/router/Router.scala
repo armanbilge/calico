@@ -28,6 +28,7 @@ import fs2.concurrent.Topic
 import fs2.dom.History
 import org.http4s.Uri
 import org.scalajs.dom
+import org.scalajs.macrotaskexecutor.MacrotaskExecutor
 
 abstract class Router[F[_]] private ():
 
@@ -119,7 +120,9 @@ object Router:
                 case (None, None) => F.unit
                 case (Some((_, _, finalizer)), None) =>
                   F.uncancelable { _ =>
-                    F.delay(container.replaceChildren()) *> finalizer *> currentRoute.set(None)
+                    F.delay(container.replaceChildren()) *>
+                      currentRoute.set(None) *>
+                      finalizer.evalOn(MacrotaskExecutor)
                   }
                 case (None, Some(route)) =>
                   F.uncancelable { poll =>
@@ -137,7 +140,7 @@ object Router:
                         case ((sink, child), newFinalizer) =>
                           F.delay(container.replaceChildren(child)) *>
                             currentRoute.set(Some((route.key, sink, newFinalizer)))
-                      } *> oldFinalizer
+                      } *> oldFinalizer.evalOn(MacrotaskExecutor)
                     }
               }
             }
