@@ -351,7 +351,7 @@ object KeyedChildren:
         _ <- children
           .ks
           .foreach { ks =>
-            active.access.flatMap { (currentNodes, update) =>
+            active.get.flatMap { currentNodes =>
               F.uncancelable { poll =>
                 F.delay {
                   val nextNodes = mutable.Map[K, (dom.Node, F[Unit])]()
@@ -370,7 +370,7 @@ object KeyedChildren:
 
                   val renderNextNodes = F.delay(e.replaceChildren(ks.map(nextNodes(_)._1)*))
 
-                  (update(nextNodes) *>
+                  (active.set(nextNodes) *>
                     acquireNewNodes *>
                     renderNextNodes).guarantee(releaseOldNodes.evalOn(unsafe.MacrotaskExecutor))
                 }.flatten
