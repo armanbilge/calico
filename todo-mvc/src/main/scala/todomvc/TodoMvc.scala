@@ -89,7 +89,7 @@ object TodoMvc extends IOWebApp:
       li(
         cls <-- (todo: Signal[IO, Option[Todo]], editing: Signal[IO, Boolean]).mapN { (t, e) =>
           val completed = Option.when(t.exists(_.completed))("completed")
-          val editing = Option.when(e)("editing").toList
+          val editing = Option.when(e)("editing")
           completed.toList ++ editing.toList
         },
         onDblClick --> (_.foreach(_ => editing.set(true))),
