@@ -358,7 +358,7 @@ object KeyedChildren:
         )
         _ <- children
           .ks
-          .evalMap { ks =>
+          .foreach { ks =>
             active.access.flatMap { (currentNodes, update) =>
               F.uncancelable { poll =>
                 F.delay {
