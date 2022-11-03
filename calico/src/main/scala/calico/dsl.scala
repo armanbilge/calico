@@ -175,8 +175,8 @@ trait Modifiers[F[_]](using F: Async[F]):
         .void
     }
 
-  given forOptionStringSignal[E <: dom.Node]: Modifier[F, E, Signal[F, Option[String]]] =
-    forStringSignal[E].contramap(Signal.mapped(_)(_.getOrElse("")))
+  given forStringOptionSignal[E <: dom.Node]: Modifier[F, E, Signal[F, Option[String]]] =
+    forStringSignal[E].contramap(_.map(_.getOrElse("")))
 
   given forResource[E <: dom.Node, A](
       using M: Modifier[F, E, A]): Modifier[F, E, Resource[F, A]] =
@@ -190,8 +190,8 @@ trait Modifiers[F[_]](using F: Async[F]):
     n2.evalMap(n2 => F.delay(n.appendChild(n2)))
 
   given forNodeSignal[N <: dom.Node, N2 <: dom.Node]
-      : Modifier[F, N, Signal[F, Resource[F, N2]]] = (n2, n) =>
-    n2.getAndUpdates.flatMap { (head, tail) =>
+      : Modifier[F, N, Signal[F, Resource[F, N2]]] = (n2s, n) =>
+    n2s.getAndUpdates.flatMap { (head, tail) =>
       DomHotswap(head).flatMap { (hs, n2) =>
         F.delay(n.appendChild(n2)).toResource *>
           tail
@@ -202,21 +202,11 @@ trait Modifiers[F[_]](using F: Async[F]):
       }.void
     }
 
-  given forOptionElementStream[F[_], E <: dom.Node, E2 <: dom.Node](
-      using F: Async[F]): Modifier[F, E, Stream[F, Option[Resource[F, E2]]]] with
-    def modify(e2s: Stream[F, Option[Resource[F, E2]]], e: E) =
-      for
-        sentinel <- Resource.eval(F.delay(dom.document.createComment("")))
-        hs <- DomHotswap[F, dom.Node](sentinel.pure)
-        _ <- F.delay(e.appendChild(sentinel)).toResource
-        _ <- e2s
-          .foreach { next =>
-            hs.swap(next.getOrElse(sentinel.pure)) { (p, n) => F.delay(e.replaceChild(n, p)) }
-          }
-          .compile
-          .drain
-          .background
-      yield ()
+  given forNodeOptionSignal[N <: dom.Node, N2 <: dom.Node]
+      : Modifier[F, N, Signal[F, Option[Resource[F, N2]]]] = (n2s, n) =>
+    Resource.eval(F.delay(Resource.pure[F, dom.Node](dom.document.createComment("")))).flatMap {
+      sentinel => forNodeSignal.modify(n2s.map(_.getOrElse(sentinel)), n)
+    }
 
 final class HtmlAttr[F[_], V] private[calico] (key: String, codec: Codec[V, String]):
   def :=(v: V): HtmlAttr.Modified[F, V] =
@@ -326,12 +316,13 @@ object Children:
         _ <- children
           .cs
           .foreach { children =>
-            hs.swap(children) { (prev, next) =>
-              F.delay {
-                prev.foreach(e.removeChild)
-                next.foreach(e.insertBefore(_, placeholder))
-              }
-            }
+            // hs.swap(children) { (prev, next) =>
+            //   F.delay {
+            //     prev.foreach(e.removeChild)
+            //     next.foreach(e.insertBefore(_, placeholder))
+            //   }
+            // }
+            ???
           }
           .compile
           .drain

@@ -29,8 +29,8 @@ private[calico] object DomHotswap:
   def apply[F[_], A](init: Resource[F, A])(
       using F: Async[F]
   ): Resource[F, (DomHotswap[F, A], A)] =
-    Resource.make(init.allocated.flatMap(F.ref(_)))(_.get.flatMap(_._2)).map { active =>
-      new:
+    Resource.make(init.allocated.flatMap(F.ref(_)))(_.get.flatMap(_._2)).evalMap { active =>
+      val hs = new DomHotswap[F, A]:
         def swap(next: Resource[F, A])(render: (A, A) => F[Unit]) = F.uncancelable { poll =>
           for
             nextAllocated <- poll(next.allocated)
@@ -40,4 +40,6 @@ private[calico] object DomHotswap:
             _ <- oldFinalizer.evalOn(unsafe.MacrotaskExecutor)
           yield ()
         }
+
+      active.get.map(_._1).tupleLeft(hs)
     }
