@@ -20,7 +20,9 @@ package syntax
 import cats.data.State
 import cats.effect.kernel.Async
 import cats.effect.kernel.Concurrent
+import cats.effect.kernel.Fiber
 import cats.effect.kernel.MonadCancel
+import cats.effect.kernel.Outcome
 import cats.effect.kernel.Ref
 import cats.effect.kernel.Resource
 import cats.effect.kernel.Sync
@@ -28,11 +30,12 @@ import cats.effect.syntax.all.*
 import cats.kernel.Eq
 import cats.syntax.all.*
 import fs2.Pipe
+import fs2.Pull
 import fs2.Stream
 import fs2.concurrent.Channel
-import fs2.concurrent.Topic
 import fs2.concurrent.Signal
 import fs2.concurrent.SignallingRef
+import fs2.concurrent.Topic
 import monocle.Lens
 import org.scalajs.dom
 
@@ -43,6 +46,34 @@ extension [F[_]](component: Resource[F, dom.Node])
     component.flatMap { e =>
       Resource.make(F.delay(root.appendChild(e)))(_ => F.delay(root.removeChild(e))).void
     }
+
+extension [F[_], A](fa: F[A])
+  private[calico] def cedeBackground(
+      using F: Async[F]): Resource[F, F[Outcome[F, Throwable, A]]] =
+    F.executionContext.toResource.flatMap { ec =>
+      Resource
+        .make(F.deferred[Fiber[F, Throwable, A]])(_.get.flatMap(_.cancel))
+        .evalTap { deferred =>
+          fa.start
+            .flatMap(deferred.complete(_))
+            .evalOn(ec)
+            .startOn(unsafe.MacrotaskExecutor)
+            .start
+        }
+        .map(_.get.flatMap(_.join))
+    }
+
+extension [F[_], A](signal: Signal[F, A])
+  private[calico] def getAndUpdates(using Concurrent[F]): Resource[F, (A, Stream[F, A])] =
+    signal
+      .discrete
+      .pull
+      .uncons1
+      .flatMap(Pull.outputOption1(_))
+      .streamNoScope
+      .compile
+      .resource
+      .lastOrError
 
 extension [F[_], A](sigRef: SignallingRef[F, A])
   def zoom[B <: AnyRef](lens: Lens[A, B])(using Sync[F]): SignallingRef[F, B] =
