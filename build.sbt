@@ -6,6 +6,8 @@ ThisBuild / developers := List(
   tlGitHubDev("armanbilge", "Arman Bilge")
 )
 
+ThisBuild / tlCiReleaseBranches ++= Seq("series/0.1")
+ThisBuild / tlSitePublishBranch := Some("series/0.1")
 ThisBuild / tlSonatypeUseLegacyHost := false
 
 ThisBuild / crossScalaVersions := Seq("3.2.0")
