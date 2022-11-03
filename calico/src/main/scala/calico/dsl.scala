@@ -52,12 +52,12 @@ import shapeless3.deriving.K0
 import scala.collection.mutable
 import scala.scalajs.js
 
-object io extends Dsl[IO]
+object io extends Html[IO]
 
-object Dsl:
-  def apply[F[_]: Async]: Dsl[F] = new Dsl[F] {}
+object Html:
+  def apply[F[_]: Async]: Html[F] = new Html[F] {}
 
-trait Dsl[F[_]]
+trait Html[F[_]]
     extends HtmlBuilders[F],
       DocumentTags[HtmlTagT[F]],
       GroupingTags[HtmlTagT[F]],
@@ -113,22 +113,25 @@ trait HtmlBuilders[F[_]](using F: Async[F])
     KeyedChildren[F, K](f)
 
 type HtmlTagT[F[_]] = [E <: dom.HTMLElement] =>> HtmlTag[F, E]
+
 final class HtmlTag[F[_], E <: dom.HTMLElement] private[calico] (name: String, void: Boolean)(
     using F: Async[F]):
 
-  def apply[M](modifier: M)(using Modifier[F, E, M]): Resource[F, E] =
-    apply(Tuple1(modifier))
+  def apply[M](modifier: M)(using m: Modifier[F, E, M]): Resource[F, E] =
+    build.toResource.flatTap(m.modify(modifier, _))
 
-  def apply[M](mkModifier: E => M)(using Modifier[F, E, M]): Resource[F, E] =
-    apply(e => Tuple1(mkModifier(e)))
+  def apply[M](mkModifier: E => M)(using m: Modifier[F, E, M]): Resource[F, E] =
+    build.toResource.flatTap(e => m.modify(mkModifier(e), e))
 
   def apply[M <: Tuple](modifiers: M)(
-      using K0.ProductInstances[Modifier[F, E, _], M]): Resource[F, E] =
-    apply(_ => modifiers)
+      using inst: K0.ProductInstances[Modifier[F, E, _], M]): Resource[F, E] =
+    inst.foldLeft(modifiers)(build.toResource) {
+      [a] => (r: Resource[F, E], m: Modifier[F, E, a], a: a) => r.flatTap(m.modify(a, _))
+    }
 
   def apply[M <: Tuple](mkModifiers: E => M)(
       using inst: K0.ProductInstances[Modifier[F, E, _], M]): Resource[F, E] =
-    build.toResource.flatMap { e =>
+    build.toResource.flatTap { e =>
       inst.foldLeft(mkModifiers(e))(Resource.pure(e)) {
         [a] => (r: Resource[F, E], m: Modifier[F, E, a], a: a) => r.flatTap(m.modify(a, _))
       }
@@ -144,12 +147,17 @@ trait Modifier[F[_], E, A]:
   final def contramap[B](f: B => A): Modifier[F, E, B] =
     (b: B, e: E) => outer.modify(f(b), e)
 
-object Modifier:
-  given forUnit[F[_], E]: Modifier[F, E, Unit] with
-    def modify(unit: Unit, e: E) = Resource.unit
+trait Modifiers[F[_]](using F: Async[F]):
+  given forUnit[E]: Modifier[F, E, Unit] =
+    (unit, e) => Resource.unit
 
-  given forString[F[_], E <: dom.Node](using F: Async[F]): Modifier[F, E, String] =
-    forStringStream.contramap(Stream.emit(_))
+  given forString[E <: dom.Node]: Modifier[F, E, String] = (s, e) =>
+    Resource.eval {
+      F.delay {
+        e.appendChild(dom.document.createTextNode(s))
+        ()
+      }
+    }
 
   given forStringStream[F[_], E <: dom.Node](
       using F: Async[F]): Modifier[F, E, Stream[F, String]] with
