@@ -60,17 +60,6 @@ extension [F[_], A](sigRef: SignallingRef[F, A])
       def continuous = sigRef.map(lens.get).continuous
       def discrete = sigRef.map(lens.get).discrete
 
-extension [F[_], A](stream: Stream[F, A])
-  @deprecated("This is not a valid signal; use Stream#holdOptionResource instead", "0.1.1")
-  def signal(using Concurrent[F]): Resource[F, Signal[F, A]] =
-    for
-      sig <- SignallingRef[F].of(none[A]).toResource
-      _ <- stream.foreach(a => sig.set(Some(a))).compile.drain.background
-    yield new:
-      def continuous = sig.continuous.unNone
-      def discrete = sig.discrete.unNone
-      def get = discrete.head.compile.lastOrError
-
 extension [F[_], A, B](pipe: Pipe[F, A, B])
   def channel(using F: Concurrent[F]): Resource[F, Channel[F, A]] =
     for
