@@ -209,65 +209,116 @@ trait Modifiers[F[_]](using F: Async[F]):
     }
 
 final class HtmlAttr[F[_], V] private[calico] (key: String, codec: Codec[V, String]):
-  def :=(v: V): HtmlAttr.Modified[F, V] =
-    this <-- Stream.emit(v)
+  import HtmlAttr.*
 
-  def <--(vs: Signal[F, V]): HtmlAttr.Modified[F, V] =
-    this <-- vs.discrete
+  inline def :=(v: V): ConstantModifier[V] =
+    ConstantModifier(key, codec, v)
 
-  def <--(vs: Stream[F, V]): HtmlAttr.Modified[F, V] =
-    this <-- Resource.pure(vs)
+  inline def <--(vs: Signal[F, V]): SignalModifier[F, V] =
+    SignalModifier(key, codec, vs)
 
-  def <--(vs: Resource[F, Stream[F, V]]): HtmlAttr.Modified[F, V] =
-    HtmlAttr.Modified(key, codec, vs)
+  inline def <--(vs: Signal[F, Option[V]]): OptionSignalModifier[F, V] =
+    OptionSignalModifier(key, codec, vs)
 
 object HtmlAttr:
-  final class Modified[F[_], V] private[HtmlAttr] (
+  final class ConstantModifier[V](
       val key: String,
       val codec: Codec[V, String],
-      val values: Resource[F, Stream[F, V]]
+      val value: V
   )
 
-  given [F[_], E <: dom.Element, V](using F: Async[F]): Modifier[F, E, Modified[F, V]] with
-    def modify(attr: Modified[F, V], e: E) =
-      attr.values.flatMap { vs =>
-        vs.foreach(v => F.delay(e.setAttribute(attr.key, attr.codec.encode(v))))
-          .compile
-          .drain
-          .background
-          .void
+  final class SignalModifier[F[_], V](
+      val key: String,
+      val codec: Codec[V, String],
+      val values: Signal[F, V]
+  )
+
+  final class OptionSignalModifier[F[_], V](
+      val key: String,
+      val codec: Codec[V, String],
+      val values: Signal[F, Option[V]]
+  )
+
+trait HtmlAttrModifiers[F[_]](using F: Async[F]):
+  import HtmlAttr.*
+
+  given forConstant[E <: dom.Element, V]: Modifier[F, E, ConstantModifier[V]] =
+    (m, e) => Resource.eval(F.delay(e.setAttribute(m.key, m.codec.encode(m.value))))
+
+  given forSignal[E <: dom.Element, V]: Modifier[F, E, SignalModifier[F, V]] = (m, e) =>
+    m.values.getAndUpdates.flatMap { (head, tail) =>
+      def set(v: V) = F.delay(e.setAttribute(m.key, m.codec.encode(v)))
+      Resource.eval(set(head)) *>
+        tail.foreach(set(_)).compile.drain.cedeBackground.void
+    }
+
+  given forOptionSignal[E <: dom.Element, V]: Modifier[F, E, OptionSignalModifier[F, V]] =
+    (m, e) =>
+      m.values.getAndUpdates.flatMap { (head, tail) =>
+        def set(v: Option[V]) = F.delay {
+          v.fold(e.removeAttribute(m.key))(v => e.setAttribute(m.key, m.codec.encode(v)))
+        }
+        Resource.eval(set(head)) *>
+          tail.foreach(set(_)).compile.drain.cedeBackground.void
       }
 
 sealed class Prop[F[_], V, J] private[calico] (name: String, codec: Codec[V, J]):
-  def :=(v: V): Prop.Modified[F, V, J] =
-    this <-- Stream.emit(v)
+  import Prop.*
 
-  def <--(vs: Signal[F, V]): Prop.Modified[F, V, J] =
-    this <-- vs.discrete
+  inline def :=(v: V): ConstantModifier[V, J] =
+    ConstantModifier(name, codec, v)
 
-  def <--(vs: Stream[F, V]): Prop.Modified[F, V, J] =
-    this <-- Resource.pure(vs)
+  inline def <--(vs: Signal[F, V]): SignalModifier[F, V, J] =
+    SignalModifier(name, codec, vs)
 
-  def <--(vs: Resource[F, Stream[F, V]]): Prop.Modified[F, V, J] =
-    Prop.Modified(name, codec, vs)
+  inline def <--(vs: Signal[F, Option[V]]): OptionSignalModifier[F, V, J] =
+    OptionSignalModifier(name, codec, vs)
 
 object Prop:
-  final class Modified[F[_], V, J] private[Prop] (
+  final class ConstantModifier[V, J](
       val name: String,
       val codec: Codec[V, J],
-      val values: Resource[F, Stream[F, V]]
+      val value: V
   )
 
-  given [F[_], E, V, J](using F: Async[F]): Modifier[F, E, Modified[F, V, J]] with
-    def modify(prop: Modified[F, V, J], e: E) =
-      prop.values.flatMap { vs =>
-        vs.foreach { v =>
-          F.delay(e.asInstanceOf[js.Dictionary[J]](prop.name) = prop.codec.encode(v))
-        }.compile
-          .drain
-          .background
-          .void
+  final class SignalModifier[F[_], V, J](
+      val name: String,
+      val codec: Codec[V, J],
+      val values: Signal[F, V]
+  )
+
+  final class OptionSignalModifier[F[_], V, J](
+      val name: String,
+      val codec: Codec[V, J],
+      val values: Signal[F, Option[V]]
+  )
+
+trait PropModifiers[F[_]](using F: Async[F]):
+  import Prop.*
+
+  private inline def setProp[N, V, J](node: N, value: V, name: String, codec: Codec[V, J]) =
+    F.delay(node.asInstanceOf[js.Dictionary[J]](name) = codec.encode(value))
+
+  given forConstant[N, V, J]: Modifier[F, N, ConstantModifier[V, J]] =
+    (m, n) => Resource.eval(setProp(n, m.value, m.name, m.codec))
+
+  given forSignal[N, V, J]: Modifier[F, N, SignalModifier[F, V, J]] = (m, n) =>
+    m.values.getAndUpdates.flatMap { (head, tail) =>
+      def set(v: V) = setProp(n, v, m.name, m.codec)
+      Resource.eval(set(head)) *>
+        tail.foreach(set(_)).compile.drain.cedeBackground.void
+    }
+
+  given forOptionSignal[N, V, J]: Modifier[F, N, OptionSignalModifier[F, V, J]] = (m, n) =>
+    m.values.getAndUpdates.flatMap { (head, tail) =>
+      def set(v: Option[V]) = F.delay {
+        val dict = n.asInstanceOf[js.Dictionary[J]]
+        v.fold(dict -= m.name)(v => dict(m.name) = m.codec.encode(v))
+        ()
       }
+      Resource.eval(set(head)) *>
+        tail.foreach(set(_)).compile.drain.cedeBackground.void
+    }
 
 final class EventProp[F[_], E] private[calico] (key: String):
   def -->(sink: Pipe[F, E, Nothing]): EventProp.Modified[F, E] = EventProp.Modified(key, sink)
@@ -284,10 +335,19 @@ final class ClassAttr[F[_]] private[calico]
       "className",
       new:
         def decode(domValue: String) = domValue.split(" ").toList
-        def encode(scalaValue: List[String]) = scalaValue.mkString(" ")
+
+        def encode(scalaValue: List[String]) =
+          if scalaValue.isEmpty then ""
+          else
+            var acc = scalaValue.head
+            var tail = scalaValue.tail
+            while tail.nonEmpty do
+              acc += " " + tail.head
+              tail = tail.tail
+            acc
     ):
 
-  def :=(cls: String): Prop.Modified[F, List[String], String] =
+  inline def :=(cls: String): Prop.ConstantModifier[List[String], String] =
     this := List(cls)
 
 final class Children[F[_]] private[calico]:
