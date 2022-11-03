@@ -105,7 +105,7 @@ trait HtmlBuilders[F[_]](using F: Async[F])
   def eventProp[V <: dom.Event](key: String): EventProp[F, V] =
     EventProp(key)
 
-  def cls: ClassAttr[F] = ClassAttr[F]
+  def cls: ClassProp[F] = ClassProp[F]
 
   def children: Children[F] = Children[F]
 
@@ -330,7 +330,7 @@ object EventProp:
     def modify(prop: Modified[F, V], e: E) =
       fs2.dom.events(e, prop.key).through(prop.sink).compile.drain.background.void
 
-final class ClassAttr[F[_]] private[calico]
+final class ClassProp[F[_]] private[calico]
     extends Prop[F, List[String], String](
       "className",
       new:
@@ -346,9 +346,18 @@ final class ClassAttr[F[_]] private[calico]
               tail = tail.tail
             acc
     ):
+  import ClassProp.*
 
-  inline def :=(cls: String): Prop.ConstantModifier[List[String], String] =
-    this := List(cls)
+  inline def :=(cls: String): SingleConstantModifier =
+    SingleConstantModifier(cls)
+
+object ClassProp:
+  final class SingleConstantModifier(val cls: String)
+
+trait ClassPropModifiers[F[_]](using F: Async[F]):
+  import ClassProp.*
+  given forConstant[N]: Modifier[F, N, SingleConstantModifier] =
+    (m, n) => Resource.eval(F.delay(n.asInstanceOf[js.Dictionary[String]]("className") = m.cls))
 
 final class Children[F[_]] private[calico]:
   def <--(cs: Signal[F, List[Resource[F, dom.Node]]])(using Monad[F]): Children.Modified[F] =
