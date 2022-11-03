@@ -117,11 +117,11 @@ type HtmlTagT[F[_]] = [E <: dom.HTMLElement] =>> HtmlTag[F, E]
 final class HtmlTag[F[_], E <: dom.HTMLElement] private[calico] (name: String, void: Boolean)(
     using F: Async[F]):
 
-  def apply[M](modifier: M)(using m: Modifier[F, E, M]): Resource[F, E] =
-    build.toResource.flatTap(m.modify(modifier, _))
+  def apply[M](modifier: M)(using M: Modifier[F, E, M]): Resource[F, E] =
+    build.toResource.flatTap(M.modify(modifier, _))
 
-  def apply[M](mkModifier: E => M)(using m: Modifier[F, E, M]): Resource[F, E] =
-    build.toResource.flatTap(e => m.modify(mkModifier(e), e))
+  def apply[M](mkModifier: E => M)(using M: Modifier[F, E, M]): Resource[F, E] =
+    build.toResource.flatTap(e => M.modify(mkModifier(e), e))
 
   def apply[M <: Tuple](modifiers: M)(
       using inst: K0.ProductInstances[Modifier[F, E, _], M]): Resource[F, E] =
@@ -144,7 +144,7 @@ trait Modifier[F[_], E, A]:
 
   def modify(a: A, e: E): Resource[F, Unit]
 
-  final def contramap[B](f: B => A): Modifier[F, E, B] =
+  inline final def contramap[B](inline f: B => A): Modifier[F, E, B] =
     (b: B, e: E) => outer.modify(f(b), e)
 
 trait Modifiers[F[_]](using F: Async[F]):
@@ -159,46 +159,48 @@ trait Modifiers[F[_]](using F: Async[F]):
       }
     }
 
-  given forStringStream[F[_], E <: dom.Node](
-      using F: Async[F]): Modifier[F, E, Stream[F, String]] with
-    def modify(s: Stream[F, String], e: E) = for
-      n <- F
-        .delay(dom.document.createTextNode(""))
-        .flatTap(n => F.delay(e.appendChild(n)))
-        .toResource
-      _ <- s.foreach(t => F.delay(n.textContent = t)).compile.drain.background
-    yield ()
+  given forStringSignal[E <: dom.Node]: Modifier[F, E, Signal[F, String]] = (s, e) =>
+    s.getAndUpdates.flatMap { (head, tail) =>
+      Resource
+        .eval {
+          F.delay {
+            val n = dom.document.createTextNode(head)
+            e.appendChild(n)
+            n
+          }
+        }
+        .flatMap { n =>
+          tail.foreach(t => F.delay(n.textContent = t)).compile.drain.cedeBackground
+        }
+        .void
+    }
 
-  given forOptionStringStream[F[_], E <: dom.Node](
-      using F: Async[F]): Modifier[F, E, Stream[F, Option[String]]] with
-    def modify(s: Stream[F, Option[String]], e: E) = for
-      n <- F
-        .delay(dom.document.createTextNode(""))
-        .flatTap(n => F.delay(e.appendChild(n)))
-        .toResource
-      _ <- s.foreach(t => F.delay(n.textContent = t.getOrElse(""))).compile.drain.background
-    yield ()
+  given forOptionStringSignal[E <: dom.Node]: Modifier[F, E, Signal[F, Option[String]]] =
+    forStringSignal[E].contramap(Signal.mapped(_)(_.getOrElse("")))
 
-  given forResource[F[_], E <: dom.Node, A](
-      using M: Modifier[F, E, A]): Modifier[F, E, Resource[F, A]] with
-    def modify(a: Resource[F, A], e: E) = a.flatMap(M.modify(_, e))
+  given forResource[E <: dom.Node, A](
+      using M: Modifier[F, E, A]): Modifier[F, E, Resource[F, A]] =
+    (a, e) => a.flatMap(M.modify(_, e))
 
-  given forSignal[F[_], E <: dom.Node, A](
-      using M: Modifier[F, E, Stream[F, A]]): Modifier[F, E, Signal[F, A]] =
-    M.contramap(_.discrete)
+  given forFoldable[E <: dom.Node, G[_]: Foldable, A](
+      using M: Modifier[F, E, A]): Modifier[F, E, G[A]] =
+    (ga, e) => ga.foldMapM(M.modify(_, e)).void
 
-  given forFoldable[F[_]: Monad, E <: dom.Node, G[_]: Foldable, A](
-      using M: Modifier[F, E, A]): Modifier[F, E, G[A]] with
-    def modify(ga: G[A], e: E) = ga.foldMapM(M.modify(_, e)).void
+  given forNode[N <: dom.Node, N2 <: dom.Node]: Modifier[F, N, Resource[F, N2]] = (n2, n) =>
+    n2.evalMap(n2 => F.delay(n.appendChild(n2)))
 
-  given forElement[F[_], E <: dom.Node, E2 <: dom.Node](
-      using F: Sync[F]): Modifier[F, E, Resource[F, E2]] with
-    def modify(e2: Resource[F, E2], e: E) =
-      e2.evalMap(e2 => F.delay(e.appendChild(e2)))
-
-  given forElementStream[F[_], E <: dom.Node, E2 <: dom.Node](
-      using F: Async[F]): Modifier[F, E, Stream[F, Resource[F, E2]]] =
-    forOptionElementStream.contramap(_.map(Some(_)))
+  given forNodeSignal[N <: dom.Node, N2 <: dom.Node]
+      : Modifier[F, N, Signal[F, Resource[F, N2]]] = (n2, n) =>
+    n2.getAndUpdates.flatMap { (head, tail) =>
+      DomHotswap(head).flatMap { (hs, n2) =>
+        F.delay(n.appendChild(n2)).toResource *>
+          tail
+            .foreach(hs.swap(_)((n2, n3) => F.delay(n.replaceChild(n3, n2))))
+            .compile
+            .drain
+            .cedeBackground
+      }.void
+    }
 
   given forOptionElementStream[F[_], E <: dom.Node, E2 <: dom.Node](
       using F: Async[F]): Modifier[F, E, Stream[F, Option[Resource[F, E2]]]] with

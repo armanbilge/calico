@@ -28,7 +28,7 @@ private[calico] abstract class DomHotswap[F[_], A]:
 private[calico] object DomHotswap:
   def apply[F[_], A](init: Resource[F, A])(
       using F: Async[F]
-  ): Resource[F, DomHotswap[F, A]] =
+  ): Resource[F, (DomHotswap[F, A], A)] =
     Resource.make(init.allocated.flatMap(F.ref(_)))(_.get.flatMap(_._2)).map { active =>
       new:
         def swap(next: Resource[F, A])(render: (A, A) => F[Unit]) = F.uncancelable { poll =>
