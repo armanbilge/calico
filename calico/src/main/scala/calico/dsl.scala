@@ -427,40 +427,59 @@ final class KeyedChildren[F[_], K] private[calico] (f: K => Resource[F, dom.Node
 
 object KeyedChildren:
   final class ListSignalModifier[F[_], K](
-      val f: K => Resource[F, dom.Node],
-      val ks: Signal[F, List[K]]
+      val build: K => Resource[F, dom.Node],
+      val keys: Signal[F, List[K]]
   )
 
-trait KeyedChildrenModifiers[F[_]](using Async[F]):
+trait KeyedChildrenModifiers[F[_]](using F: Async[F]):
   import KeyedChildren.*
 
-  given forListSignalKeyedChildren[E <: dom.Element, K: Hash]
-      : Modifier[F, E, ListSignalModifier[F, K]] = (m, e) =>
+  private def traverse_[A, U](it: Iterable[A])(f: A => F[U]): F[Unit] =
+    it.foldLeft(F.unit)(_ <* f(_))
+
+  given forListSignalKeyedChildren[N <: dom.Node, K: Hash]
+      : Modifier[F, N, ListSignalModifier[F, K]] = (m, n) =>
     for
-      active <- Resource.make(Ref[F].of(mutable.Map.empty[K, (dom.Node, F[Unit])]))(
-        _.get.flatMap(_.values.toList.traverse_(_._2))
+      (head, tail) <- m.keys.getAndUpdates
+      active <- Resource.makeFull[F, Ref[F, mutable.Map[K, (dom.Node, F[Unit])]]] { poll =>
+        def go(keys: List[K], active: mutable.Map[K, (dom.Node, F[Unit])]): F[Unit] =
+          if keys.isEmpty then F.unit
+          else
+            val k = keys.head
+            poll(m.build(k).allocated).flatMap { v =>
+              active += k -> v
+              F.delay(n.appendChild(v._1)) *> go(keys.tail, active)
+            }
+
+        F.delay(mutable.Map.empty[K, (dom.Node, F[Unit])])
+          .flatTap(active => go(head, active).onCancel(traverse_(active.values)(_._2)))
+          .flatMap(F.ref(_))
+      }(
+        _.get.flatMap(ns => traverse_(ns.values)(_._2)).evalOn(unsafe.MacrotaskExecutor)
       )
-      _ <- m
-        .ks
-        .foreach { ks =>
-          active.get.flatMap { currentNodes =>
-            F.uncancelable { poll =>
+      sentinel <- Resource.eval(F.delay(n.appendChild(dom.document.createComment(""))))
+      _ <- tail
+        .foreach { keys =>
+          F.uncancelable { poll =>
+            active.get.flatMap { currentNodes =>
               F.delay {
                 val nextNodes = mutable.Map[K, (dom.Node, F[Unit])]()
-                val newNodes = List.newBuilder[K]
-                ks.foreach { k =>
+                val newNodes = new js.Array[K]
+                keys.foreach { k =>
                   currentNodes.remove(k) match
                     case Some(v) => nextNodes += (k -> v)
                     case None => newNodes += k
                 }
 
-                val releaseOldNodes = currentNodes.values.toList.traverse_(_._2)
+                val releaseOldNodes = traverse_(currentNodes.values)(_._2)
 
-                val acquireNewNodes = newNodes.result().traverse_ { k =>
-                  poll(children.f(k).allocated).flatMap(x => F.delay(nextNodes += k -> x))
+                val acquireNewNodes = traverse_(newNodes) { k =>
+                  poll(m.build(k).allocated).flatMap(x => F.delay(nextNodes += k -> x))
                 }
 
-                val renderNextNodes = F.delay(e.replaceChildren(ks.map(nextNodes(_)._1)*))
+                val renderNextNodes = F.delay {
+                  keys.foreach(k => n.insertBefore(currentNodes(k)._1, sentinel))
+                }
 
                 (active.set(nextNodes) *>
                   acquireNewNodes *>
@@ -471,5 +490,5 @@ trait KeyedChildrenModifiers[F[_]](using Async[F]):
         }
         .compile
         .drain
-        .background
+        .cedeBackground
     yield ()
