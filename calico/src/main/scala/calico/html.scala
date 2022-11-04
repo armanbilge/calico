@@ -15,7 +15,7 @@
  */
 
 package calico
-package dsl
+package html
 
 import calico.syntax.*
 import calico.util.DomHotswap
