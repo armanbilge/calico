@@ -30,5 +30,5 @@ trait IOWebApp:
 
   def main(args: Array[String]): Unit =
     IO.delay(Option(dom.document.getElementById(rootElementId)).get)
-      .flatMap { e => render.renderInto(e).useForever }
+      .flatMap(render.renderInto(_).useForever)
       .unsafeRunAndForget()
