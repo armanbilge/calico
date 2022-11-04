@@ -487,7 +487,8 @@ trait KeyedChildrenModifiers[F[_]](using F: Async[F]):
                 }
 
                 val renderNextNodes = F.delay {
-                  keys.foreach(k => n.insertBefore(currentNodes(k)._1, sentinel))
+                  keys.foreach(k => n.insertBefore(nextNodes(k)._1, sentinel))
+                  currentNodes.values.foreach((c, _) => n.removeChild(c))
                 }
 
                 (active.set(nextNodes) *>
