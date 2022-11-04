@@ -237,25 +237,25 @@ object HtmlAttr:
 trait HtmlAttrModifiers[F[_]](using F: Async[F]):
   import HtmlAttr.*
 
-  given forConstant[E <: dom.Element, V]: Modifier[F, E, ConstantModifier[V]] =
+  given forConstantHtmlAttr[E <: dom.Element, V]: Modifier[F, E, ConstantModifier[V]] =
     (m, e) => Resource.eval(F.delay(e.setAttribute(m.key, m.codec.encode(m.value))))
 
-  given forSignal[E <: dom.Element, V]: Modifier[F, E, SignalModifier[F, V]] = (m, e) =>
+  given forSignalHtmlAttr[E <: dom.Element, V]: Modifier[F, E, SignalModifier[F, V]] = (m, e) =>
     m.values.getAndUpdates.flatMap { (head, tail) =>
       def set(v: V) = F.delay(e.setAttribute(m.key, m.codec.encode(v)))
       Resource.eval(set(head)) *>
         tail.foreach(set(_)).compile.drain.cedeBackground.void
     }
 
-  given forOptionSignal[E <: dom.Element, V]: Modifier[F, E, OptionSignalModifier[F, V]] =
-    (m, e) =>
-      m.values.getAndUpdates.flatMap { (head, tail) =>
-        def set(v: Option[V]) = F.delay {
-          v.fold(e.removeAttribute(m.key))(v => e.setAttribute(m.key, m.codec.encode(v)))
-        }
-        Resource.eval(set(head)) *>
-          tail.foreach(set(_)).compile.drain.cedeBackground.void
+  given forOptionSignalHtmlAttr[E <: dom.Element, V]
+      : Modifier[F, E, OptionSignalModifier[F, V]] = (m, e) =>
+    m.values.getAndUpdates.flatMap { (head, tail) =>
+      def set(v: Option[V]) = F.delay {
+        v.fold(e.removeAttribute(m.key))(v => e.setAttribute(m.key, m.codec.encode(v)))
       }
+      Resource.eval(set(head)) *>
+        tail.foreach(set(_)).compile.drain.cedeBackground.void
+    }
 
 sealed class Prop[F[_], V, J] private[calico] (name: String, codec: Codec[V, J]):
   import Prop.*
@@ -294,17 +294,17 @@ trait PropModifiers[F[_]](using F: Async[F]):
   private inline def setProp[N, V, J](node: N, value: V, name: String, codec: Codec[V, J]) =
     F.delay(node.asInstanceOf[js.Dictionary[J]](name) = codec.encode(value))
 
-  given forConstant[N, V, J]: Modifier[F, N, ConstantModifier[V, J]] =
+  given forConstantProp[N, V, J]: Modifier[F, N, ConstantModifier[V, J]] =
     (m, n) => Resource.eval(setProp(n, m.value, m.name, m.codec))
 
-  given forSignal[N, V, J]: Modifier[F, N, SignalModifier[F, V, J]] = (m, n) =>
+  given forSignalProp[N, V, J]: Modifier[F, N, SignalModifier[F, V, J]] = (m, n) =>
     m.values.getAndUpdates.flatMap { (head, tail) =>
       def set(v: V) = setProp(n, v, m.name, m.codec)
       Resource.eval(set(head)) *>
         tail.foreach(set(_)).compile.drain.cedeBackground.void
     }
 
-  given forOptionSignal[N, V, J]: Modifier[F, N, OptionSignalModifier[F, V, J]] = (m, n) =>
+  given forOptionSignalProp[N, V, J]: Modifier[F, N, OptionSignalModifier[F, V, J]] = (m, n) =>
     m.values.getAndUpdates.flatMap { (head, tail) =>
       def set(v: Option[V]) = F.delay {
         val dict = n.asInstanceOf[js.Dictionary[J]]
@@ -351,7 +351,7 @@ object ClassProp:
 
 trait ClassPropModifiers[F[_]](using F: Async[F]):
   import ClassProp.*
-  given forConstant[N]: Modifier[F, N, SingleConstantModifier] =
+  given forConstantClassProp[N]: Modifier[F, N, SingleConstantModifier] =
     (m, n) => Resource.eval(F.delay(n.asInstanceOf[js.Dictionary[String]]("className") = m.cls))
 
 final class Children[F[_]] private[calico]:
@@ -372,10 +372,10 @@ object Children:
 trait ChildrenModifiers[F[_]](using F: Async[F]):
   import Children.*
 
-  given forListResourceSignalChildrenModifier[N <: dom.Node]
+  given forListResourceSignalChildren[N <: dom.Node]
       : Modifier[F, N, ListResourceSignalModifier[F]] = (m, n) => impl(n, m.children)
 
-  given forResourceListSignalChildrenModifier[N <: dom.Node]
+  given forResourceListSignalChildren[N <: dom.Node]
       : Modifier[F, N, ResourceListSignalModifier[F]] = (m, n) =>
     impl(
       n,
