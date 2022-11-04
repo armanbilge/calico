@@ -316,14 +316,16 @@ trait PropModifiers[F[_]](using F: Async[F]):
     }
 
 final class EventProp[F[_], E] private[calico] (key: String):
-  def -->(sink: Pipe[F, E, Nothing]): EventProp.Modified[F, E] = EventProp.Modified(key, sink)
+  import EventProp.*
+  inline def -->(sink: Pipe[F, E, Nothing]): PipeModifier[F, E] = PipeModifier(key, sink)
 
 object EventProp:
-  final class Modified[F[_], E] private[calico] (val key: String, val sink: Pipe[F, E, Nothing])
+  final class PipeModifier[F[_], E](val key: String, val sink: Pipe[F, E, Nothing])
 
-  given [F[_], E <: dom.EventTarget, V](using F: Async[F]): Modifier[F, E, Modified[F, V]] with
-    def modify(prop: Modified[F, V], e: E) =
-      fs2.dom.events(e, prop.key).through(prop.sink).compile.drain.background.void
+trait EventPropModifiers[F[_]](using F: Async[F]):
+  import EventProp.*
+  given forPipeEventProp[T <: dom.EventTarget, E]: Modifier[F, T, PipeModifier[F, E]] =
+    (m, t) => fs2.dom.events(t, m.key).through(m.sink).compile.drain.cedeBackground.void
 
 final class ClassProp[F[_]] private[calico]
     extends Prop[F, List[String], String](
