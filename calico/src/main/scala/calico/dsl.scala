@@ -422,54 +422,54 @@ trait ChildrenModifiers[F[_]](using F: Async[F]):
     yield ()
 
 final class KeyedChildren[F[_], K] private[calico] (f: K => Resource[F, dom.Node]):
-  def <--(ks: Signal[F, List[K]]): KeyedChildren.Modified[F, K] =
-    this <-- ks.discrete
-
-  def <--(ks: Stream[F, List[K]]): KeyedChildren.Modified[F, K] =
-    KeyedChildren.Modified(f, ks)
+  import KeyedChildren.*
+  inline def <--(ks: Signal[F, List[K]]): ListSignalModifier[F, K] = ListSignalModifier(f, ks)
 
 object KeyedChildren:
-  final class Modified[F[_], K] private[calico] (
+  final class ListSignalModifier[F[_], K](
       val f: K => Resource[F, dom.Node],
-      val ks: Stream[F, List[K]])
+      val ks: Signal[F, List[K]]
+  )
 
-  given [F[_], E <: dom.Element, K: Hash](using F: Async[F]): Modifier[F, E, Modified[F, K]]
-    with
-    def modify(children: Modified[F, K], e: E) =
-      for
-        active <- Resource.make(Ref[F].of(mutable.Map.empty[K, (dom.Node, F[Unit])]))(
-          _.get.flatMap(_.values.toList.traverse_(_._2))
-        )
-        _ <- children
-          .ks
-          .foreach { ks =>
-            active.get.flatMap { currentNodes =>
-              F.uncancelable { poll =>
-                F.delay {
-                  val nextNodes = mutable.Map[K, (dom.Node, F[Unit])]()
-                  val newNodes = List.newBuilder[K]
-                  ks.foreach { k =>
-                    currentNodes.remove(k) match
-                      case Some(v) => nextNodes += (k -> v)
-                      case None => newNodes += k
-                  }
+trait KeyedChildrenModifiers[F[_]](using Async[F]):
+  import KeyedChildren.*
 
-                  val releaseOldNodes = currentNodes.values.toList.traverse_(_._2)
+  given forListSignalKeyedChildren[E <: dom.Element, K: Hash]
+      : Modifier[F, E, ListSignalModifier[F, K]] = (m, e) =>
+    for
+      active <- Resource.make(Ref[F].of(mutable.Map.empty[K, (dom.Node, F[Unit])]))(
+        _.get.flatMap(_.values.toList.traverse_(_._2))
+      )
+      _ <- m
+        .ks
+        .foreach { ks =>
+          active.get.flatMap { currentNodes =>
+            F.uncancelable { poll =>
+              F.delay {
+                val nextNodes = mutable.Map[K, (dom.Node, F[Unit])]()
+                val newNodes = List.newBuilder[K]
+                ks.foreach { k =>
+                  currentNodes.remove(k) match
+                    case Some(v) => nextNodes += (k -> v)
+                    case None => newNodes += k
+                }
 
-                  val acquireNewNodes = newNodes.result().traverse_ { k =>
-                    poll(children.f(k).allocated).flatMap(x => F.delay(nextNodes += k -> x))
-                  }
+                val releaseOldNodes = currentNodes.values.toList.traverse_(_._2)
 
-                  val renderNextNodes = F.delay(e.replaceChildren(ks.map(nextNodes(_)._1)*))
+                val acquireNewNodes = newNodes.result().traverse_ { k =>
+                  poll(children.f(k).allocated).flatMap(x => F.delay(nextNodes += k -> x))
+                }
 
-                  (active.set(nextNodes) *>
-                    acquireNewNodes *>
-                    renderNextNodes).guarantee(releaseOldNodes.evalOn(unsafe.MacrotaskExecutor))
-                }.flatten
-              }
+                val renderNextNodes = F.delay(e.replaceChildren(ks.map(nextNodes(_)._1)*))
+
+                (active.set(nextNodes) *>
+                  acquireNewNodes *>
+                  renderNextNodes).guarantee(releaseOldNodes.evalOn(unsafe.MacrotaskExecutor))
+              }.flatten
             }
           }
-          .compile
-          .drain
-          .background
-      yield ()
+        }
+        .compile
+        .drain
+        .background
+    yield ()
