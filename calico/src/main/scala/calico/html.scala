@@ -85,7 +85,13 @@ trait HtmlBuilders[F[_]](using F: Async[F])
       HtmlAttrBuilder[HtmlAttr[F, _]],
       ReflectedHtmlAttrBuilder[Prop[F, _, _]],
       PropBuilder[Prop[F, _, _]],
-      EventPropBuilder[EventProp[F, _], dom.Event]:
+      EventPropBuilder[EventProp[F, _], dom.Event],
+      Modifiers[F],
+      HtmlAttrModifiers[F],
+      PropModifiers[F],
+      ClassPropModifiers[F],
+      ChildrenModifiers[F],
+      KeyedChildrenModifiers[F]:
 
   protected def htmlTag[E <: dom.HTMLElement](tagName: String, void: Boolean) =
     HtmlTag(tagName, void)
@@ -459,6 +465,8 @@ trait KeyedChildrenModifiers[F[_]](using F: Async[F]):
       )
       sentinel <- Resource.eval(F.delay(n.appendChild(dom.document.createComment(""))))
       _ <- tail
+        .dropWhile(_ === head)
+        .changes
         .foreach { keys =>
           F.uncancelable { poll =>
             active.get.flatMap { currentNodes =>

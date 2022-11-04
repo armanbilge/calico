@@ -17,8 +17,8 @@
 package todomvc
 
 import calico.*
-import calico.dsl.io.*
 import calico.frp.{*, given}
+import calico.html.io.{*, given}
 import calico.router.*
 import calico.syntax.*
 import cats.data.*
@@ -53,13 +53,11 @@ object TodoMvc extends IOWebApp:
               cls := "main",
               ul(
                 cls := "todo-list",
-                children[Long](id => TodoItem(store.entry(id))) <--
-                  filter.flatMap(store.ids(_)).discrete.changes
+                children[Long](id => TodoItem(store.entry(id))) <-- filter.flatMap(store.ids(_))
               )
             ),
             store
               .size
-              .discrete
               .map(_ > 0)
               .changes
               .map(if _ then StatusBar(store.activeCount, filter, router).some else None)
@@ -138,7 +136,7 @@ object TodoMvc extends IOWebApp:
         activeCount.map {
           case 1 => "1 item left"
           case n => n.toString + " items left"
-        }.discrete // TODO dotty bug
+        }
       ),
       ul(
         cls := "filters",

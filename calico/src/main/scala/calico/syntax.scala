@@ -75,6 +75,12 @@ extension [F[_], A](signal: Signal[F, A])
       .resource
       .lastOrError
 
+  def changes(using Eq[A]): Signal[F, A] =
+    new:
+      def continuous = signal.continuous
+      def discrete = signal.discrete.changes
+      def get = signal.get
+
 extension [F[_], A](sigRef: SignallingRef[F, A])
   def zoom[B <: AnyRef](lens: Lens[A, B])(using Sync[F]): SignallingRef[F, B] =
     val ref = Ref.lens[F, A, B](sigRef)(lens.get(_), a => b => lens.replace(b)(a))
