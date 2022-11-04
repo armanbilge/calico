@@ -51,6 +51,7 @@ import shapeless3.deriving.K0
 
 import scala.collection.mutable
 import scala.scalajs.js
+import scala.collection.mutable.ListBuffer
 
 object io extends Html[IO]
 
@@ -162,13 +163,7 @@ trait Modifiers[F[_]](using F: Async[F]):
   given forStringSignal[E <: dom.Node]: Modifier[F, E, Signal[F, String]] = (s, e) =>
     s.getAndUpdates.flatMap { (head, tail) =>
       Resource
-        .eval {
-          F.delay {
-            val n = dom.document.createTextNode(head)
-            e.appendChild(n)
-            n
-          }
-        }
+        .eval(F.delay(e.appendChild(dom.document.createTextNode(head))))
         .flatMap { n =>
           tail.foreach(t => F.delay(n.textContent = t)).compile.drain.cedeBackground
         }
@@ -360,44 +355,69 @@ trait ClassPropModifiers[F[_]](using F: Async[F]):
     (m, n) => Resource.eval(F.delay(n.asInstanceOf[js.Dictionary[String]]("className") = m.cls))
 
 final class Children[F[_]] private[calico]:
-  def <--(cs: Signal[F, List[Resource[F, dom.Node]]])(using Monad[F]): Children.Modified[F] =
-    this <-- cs.discrete
+  import Children.*
 
-  def <--(cs: Stream[F, List[Resource[F, dom.Node]]])(using Monad[F]): Children.Modified[F] =
-    this <-- cs.map(_.sequence)
+  inline def <--(cs: Signal[F, List[Resource[F, dom.Node]]]): ResourceListSignalModifier[F] =
+    ResourceListSignalModifier(cs)
 
-  def <--(cs: Signal[F, Resource[F, List[dom.Node]]]): Children.Modified[F] =
-    this <-- cs.discrete
-
-  def <--(cs: Stream[F, Resource[F, List[dom.Node]]]): Children.Modified[F] =
-    Children.Modified(cs)
+  inline def <--(cs: Signal[F, Resource[F, List[dom.Node]]]): ListResourceSignalModifier[F] =
+    ListResourceSignalModifier(cs)
 
 object Children:
-  final class Modified[F[_]] private[calico] (val cs: Stream[F, Resource[F, List[dom.Node]]])
+  final class ResourceListSignalModifier[F[_]](
+      val children: Signal[F, List[Resource[F, dom.Node]]])
+  final class ListResourceSignalModifier[F[_]](
+      val children: Signal[F, Resource[F, List[dom.Node]]])
 
-  given [F[_], E <: dom.Element](using F: Async[F]): Modifier[F, E, Modified[F]] with
-    def modify(children: Modified[F], e: E) =
-      for
-        hs <- DomHotswap[F, List[dom.Node]](Resource.pure(Nil))
-        placeholder <- Resource.eval(
-          F.delay(e.appendChild(dom.document.createComment("")))
-        )
-        _ <- children
-          .cs
-          .foreach { children =>
-            // hs.swap(children) { (prev, next) =>
-            //   F.delay {
-            //     prev.foreach(e.removeChild)
-            //     next.foreach(e.insertBefore(_, placeholder))
-            //   }
-            // }
-            ???
+trait ChildrenModifiers[F[_]](using F: Async[F]):
+  import Children.*
+
+  given forListResourceSignalChildrenModifier[N <: dom.Node]
+      : Modifier[F, N, ListResourceSignalModifier[F]] = (m, n) => impl(n, m.children)
+
+  given forResourceListSignalChildrenModifier[N <: dom.Node]
+      : Modifier[F, N, ResourceListSignalModifier[F]] = (m, n) =>
+    impl(
+      n,
+      m.children.map { children =>
+        def go(
+            in: List[Resource[F, dom.Node]],
+            out: ListBuffer[dom.Node]
+        ): Resource[F, List[dom.Node]] =
+          if in.isEmpty then Resource.pure(out.toList)
+          else
+            in.head.flatMap { c =>
+              out += c
+              go(in.tail, out)
+            }
+
+        go(children, new ListBuffer)
+      }
+    )
+
+  private def impl(n: dom.Node, children: Signal[F, Resource[F, List[dom.Node]]]) =
+    for
+      (head, tail) <- children.getAndUpdates
+      (hs, generation0) <- DomHotswap(head)
+      sentinel <- Resource.eval {
+        F.delay {
+          generation0.foreach(n.appendChild(_))
+          n.appendChild(dom.document.createComment(""))
+        }
+      }
+      _ <- tail
+        .foreach { children =>
+          hs.swap(children) { (prev, next) =>
+            F.delay {
+              prev.foreach(n.removeChild)
+              next.foreach(n.insertBefore(_, sentinel))
+            }
           }
-          .compile
-          .drain
-          .background
-          .void
-      yield ()
+        }
+        .compile
+        .drain
+        .cedeBackground
+    yield ()
 
 final class KeyedChildren[F[_], K] private[calico] (f: K => Resource[F, dom.Node]):
   def <--(ks: Signal[F, List[K]]): KeyedChildren.Modified[F, K] =
