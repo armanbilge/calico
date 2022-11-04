@@ -90,6 +90,7 @@ trait HtmlBuilders[F[_]](using F: Async[F])
       HtmlAttrModifiers[F],
       PropModifiers[F],
       ClassPropModifiers[F],
+      EventPropModifiers[F],
       ChildrenModifiers[F],
       KeyedChildrenModifiers[F]:
 
