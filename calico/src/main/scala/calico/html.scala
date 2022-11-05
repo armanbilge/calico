@@ -517,7 +517,7 @@ trait KeyedChildrenModifiers[F[_]](using F: Async[F]):
           .flatTap(active => go(head, active).onCancel(traverse_(active.values)(_._2)))
           .flatMap(F.ref(_))
       }(
-        _.get.flatMap(ns => traverse_(ns.values)(_._2)).evalOn(unsafe.MacrotaskExecutor)
+        _.get.flatMap(ns => traverse_(ns.values)(_._2)).evalOn(unsafe.BatchingMacrotaskExecutor)
       )
       sentinel <- Resource.eval(F.delay(n.appendChild(dom.document.createComment(""))))
       _ <- tail
@@ -546,9 +546,9 @@ trait KeyedChildrenModifiers[F[_]](using F: Async[F]):
                   currentNodes.values.foreach((c, _) => n.removeChild(c))
                 }
 
-                (active.set(nextNodes) *>
-                  acquireNewNodes *>
-                  renderNextNodes).guarantee(releaseOldNodes.evalOn(unsafe.MacrotaskExecutor))
+                (active.set(nextNodes) *> acquireNewNodes *> renderNextNodes).guarantee(
+                  releaseOldNodes.evalOn(unsafe.BatchingMacrotaskExecutor)
+                )
               }.flatten
             }
           }

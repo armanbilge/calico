@@ -57,7 +57,7 @@ extension [F[_], A](fa: F[A])
           fa.start
             .flatMap(deferred.complete(_))
             .evalOn(ec)
-            .startOn(unsafe.MacrotaskExecutor)
+            .startOn(unsafe.BatchingMacrotaskExecutor)
             .start
         }
         .map(_.get.flatMap(_.join))
