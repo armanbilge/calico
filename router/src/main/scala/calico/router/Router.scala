@@ -120,7 +120,7 @@ object Router:
                 case (None, None) => F.unit
                 case (Some((_, _, finalizer)), None) =>
                   F.uncancelable { _ =>
-                    F.delay(container.replaceChildren()) *>
+                    F.delay(container.removeChild(container.firstChild)) *>
                       currentRoute.set(None) *>
                       finalizer.evalOn(MacrotaskExecutor)
                   }
@@ -128,7 +128,7 @@ object Router:
                   F.uncancelable { poll =>
                     poll(route.build(uri).allocated).flatMap {
                       case ((sink, child), finalizer) =>
-                        F.delay(container.replaceChildren(child)) *>
+                        F.delay(container.appendChild(child)) *>
                           currentRoute.set(Some((route.key, sink, finalizer)))
                     }
                   }
@@ -138,7 +138,7 @@ object Router:
                     F.uncancelable { poll =>
                       poll(route.build(uri).allocated).flatMap {
                         case ((sink, child), newFinalizer) =>
-                          F.delay(container.replaceChildren(child)) *>
+                          F.delay(container.replaceChild(child, container.firstChild)) *>
                             currentRoute.set(Some((route.key, sink, newFinalizer)))
                       } *> oldFinalizer.evalOn(MacrotaskExecutor)
                     }
