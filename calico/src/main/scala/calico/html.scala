@@ -156,10 +156,16 @@ trait Modifier[F[_], E, A]:
     (b: B, e: E) => outer.modify(f(b), e)
 
 trait Modifiers[F[_]](using F: Async[F]):
-  given forUnit[E]: Modifier[F, E, Unit] =
-    (unit, e) => Resource.unit
+  inline given forUnit[E]: Modifier[F, E, Unit] =
+    _forUnit.asInstanceOf[Modifier[F, E, Unit]]
 
-  given forString[E <: dom.Node]: Modifier[F, E, String] = (s, e) =>
+  private val _forUnit: Modifier[F, Any, Unit] =
+    (_, _) => Resource.unit
+
+  inline given forString[E <: dom.Node]: Modifier[F, E, String] =
+    _forString.asInstanceOf[Modifier[F, E, String]]
+
+  private val _forString: Modifier[F, dom.Node, String] = (s, e) =>
     Resource.eval {
       F.delay {
         e.appendChild(dom.document.createTextNode(s))
@@ -167,7 +173,10 @@ trait Modifiers[F[_]](using F: Async[F]):
       }
     }
 
-  given forStringSignal[E <: dom.Node]: Modifier[F, E, Signal[F, String]] = (s, e) =>
+  inline given forStringSignal[E <: dom.Node]: Modifier[F, E, Signal[F, String]] =
+    _forStringSignal.asInstanceOf[Modifier[F, E, Signal[F, String]]]
+
+  private val _forStringSignal: Modifier[F, dom.Node, Signal[F, String]] = (s, e) =>
     s.getAndUpdates.flatMap { (head, tail) =>
       Resource
         .eval(F.delay(e.appendChild(dom.document.createTextNode(head))))
@@ -177,8 +186,11 @@ trait Modifiers[F[_]](using F: Async[F]):
         .void
     }
 
-  given forStringOptionSignal[E <: dom.Node]: Modifier[F, E, Signal[F, Option[String]]] =
-    forStringSignal[E].contramap(_.map(_.getOrElse("")))
+  inline given forStringOptionSignal[E <: dom.Node]: Modifier[F, E, Signal[F, Option[String]]] =
+    _forStringOptionSignal.asInstanceOf[Modifier[F, E, Signal[F, Option[String]]]]
+
+  private val _forStringOptionSignal: Modifier[F, dom.Node, Signal[F, Option[String]]] =
+    _forStringSignal.contramap(_.map(_.getOrElse("")))
 
   given forResource[E <: dom.Node, A](
       using M: Modifier[F, E, A]): Modifier[F, E, Resource[F, A]] =
@@ -188,24 +200,35 @@ trait Modifiers[F[_]](using F: Async[F]):
       using M: Modifier[F, E, A]): Modifier[F, E, G[A]] =
     (ga, e) => ga.foldMapM(M.modify(_, e)).void
 
-  given forNode[N <: dom.Node, N2 <: dom.Node]: Modifier[F, N, Resource[F, N2]] = (n2, n) =>
+  inline given forNode[N <: dom.Node, N2 <: dom.Node]: Modifier[F, N, Resource[F, N2]] =
+    _forNode.asInstanceOf[Modifier[F, N, Resource[F, N2]]]
+
+  private val _forNode: Modifier[F, dom.Node, Resource[F, dom.Node]] = (n2, n) =>
     n2.evalMap(n2 => F.delay(n.appendChild(n2)))
 
-  given forNodeSignal[N <: dom.Node, N2 <: dom.Node]
-      : Modifier[F, N, Signal[F, Resource[F, N2]]] = (n2s, n) =>
-    n2s.getAndUpdates.flatMap { (head, tail) =>
-      DomHotswap(head).flatMap { (hs, n2) =>
-        F.delay(n.appendChild(n2)).toResource *>
-          tail
-            .foreach(hs.swap(_)((n2, n3) => F.delay(n.replaceChild(n3, n2))))
-            .compile
-            .drain
-            .cedeBackground
-      }.void
-    }
+  inline given forNodeSignal[N <: dom.Node, N2 <: dom.Node]
+      : Modifier[F, N, Signal[F, Resource[F, N2]]] =
+    _forNodeSignal.asInstanceOf[Modifier[F, N, Signal[F, Resource[F, N2]]]]
 
-  given forNodeOptionSignal[N <: dom.Node, N2 <: dom.Node]
-      : Modifier[F, N, Signal[F, Option[Resource[F, N2]]]] = (n2s, n) =>
+  private val _forNodeSignal: Modifier[F, dom.Node, Signal[F, Resource[F, dom.Node]]] =
+    (n2s, n) =>
+      n2s.getAndUpdates.flatMap { (head, tail) =>
+        DomHotswap(head).flatMap { (hs, n2) =>
+          F.delay(n.appendChild(n2)).toResource *>
+            tail
+              .foreach(hs.swap(_)((n2, n3) => F.delay(n.replaceChild(n3, n2))))
+              .compile
+              .drain
+              .cedeBackground
+        }.void
+      }
+
+  inline given forNodeOptionSignal[N <: dom.Node, N2 <: dom.Node]
+      : Modifier[F, N, Signal[F, Option[Resource[F, N2]]]] =
+    _forNodeOptionSignal.asInstanceOf[Modifier[F, N, Signal[F, Option[Resource[F, N2]]]]]
+
+  private val _forNodeOptionSignal
+      : Modifier[F, dom.Node, Signal[F, Option[Resource[F, dom.Node]]]] = (n2s, n) =>
     Resource.eval(F.delay(Resource.pure[F, dom.Node](dom.document.createComment("")))).flatMap {
       sentinel => forNodeSignal.modify(n2s.map(_.getOrElse(sentinel)), n)
     }
@@ -244,25 +267,35 @@ object HtmlAttr:
 trait HtmlAttrModifiers[F[_]](using F: Async[F]):
   import HtmlAttr.*
 
-  given forConstantHtmlAttr[E <: dom.Element, V]: Modifier[F, E, ConstantModifier[V]] =
+  inline given forConstantHtmlAttr[E <: dom.Element, V]: Modifier[F, E, ConstantModifier[V]] =
+    _forConstantHtmlAttr.asInstanceOf[Modifier[F, E, ConstantModifier[V]]]
+
+  private val _forConstantHtmlAttr: Modifier[F, dom.Element, ConstantModifier[Any]] =
     (m, e) => Resource.eval(F.delay(e.setAttribute(m.key, m.codec.encode(m.value))))
 
-  given forSignalHtmlAttr[E <: dom.Element, V]: Modifier[F, E, SignalModifier[F, V]] = (m, e) =>
+  inline given forSignalHtmlAttr[E <: dom.Element, V]: Modifier[F, E, SignalModifier[F, V]] =
+    _forSignalHtmlAttr.asInstanceOf[Modifier[F, E, SignalModifier[F, V]]]
+
+  private val _forSignalHtmlAttr: Modifier[F, dom.Element, SignalModifier[F, Any]] = (m, e) =>
     m.values.getAndUpdates.flatMap { (head, tail) =>
-      def set(v: V) = F.delay(e.setAttribute(m.key, m.codec.encode(v)))
+      def set(v: Any) = F.delay(e.setAttribute(m.key, m.codec.encode(v)))
       Resource.eval(set(head)) *>
         tail.foreach(set(_)).compile.drain.cedeBackground.void
     }
 
-  given forOptionSignalHtmlAttr[E <: dom.Element, V]
-      : Modifier[F, E, OptionSignalModifier[F, V]] = (m, e) =>
-    m.values.getAndUpdates.flatMap { (head, tail) =>
-      def set(v: Option[V]) = F.delay {
-        v.fold(e.removeAttribute(m.key))(v => e.setAttribute(m.key, m.codec.encode(v)))
+  inline given forOptionSignalHtmlAttr[E <: dom.Element, V]
+      : Modifier[F, E, OptionSignalModifier[F, V]] =
+    _forOptionSignalHtmlAttr.asInstanceOf[Modifier[F, E, OptionSignalModifier[F, V]]]
+
+  private val _forOptionSignalHtmlAttr: Modifier[F, dom.Element, OptionSignalModifier[F, Any]] =
+    (m, e) =>
+      m.values.getAndUpdates.flatMap { (head, tail) =>
+        def set(v: Option[Any]) = F.delay {
+          v.fold(e.removeAttribute(m.key))(v => e.setAttribute(m.key, m.codec.encode(v)))
+        }
+        Resource.eval(set(head)) *>
+          tail.foreach(set(_)).compile.drain.cedeBackground.void
       }
-      Resource.eval(set(head)) *>
-        tail.foreach(set(_)).compile.drain.cedeBackground.void
-    }
 
 sealed class Prop[F[_], V, J] private[calico] (name: String, codec: Codec[V, J]):
   import Prop.*
@@ -301,26 +334,36 @@ trait PropModifiers[F[_]](using F: Async[F]):
   private inline def setProp[N, V, J](node: N, value: V, name: String, codec: Codec[V, J]) =
     F.delay(node.asInstanceOf[js.Dictionary[J]](name) = codec.encode(value))
 
-  given forConstantProp[N, V, J]: Modifier[F, N, ConstantModifier[V, J]] =
+  inline given forConstantProp[N, V, J]: Modifier[F, N, ConstantModifier[V, J]] =
+    _forConstantProp.asInstanceOf[Modifier[F, N, ConstantModifier[V, J]]]
+
+  private val _forConstantProp: Modifier[F, Any, ConstantModifier[Any, Any]] =
     (m, n) => Resource.eval(setProp(n, m.value, m.name, m.codec))
 
-  given forSignalProp[N, V, J]: Modifier[F, N, SignalModifier[F, V, J]] = (m, n) =>
+  inline given forSignalProp[N, V, J]: Modifier[F, N, SignalModifier[F, V, J]] =
+    _forSignalProp.asInstanceOf[Modifier[F, N, SignalModifier[F, V, J]]]
+
+  private val _forSignalProp: Modifier[F, Any, SignalModifier[F, Any, Any]] = (m, n) =>
     m.values.getAndUpdates.flatMap { (head, tail) =>
-      def set(v: V) = setProp(n, v, m.name, m.codec)
+      def set(v: Any) = setProp(n, v, m.name, m.codec)
       Resource.eval(set(head)) *>
         tail.foreach(set(_)).compile.drain.cedeBackground.void
     }
 
-  given forOptionSignalProp[N, V, J]: Modifier[F, N, OptionSignalModifier[F, V, J]] = (m, n) =>
-    m.values.getAndUpdates.flatMap { (head, tail) =>
-      def set(v: Option[V]) = F.delay {
-        val dict = n.asInstanceOf[js.Dictionary[J]]
-        v.fold(dict -= m.name)(v => dict(m.name) = m.codec.encode(v))
-        ()
+  inline given forOptionSignalProp[N, V, J]: Modifier[F, N, OptionSignalModifier[F, V, J]] =
+    _forOptionSignalProp.asInstanceOf[Modifier[F, N, OptionSignalModifier[F, V, J]]]
+
+  private val _forOptionSignalProp: Modifier[F, Any, OptionSignalModifier[F, Any, Any]] =
+    (m, n) =>
+      m.values.getAndUpdates.flatMap { (head, tail) =>
+        def set(v: Option[Any]) = F.delay {
+          val dict = n.asInstanceOf[js.Dictionary[Any]]
+          v.fold(dict -= m.name)(v => dict(m.name) = m.codec.encode(v))
+          ()
+        }
+        Resource.eval(set(head)) *>
+          tail.foreach(set(_)).compile.drain.cedeBackground.void
       }
-      Resource.eval(set(head)) *>
-        tail.foreach(set(_)).compile.drain.cedeBackground.void
-    }
 
 final class EventProp[F[_], E] private[calico] (key: String):
   import EventProp.*
@@ -331,7 +374,9 @@ object EventProp:
 
 trait EventPropModifiers[F[_]](using F: Async[F]):
   import EventProp.*
-  given forPipeEventProp[T <: dom.EventTarget, E]: Modifier[F, T, PipeModifier[F, E]] =
+  inline given forPipeEventProp[T <: dom.EventTarget, E]: Modifier[F, T, PipeModifier[F, E]] =
+    _forPipeEventProp.asInstanceOf[Modifier[F, T, PipeModifier[F, E]]]
+  private val _forPipeEventProp: Modifier[F, dom.EventTarget, PipeModifier[F, Any]] =
     (m, t) => fs2.dom.events(t, m.key).through(m.sink).compile.drain.cedeBackground.void
 
 final class ClassProp[F[_]] private[calico]
@@ -360,7 +405,9 @@ object ClassProp:
 
 trait ClassPropModifiers[F[_]](using F: Async[F]):
   import ClassProp.*
-  given forConstantClassProp[N]: Modifier[F, N, SingleConstantModifier] =
+  inline given forConstantClassProp[N]: Modifier[F, N, SingleConstantModifier] =
+    _forConstantClassProp.asInstanceOf[Modifier[F, N, SingleConstantModifier]]
+  private val _forConstantClassProp: Modifier[F, Any, SingleConstantModifier] =
     (m, n) => Resource.eval(F.delay(n.asInstanceOf[js.Dictionary[String]]("className") = m.cls))
 
 final class Children[F[_]] private[calico]:
@@ -381,11 +428,19 @@ object Children:
 trait ChildrenModifiers[F[_]](using F: Async[F]):
   import Children.*
 
-  given forListResourceSignalChildren[N <: dom.Node]
-      : Modifier[F, N, ListResourceSignalModifier[F]] = (m, n) => impl(n, m.children)
+  inline given forListResourceSignalChildren[N <: dom.Node]
+      : Modifier[F, N, ListResourceSignalModifier[F]] =
+    _forListResourceSignalChildren.asInstanceOf[Modifier[F, N, ListResourceSignalModifier[F]]]
 
-  given forResourceListSignalChildren[N <: dom.Node]
-      : Modifier[F, N, ResourceListSignalModifier[F]] = (m, n) =>
+  private val _forListResourceSignalChildren
+      : Modifier[F, dom.Node, ListResourceSignalModifier[F]] = (m, n) => impl(n, m.children)
+
+  inline given forResourceListSignalChildren[N <: dom.Node]
+      : Modifier[F, N, ResourceListSignalModifier[F]] =
+    _forResourceListSignalChildren.asInstanceOf[Modifier[F, N, ResourceListSignalModifier[F]]]
+
+  private val _forResourceListSignalChildren
+      : Modifier[F, dom.Node, ResourceListSignalModifier[F]] = (m, n) =>
     impl(
       n,
       m.children.map { children =>
