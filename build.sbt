@@ -10,7 +10,7 @@ ThisBuild / tlCiReleaseBranches ++= Seq("series/0.1")
 ThisBuild / tlSitePublishBranch := Some("series/0.1")
 ThisBuild / tlSonatypeUseLegacyHost := false
 
-ThisBuild / crossScalaVersions := Seq("3.2.0")
+ThisBuild / crossScalaVersions := Seq("3.2.1")
 ThisBuild / scalacOptions ++= Seq("-new-syntax", "-indent", "-source:future")
 
 ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17"))
