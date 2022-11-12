@@ -38,8 +38,8 @@ import scala.collection.immutable.SortedMap
 
 object TodoMvc extends IOWebApp:
 
-  def render =
-    (TodoStore.make, Router(History[IO, Unit]).toResource).flatMapN { (store, router) =>
+  def render = (TodoStore.make, Router(Location[IO], History[IO, Unit]).toResource).flatMapN {
+    (store, router) =>
       router.dispatch {
         Routes.one[IO] {
           case uri if uri.fragment == Some("/active") => Filter.Active
@@ -65,7 +65,7 @@ object TodoMvc extends IOWebApp:
         }
 
       }
-    }
+  }
 
   def TodoInput(store: TodoStore) =
     input { self =>
