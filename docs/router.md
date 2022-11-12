@@ -27,7 +27,7 @@ Endpoints are combined via the `|+|` operator, because `Routes` form a monoid.
 In the following demo all routing is done by matching on the query portion of the URI since this is compatible with GitHub Pages hosting. A production application can match on the path portion for a friendlier UX.
 
 ```scala mdoc:js
-import calico.dsl.io.*
+import calico.html.io.{*, given}
 import calico.router.*
 import calico.syntax.*
 import calico.unsafe.given
@@ -40,7 +40,7 @@ import fs2.dom.*
 import org.http4s.*
 import org.http4s.syntax.all.*
 
-val app = Resource.eval(Router(History[IO, Unit])).flatMap { router =>
+val app = Resource.eval(Router(Location[IO], History[IO, Unit])).flatMap { router =>
   (SignallingRef[IO].of(0), SignallingRef[IO].of(0)).tupled.toResource.flatMap {
     (helloCounter, countCounter) =>
 
@@ -62,7 +62,7 @@ val app = Resource.eval(Router(History[IO, Unit])).flatMap { router =>
         Resource.eval(countCounter.update(_ + 1)) *>
           p(
             "Sheep: ",
-            n.map(_.toString).discrete,
+            n.map(_.toString),
             " ",
             button(
               "+",
@@ -104,5 +104,5 @@ val app = Resource.eval(Router(History[IO, Unit])).flatMap { router =>
   }
 }
 
-app.renderInto(node).allocated.unsafeRunAndForget()
+app.renderInto(node.asInstanceOf[fs2.dom.Node[IO]]).allocated.unsafeRunAndForget()
 ```

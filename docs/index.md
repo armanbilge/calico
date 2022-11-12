@@ -28,39 +28,39 @@ Please open issues (and PRs!) for anything and everything :)
 
 ### Components and resource management
 
-The most important idea behind **Calico** is that each component of your app (and in fact your app itself) should be expressed as a `Resource[IO, HTMLElement]`.
+The most important idea behind **Calico** is that each component of your app (and in fact your app itself) should be expressed as a `Resource[IO, HtmlElement[IO]]`.
 
 ```scala
 import cats.effect.*
-import org.scalajs.dom.*
+import fs2.dom.*
 // note: no calico import yet!
 
-val component: Resource[IO, HTMLElement] = ???
+val component: Resource[IO, HtmlElement[IO]] = ???
 
 // or more generally:
-def component[F[_]: Async]: Resource[F, HTMLElement] = ???
+def component[F[_]: Dom]: Resource[F, HTMLElement[F]] = ???
 ```
 
-This `Resource` completely manages the lifecycle of that element and its children. When the `Resource` is allocated, it will create an instance of the `HTMLElement` and any supporting resources, such as background `Fiber`s or WebSocket connections. In kind, when the `Resource` is closed, these `Fiber`s and connections are canceled and released.
+This `Resource` completely manages the lifecycle of that element and its children. When the `Resource` is allocated, it will create an instance of the `HtmlElement` and any supporting resources, such as background `Fiber`s or WebSocket connections. In kind, when the `Resource` is closed, these `Fiber`s and connections are canceled and released.
 
-Because `Resource[IO, HTMLElement]` is referentially-transparent, it naturally behaves as a "builder". Your component can be re-used in multiple places in your application as well as un-mounted and re-mounted without worrying about crossed-wires or leaked resources. This makes it easy to compose components.
+Because `Resource[IO, HtmlElement[IO]]` is referentially-transparent, it naturally behaves as a "builder". Your component can be re-used in multiple places in your application as well as un-mounted and re-mounted without worrying about crossed-wires or leaked resources. This makes it easy to compose components.
 
-So far, none of this is specific to **Calico**: we get all of this for free from Cats Effect. **Calico** steps in with a friendly DSL to cut down the boilerplate.
+So far, none of this is specific to **Calico**: we get all of this for free from Cats Effect and FS2 DOM. **Calico** provides an idiomatic DSL for describing components with standard HTML tags and attributes.
 ```scala mdoc:js:compile-only
-import calico.dsl.io.*
+import calico.html.io.{*, given}
 import cats.effect.*
-import org.scalajs.dom.*
+import fs2.dom.*
 
-val component: Resource[IO, HTMLElement] = div(i("hello"), " ", b("world"))
+val component: Resource[IO, HtmlElement[IO]] = div(i("hello"), " ", b("world"))
 ```
 
-Yes, in this very unexciting example `i("hello")` and `b("world")` are both `Resource`s that monadically compose with `div(...)` to create yet another `Resource`! There are no other resources involved in this very simple snippet. Also note that we have not yet _created_ any `HTMLElement`s, we have merely created a `Resource` that _describes_ how to make one.
+Yes, in this very unexciting example `i("hello")` and `b("world")` are both `Resource`s that monadically compose with `div(...)` to create yet another `Resource`! There are no other resources involved in this very simple snippet. Also note that we have not yet _created_ any `HtmlElement`s, we have merely created a `Resource` that _describes_ how to make one.
 
 A more interesting example is this interactive Hello World demo.
 
 ```scala mdoc:js:shared
 import calico.*
-import calico.dsl.io.*
+import calico.html.io.{*, given}
 import calico.syntax.*
 import cats.effect.*
 import cats.effect.syntax.all.*
@@ -70,24 +70,27 @@ import fs2.concurrent.*
 val component = SignallingRef[IO].of("world").toResource.flatMap { name =>
   div(
     label("Your name: "),
-    input(
-      placeholder := "Enter your name here",
-      // here, input events are run through the given Pipe
-      // this starts background fibers within the lifecycle of the <input> element
-      onInput --> (_.mapToTargetValue.foreach(name.set))
-    ),
+    input { self =>
+      (
+        placeholder := "Enter your name here",
+        // here, input events are run through the given Pipe
+        // this starts background fibers within the lifecycle of the <input> element
+        onInput --> (_.foreach(_ => self.value.get.flatMap(name.set)))
+      )
+    },
     span(
       " Hello, ",
-      // here, a Stream is rendered into the HTML
+      // here, a Signal is rendered into the HTML
       // this starts background fibers within the life cycle of the <span> element
-      name.discrete.map(_.toUpperCase)
+      name.map(_.toUpperCase)
     )
   )
 }
 ```
 
 ```scala mdoc:js:invisible
-component.renderInto(node).allocated.unsafeRunAndForget()(calico.unsafe.given_IORuntime)
+import calico.unsafe.given
+component.renderInto(node.asInstanceOf[fs2.dom.Node[IO]]).allocated.unsafeRunAndForget()
 ```
 
 The ideas are very much the same as the prior example.
