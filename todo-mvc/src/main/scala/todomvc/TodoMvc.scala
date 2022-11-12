@@ -77,7 +77,7 @@ object TodoMvc extends IOWebApp:
           _.filter(_.keyCode == KeyCode.Enter)
             .mapToTargetValue
             .filterNot(_.isEmpty)
-            .foreach(store.create(_) *> IO(self.value = ""))
+            .foreach(store.create(_) *> self.value.set(""))
         }
       )
     }
@@ -95,7 +95,7 @@ object TodoMvc extends IOWebApp:
           case true =>
             List(
               input { self =>
-                val endEdit = IO(self.value).flatMap { text =>
+                val endEdit = self.value.get.flatMap { text =>
                   todo.update(_.map(_.copy(text = text))) *> editing.set(false)
                 }
 

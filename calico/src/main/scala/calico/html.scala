@@ -40,8 +40,8 @@ import com.raquo.domtypes.generic.defs.attrs.*
 import com.raquo.domtypes.generic.defs.complex.*
 import com.raquo.domtypes.generic.defs.props.*
 import com.raquo.domtypes.generic.defs.reflectedAttrs.*
+import com.raquo.domtypes.generic.defs.tags.*
 import com.raquo.domtypes.jsdom.defs.eventProps.*
-import com.raquo.domtypes.jsdom.defs.tags.*
 import fs2.Pipe
 import fs2.Stream
 import fs2.concurrent.Channel
@@ -60,14 +60,98 @@ object Html:
 
 trait Html[F[_]]
     extends HtmlBuilders[F],
-      DocumentTags[HtmlTagT[F]],
-      GroupingTags[HtmlTagT[F]],
-      TextTags[HtmlTagT[F]],
-      FormTags[HtmlTagT[F]],
-      SectionTags[HtmlTagT[F]],
-      EmbedTags[HtmlTagT[F]],
-      TableTags[HtmlTagT[F]],
-      MiscTags[HtmlTagT[F]],
+      DocumentTags[
+        HtmlTagT[F],
+        fs2.dom.HtmlElement[F],
+        fs2.dom.HtmlHtmlElement[F],
+        fs2.dom.HtmlHeadElement[F],
+        fs2.dom.HtmlBaseElement[F],
+        fs2.dom.HtmlLinkElement[F],
+        fs2.dom.HtmlMetaElement[F],
+        fs2.dom.HtmlScriptElement[F],
+        fs2.dom.HtmlElement[F],
+      ],
+      GroupingTags[
+        HtmlTagT[F],
+        fs2.dom.HtmlElement[F],
+        fs2.dom.HtmlParagraphElement[F],
+        fs2.dom.HtmlHrElement[F],
+        fs2.dom.HtmlPreElement[F],
+        fs2.dom.HtmlQuoteElement[F],
+        fs2.dom.HtmlOListElement[F],
+        fs2.dom.HtmlUListElement[F],
+        fs2.dom.HtmlLiElement[F],
+        fs2.dom.HtmlDListElement[F],
+        fs2.dom.HtmlElement[F],
+        fs2.dom.HtmlDivElement[F],
+      ],
+      TextTags[
+        HtmlTagT[F],
+        fs2.dom.HtmlElement[F],
+        fs2.dom.HtmlAnchorElement[F],
+        fs2.dom.HtmlElement[F],
+        fs2.dom.HtmlSpanElement[F],
+        fs2.dom.HtmlBrElement[F],
+        fs2.dom.HtmlModElement[F],
+      ],
+      FormTags[
+        HtmlTagT[F],
+        fs2.dom.HtmlElement[F],
+        fs2.dom.HtmlFormElement[F],
+        fs2.dom.HtmlFieldSetElement[F],
+        fs2.dom.HtmlLegendElement[F],
+        fs2.dom.HtmlLabelElement[F],
+        fs2.dom.HtmlInputElement[F],
+        fs2.dom.HtmlButtonElement[F],
+        fs2.dom.HtmlSelectElement[F],
+        fs2.dom.HtmlDataListElement[F],
+        fs2.dom.HtmlOptGroupElement[F],
+        fs2.dom.HtmlOptionElement[F],
+        fs2.dom.HtmlTextAreaElement[F],
+      ],
+      SectionTags[
+        HtmlTagT[F],
+        fs2.dom.HtmlElement[F],
+        fs2.dom.HtmlBodyElement[F],
+        fs2.dom.HtmlElement[F],
+        fs2.dom.HtmlHeadingElement[F],
+      ],
+      EmbedTags[
+        HtmlTagT[F],
+        fs2.dom.HtmlElement[F],
+        fs2.dom.HtmlImageElement[F],
+        fs2.dom.HtmlIFrameElement[F],
+        fs2.dom.HtmlEmbedElement[F],
+        fs2.dom.HtmlObjectElement[F],
+        fs2.dom.HtmlParamElement[F],
+        fs2.dom.HtmlVideoElement[F],
+        fs2.dom.HtmlAudioElement[F],
+        fs2.dom.HtmlSourceElement[F],
+        fs2.dom.HtmlTrackElement[F],
+        fs2.dom.HtmlCanvasElement[F],
+        fs2.dom.HtmlMapElement[F],
+        fs2.dom.HtmlAreaElement[F],
+      ],
+      TableTags[
+        HtmlTagT[F],
+        fs2.dom.HtmlElement[F],
+        fs2.dom.HtmlTableElement[F],
+        fs2.dom.HtmlTableCaptionElement[F],
+        fs2.dom.HtmlTableColElement[F],
+        fs2.dom.HtmlTableSectionElement[F],
+        fs2.dom.HtmlTableRowElement[F],
+        fs2.dom.HtmlTableCellElement[F],
+      ],
+      MiscTags[
+        HtmlTagT[F],
+        fs2.dom.HtmlElement[F],
+        fs2.dom.HtmlTitleElement[F],
+        fs2.dom.HtmlStyleElement[F],
+        fs2.dom.HtmlElement[F],
+        fs2.dom.HtmlQuoteElement[F],
+        fs2.dom.HtmlProgressElement[F],
+        fs2.dom.HtmlMenuElement[F],
+      ],
       HtmlAttrs[HtmlAttr[F, _]],
       ReflectedHtmlAttrs[Prop[F, _, _]],
       Props[Prop[F, _, _]],
@@ -81,7 +165,7 @@ trait Html[F[_]]
       PointerEventProps[EventProp[F, _]]
 
 trait HtmlBuilders[F[_]](using F: Async[F])
-    extends HtmlTagBuilder[HtmlTagT[F], dom.HTMLElement],
+    extends HtmlTagBuilder[HtmlTagT[F], fs2.dom.HtmlElement[F]],
       HtmlAttrBuilder[HtmlAttr[F, _]],
       ReflectedHtmlAttrBuilder[Prop[F, _, _]],
       PropBuilder[Prop[F, _, _]],
@@ -94,7 +178,7 @@ trait HtmlBuilders[F[_]](using F: Async[F])
       ChildrenModifiers[F],
       KeyedChildrenModifiers[F]:
 
-  protected def htmlTag[E <: dom.HTMLElement](tagName: String, void: Boolean) =
+  protected def htmlTag[E <: fs2.dom.HtmlElement[F]](tagName: String, void: Boolean) =
     HtmlTag(tagName, void)
 
   protected def htmlAttr[V](key: String, codec: Codec[V, String]) =
@@ -120,10 +204,11 @@ trait HtmlBuilders[F[_]](using F: Async[F])
   def children[K](f: K => Resource[F, dom.Node]): KeyedChildren[F, K] =
     KeyedChildren[F, K](f)
 
-type HtmlTagT[F[_]] = [E <: dom.HTMLElement] =>> HtmlTag[F, E]
+type HtmlTagT[F[_]] = [E <: fs2.dom.HtmlElement[F]] =>> HtmlTag[F, E]
 
-final class HtmlTag[F[_], E <: dom.HTMLElement] private[calico] (name: String, void: Boolean)(
-    using F: Async[F]):
+final class HtmlTag[F[_], E <: fs2.dom.HtmlElement[F]] private[calico] (
+    name: String,
+    void: Boolean)(using F: Async[F]):
 
   def apply[M](modifier: M)(using M: Modifier[F, E, M]): Resource[F, E] =
     build.toResource.flatTap(M.modify(modifier, _))
