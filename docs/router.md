@@ -76,8 +76,8 @@ val app = Resource.eval(Router(Location[IO], History[IO, Unit])).flatMap { route
       val content = (helloRoute |+| countRoute).toResource.flatMap(router.dispatch)
 
       div(
-        p("Created hello page ", helloCounter.map(_.toString).discrete, " times."),
-        p("Created count page ", countCounter.map(_.toString).discrete, " times."),
+        p("Created hello page ", helloCounter.map(_.toString), " times."),
+        p("Created count page ", countCounter.map(_.toString), " times."),
         h3("Navigation"),
         p("Watch the URL change in your browser address bar!"),
         ul(
