@@ -17,6 +17,7 @@
 package calico
 package syntax
 
+import cats.Functor
 import cats.data.State
 import cats.effect.kernel.Async
 import cats.effect.kernel.Concurrent
@@ -36,15 +37,16 @@ import fs2.concurrent.Channel
 import fs2.concurrent.Signal
 import fs2.concurrent.SignallingRef
 import fs2.concurrent.Topic
+import fs2.dom.Dom
 import monocle.Lens
 import org.scalajs.dom
 
 import scala.scalajs.js
 
-extension [F[_]](component: Resource[F, dom.Node])
-  def renderInto(root: dom.Node)(using F: Sync[F]): Resource[F, Unit] =
+extension [F[_]](component: Resource[F, fs2.dom.Node[F]])
+  def renderInto(root: fs2.dom.Node[F])(using Functor[F], Dom[F]): Resource[F, Unit] =
     component.flatMap { e =>
-      Resource.make(F.delay(root.appendChild(e)))(_ => F.delay(root.removeChild(e))).void
+      Resource.make(root.appendChild(e))(_ => root.removeChild(e))
     }
 
 extension [F[_], A](fa: F[A])

@@ -201,7 +201,7 @@ trait HtmlBuilders[F[_]](using F: Async[F])
 
   def children: Children[F] = Children[F]
 
-  def children[K](f: K => Resource[F, dom.Node]): KeyedChildren[F, K] =
+  def children[K](f: K => Resource[F, fs2.dom.Node[F]]): KeyedChildren[F, K] =
     KeyedChildren[F, K](f)
 
 type HtmlTagT[F[_]] = [E <: fs2.dom.HtmlElement[F]] =>> HtmlTag[F, E]
@@ -247,7 +247,7 @@ trait Modifiers[F[_]](using F: Async[F]):
   private val _forUnit: Modifier[F, Any, Unit] =
     (_, _) => Resource.unit
 
-  inline given forString[E <: dom.Node]: Modifier[F, E, String] =
+  inline given forString[E <: fs2.dom.Node[F]]: Modifier[F, E, String] =
     _forString.asInstanceOf[Modifier[F, E, String]]
 
   private val _forString: Modifier[F, dom.Node, String] = (s, e) =>
@@ -258,7 +258,7 @@ trait Modifiers[F[_]](using F: Async[F]):
       }
     }
 
-  inline given forStringSignal[E <: dom.Node]: Modifier[F, E, Signal[F, String]] =
+  inline given forStringSignal[E <: fs2.dom.Node[F]]: Modifier[F, E, Signal[F, String]] =
     _forStringSignal.asInstanceOf[Modifier[F, E, Signal[F, String]]]
 
   private val _forStringSignal: Modifier[F, dom.Node, Signal[F, String]] = (s, e) =>
@@ -271,27 +271,29 @@ trait Modifiers[F[_]](using F: Async[F]):
         .void
     }
 
-  inline given forStringOptionSignal[E <: dom.Node]: Modifier[F, E, Signal[F, Option[String]]] =
+  inline given forStringOptionSignal[E <: fs2.dom.Node[F]]
+      : Modifier[F, E, Signal[F, Option[String]]] =
     _forStringOptionSignal.asInstanceOf[Modifier[F, E, Signal[F, Option[String]]]]
 
   private val _forStringOptionSignal: Modifier[F, dom.Node, Signal[F, Option[String]]] =
     _forStringSignal.contramap(_.map(_.getOrElse("")))
 
-  given forResource[E <: dom.Node, A](
+  given forResource[E <: fs2.dom.Node[F], A](
       using M: Modifier[F, E, A]): Modifier[F, E, Resource[F, A]] =
     (a, e) => a.flatMap(M.modify(_, e))
 
-  given forFoldable[E <: dom.Node, G[_]: Foldable, A](
+  given forFoldable[E <: fs2.dom.Node[F], G[_]: Foldable, A](
       using M: Modifier[F, E, A]): Modifier[F, E, G[A]] =
     (ga, e) => ga.foldMapM(M.modify(_, e)).void
 
-  inline given forNode[N <: dom.Node, N2 <: dom.Node]: Modifier[F, N, Resource[F, N2]] =
+  inline given forNode[N <: fs2.dom.Node[F], N2 <: fs2.dom.Node[F]]
+      : Modifier[F, N, Resource[F, N2]] =
     _forNode.asInstanceOf[Modifier[F, N, Resource[F, N2]]]
 
   private val _forNode: Modifier[F, dom.Node, Resource[F, dom.Node]] = (n2, n) =>
     n2.evalMap(n2 => F.delay(n.appendChild(n2)))
 
-  inline given forNodeSignal[N <: dom.Node, N2 <: dom.Node]
+  inline given forNodeSignal[N <: fs2.dom.Node[F], N2 <: fs2.dom.Node[F]]
       : Modifier[F, N, Signal[F, Resource[F, N2]]] =
     _forNodeSignal.asInstanceOf[Modifier[F, N, Signal[F, Resource[F, N2]]]]
 
@@ -308,14 +310,14 @@ trait Modifiers[F[_]](using F: Async[F]):
         }.void
       }
 
-  inline given forNodeOptionSignal[N <: dom.Node, N2 <: dom.Node]
+  inline given forNodeOptionSignal[N <: fs2.dom.Node[F], N2 <: fs2.dom.Node[F]]
       : Modifier[F, N, Signal[F, Option[Resource[F, N2]]]] =
     _forNodeOptionSignal.asInstanceOf[Modifier[F, N, Signal[F, Option[Resource[F, N2]]]]]
 
   private val _forNodeOptionSignal
       : Modifier[F, dom.Node, Signal[F, Option[Resource[F, dom.Node]]]] = (n2s, n) =>
     Resource.eval(F.delay(Resource.pure[F, dom.Node](dom.document.createComment("")))).flatMap {
-      sentinel => forNodeSignal.modify(n2s.map(_.getOrElse(sentinel)), n)
+      sentinel => _forNodeSignal.modify(n2s.map(_.getOrElse(sentinel)), n)
     }
 
 final class HtmlAttr[F[_], V] private[calico] (key: String, codec: Codec[V, String]):
@@ -352,13 +354,15 @@ object HtmlAttr:
 trait HtmlAttrModifiers[F[_]](using F: Async[F]):
   import HtmlAttr.*
 
-  inline given forConstantHtmlAttr[E <: dom.Element, V]: Modifier[F, E, ConstantModifier[V]] =
+  inline given forConstantHtmlAttr[E <: fs2.dom.Element[F], V]
+      : Modifier[F, E, ConstantModifier[V]] =
     _forConstantHtmlAttr.asInstanceOf[Modifier[F, E, ConstantModifier[V]]]
 
   private val _forConstantHtmlAttr: Modifier[F, dom.Element, ConstantModifier[Any]] =
     (m, e) => Resource.eval(F.delay(e.setAttribute(m.key, m.codec.encode(m.value))))
 
-  inline given forSignalHtmlAttr[E <: dom.Element, V]: Modifier[F, E, SignalModifier[F, V]] =
+  inline given forSignalHtmlAttr[E <: fs2.dom.Element[F], V]
+      : Modifier[F, E, SignalModifier[F, V]] =
     _forSignalHtmlAttr.asInstanceOf[Modifier[F, E, SignalModifier[F, V]]]
 
   private val _forSignalHtmlAttr: Modifier[F, dom.Element, SignalModifier[F, Any]] = (m, e) =>
@@ -368,7 +372,7 @@ trait HtmlAttrModifiers[F[_]](using F: Async[F]):
         tail.foreach(set(_)).compile.drain.cedeBackground.void
     }
 
-  inline given forOptionSignalHtmlAttr[E <: dom.Element, V]
+  inline given forOptionSignalHtmlAttr[E <: fs2.dom.Element[F], V]
       : Modifier[F, E, OptionSignalModifier[F, V]] =
     _forOptionSignalHtmlAttr.asInstanceOf[Modifier[F, E, OptionSignalModifier[F, V]]]
 
@@ -459,7 +463,7 @@ object EventProp:
 
 trait EventPropModifiers[F[_]](using F: Async[F]):
   import EventProp.*
-  inline given forPipeEventProp[T <: dom.EventTarget, E]: Modifier[F, T, PipeModifier[F, E]] =
+  inline given forPipeEventProp[T <: fs2.dom.Node[F], E]: Modifier[F, T, PipeModifier[F, E]] =
     _forPipeEventProp.asInstanceOf[Modifier[F, T, PipeModifier[F, E]]]
   private val _forPipeEventProp: Modifier[F, dom.EventTarget, PipeModifier[F, Any]] =
     (m, t) => fs2.dom.events(t, m.key).through(m.sink).compile.drain.cedeBackground.void
@@ -498,29 +502,32 @@ trait ClassPropModifiers[F[_]](using F: Async[F]):
 final class Children[F[_]] private[calico]:
   import Children.*
 
-  inline def <--(cs: Signal[F, List[Resource[F, dom.Node]]]): ResourceListSignalModifier[F] =
+  inline def <--(
+      cs: Signal[F, List[Resource[F, fs2.dom.Node[F]]]]): ResourceListSignalModifier[F] =
     ResourceListSignalModifier(cs)
 
-  inline def <--(cs: Signal[F, Resource[F, List[dom.Node]]]): ListResourceSignalModifier[F] =
+  inline def <--(
+      cs: Signal[F, Resource[F, List[fs2.dom.Node[F]]]]): ListResourceSignalModifier[F] =
     ListResourceSignalModifier(cs)
 
 object Children:
   final class ResourceListSignalModifier[F[_]](
-      val children: Signal[F, List[Resource[F, dom.Node]]])
+      val children: Signal[F, List[Resource[F, fs2.dom.Node[F]]]])
   final class ListResourceSignalModifier[F[_]](
-      val children: Signal[F, Resource[F, List[dom.Node]]])
+      val children: Signal[F, Resource[F, List[fs2.dom.Node[F]]]])
 
 trait ChildrenModifiers[F[_]](using F: Async[F]):
   import Children.*
 
-  inline given forListResourceSignalChildren[N <: dom.Node]
+  inline given forListResourceSignalChildren[N <: fs2.dom.Node[F]]
       : Modifier[F, N, ListResourceSignalModifier[F]] =
     _forListResourceSignalChildren.asInstanceOf[Modifier[F, N, ListResourceSignalModifier[F]]]
 
   private val _forListResourceSignalChildren
-      : Modifier[F, dom.Node, ListResourceSignalModifier[F]] = (m, n) => impl(n, m.children)
+      : Modifier[F, dom.Node, ListResourceSignalModifier[F]] = (m, n) =>
+    impl(n, m.children.asInstanceOf[Signal[F, Resource[F, List[dom.Node]]]])
 
-  inline given forResourceListSignalChildren[N <: dom.Node]
+  inline given forResourceListSignalChildren[N <: fs2.dom.Node[F]]
       : Modifier[F, N, ResourceListSignalModifier[F]] =
     _forResourceListSignalChildren.asInstanceOf[Modifier[F, N, ResourceListSignalModifier[F]]]
 
@@ -540,7 +547,7 @@ trait ChildrenModifiers[F[_]](using F: Async[F]):
               go(in.tail, out)
             }
 
-        go(children, new ListBuffer)
+        go(children.asInstanceOf[List[Resource[F, dom.Node]]], new ListBuffer)
       }
     )
 
@@ -568,13 +575,13 @@ trait ChildrenModifiers[F[_]](using F: Async[F]):
         .cedeBackground
     yield ()
 
-final class KeyedChildren[F[_], K] private[calico] (f: K => Resource[F, dom.Node]):
+final class KeyedChildren[F[_], K] private[calico] (f: K => Resource[F, fs2.dom.Node[F]]):
   import KeyedChildren.*
   inline def <--(ks: Signal[F, List[K]]): ListSignalModifier[F, K] = ListSignalModifier(f, ks)
 
 object KeyedChildren:
   final class ListSignalModifier[F[_], K](
-      val build: K => Resource[F, dom.Node],
+      val build: K => Resource[F, fs2.dom.Node[F]],
       val keys: Signal[F, List[K]]
   )
 
@@ -584,8 +591,10 @@ trait KeyedChildrenModifiers[F[_]](using F: Async[F]):
   private def traverse_[A, U](it: Iterable[A])(f: A => F[U]): F[Unit] =
     it.foldLeft(F.unit)(_ <* f(_))
 
-  given forListSignalKeyedChildren[N <: dom.Node, K: Hash]
-      : Modifier[F, N, ListSignalModifier[F, K]] = (m, n) =>
+  given forListSignalKeyedChildren[N <: fs2.dom.Node[F], K: Hash]
+      : Modifier[F, N, ListSignalModifier[F, K]] = (m, _n) =>
+    val n = _n.asInstanceOf[dom.Node]
+    inline def build(k: K) = m.build.asInstanceOf[Resource[F, dom.Node]]
     for
       (head, tail) <- m.keys.getAndUpdates
       active <- Resource.makeFull[F, Ref[F, mutable.Map[K, (dom.Node, F[Unit])]]] { poll =>
@@ -593,7 +602,7 @@ trait KeyedChildrenModifiers[F[_]](using F: Async[F]):
           if keys.isEmpty then F.unit
           else
             val k = keys.head
-            poll(m.build(k).allocated).flatMap { v =>
+            poll(build(k).allocated).flatMap { v =>
               active += k -> v
               F.delay(n.appendChild(v._1)) *> go(keys.tail, active)
             }
@@ -623,7 +632,7 @@ trait KeyedChildrenModifiers[F[_]](using F: Async[F]):
                 val releaseOldNodes = traverse_(currentNodes.values)(_._2)
 
                 val acquireNewNodes = traverse_(newNodes) { k =>
-                  poll(m.build(k).allocated).flatMap(x => F.delay(nextNodes += k -> x))
+                  poll(build(k).allocated).flatMap(x => F.delay(nextNodes += k -> x))
                 }
 
                 val renderNextNodes = F.delay {

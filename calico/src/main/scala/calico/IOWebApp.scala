@@ -26,9 +26,9 @@ trait IOWebApp:
 
   def rootElementId: String = "app"
 
-  def render: Resource[IO, dom.HTMLElement]
+  def render: Resource[IO, fs2.dom.HtmlElement[IO]]
 
   def main(args: Array[String]): Unit =
-    IO.delay(Option(dom.document.getElementById(rootElementId)).get)
-      .flatMap(render.renderInto(_).useForever)
-      .unsafeRunAndForget()
+    val document = fs2.dom.Document[IO]
+    val rootElement = document.getElementById(rootElementId).map(_.get)
+    rootElement.flatMap(render.renderInto(_).useForever).unsafeRunAndForget()

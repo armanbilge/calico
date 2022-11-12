@@ -26,14 +26,14 @@ import cats.kernel.Monoid
 import cats.syntax.all.*
 import fs2.concurrent.Signal
 import fs2.concurrent.SignallingRef
+import fs2.dom.HtmlElement
 import org.http4s.Uri
-import org.scalajs.dom.HTMLElement
 
 opaque type Routes[F[_]] = Kleisli[F, Uri, Option[Route[F]]]
 
 trait Route[F[_]]:
   def key: Unique.Token
-  def build(uri: Uri): Resource[F, (RefSink[F, Uri], HTMLElement)]
+  def build(uri: Uri): Resource[F, (RefSink[F, Uri], HtmlElement[F])]
 
 object Routes:
 
@@ -61,13 +61,13 @@ object Routes:
 
   final class OneRouteBuilder[F[_]] private[Routes]:
     def apply[A](matcher: PartialFunction[Uri, A])(
-        builder: Signal[F, A] => Resource[F, HTMLElement])(
+        builder: Signal[F, A] => Resource[F, HtmlElement[F]])(
         using F: Concurrent[F]): F[Routes[F]] =
       F.unique.map { token =>
         val route = new Route[F]:
           def key = token
 
-          def build(uri: Uri): Resource[F, (RefSink[F, Uri], HTMLElement)] =
+          def build(uri: Uri): Resource[F, (RefSink[F, Uri], HtmlElement[F])] =
             Resource.eval(SignallingRef[F].of(matcher(uri))).flatMap { sigRef =>
               builder(sigRef).tupleLeft((sigRef: RefSink[F, A]).contramap(matcher(_)))
             }

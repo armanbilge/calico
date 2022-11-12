@@ -25,6 +25,7 @@ import cats.syntax.all.*
 import fs2.Stream
 import fs2.concurrent.Signal
 import fs2.concurrent.Topic
+import fs2.dom.Dom
 import fs2.dom.History
 import org.http4s.Uri
 import org.scalajs.dom
@@ -68,18 +69,18 @@ abstract class Router[F[_]] private ():
   def length: Signal[F, Int]
 
   /**
-   * Compile [[Routes]] into a renderable [[dom.HTMLElement]]
+   * Compile [[Routes]] into a renderable [[fs2.dom.HtmlElement]]
    */
-  def dispatch(routes: Routes[F]): Resource[F, dom.HTMLElement]
+  def dispatch(routes: Routes[F]): Resource[F, fs2.dom.HtmlElement[F]]
 
   /**
    * Compile [[Routes]] into a renderable [[dom.HTMLElement]]
    */
-  def dispatch(routes: F[Routes[F]]): Resource[F, dom.HTMLElement] =
+  def dispatch(routes: F[Routes[F]]): Resource[F, fs2.dom.HtmlElement[F]] =
     Resource.eval(routes).flatMap(dispatch)
 
 object Router:
-  def apply[F[_]](history: History[F, Unit])(using F: Async[F]): F[Router[F]] =
+  def apply[F[_]: Dom](history: History[F, Unit])(using F: Async[F]): F[Router[F]] =
     Topic[F, Uri].map { gps =>
       new:
         export history.{back, forward, go, length}
@@ -107,20 +108,18 @@ object Router:
           def discrete = history.state.discrete.evalMap(_ => get).merge(gps.subscribe(0))
 
         def dispatch(routes: Routes[F]) = for
-          container <- F.delay {
-            dom.document.createElement("div").asInstanceOf[dom.HTMLDivElement]
-          }.toResource
+          container <- fs2.dom.Document[F].createElement("div").toResource
           currentRoute <- Resource.make(
-            F.ref(Option.empty[(Unique.Token, RefSink[F, Uri], F[Unit])]))(
-            _.get.flatMap(_.foldMapA(_._3)))
+            F.ref(Option.empty[(Unique.Token, fs2.dom.Node[F], RefSink[F, Uri], F[Unit])]))(
+            _.get.flatMap(_.foldMapA(_._4)))
           _ <- location
             .discrete
             .foreach { uri =>
               (currentRoute.get, routes(uri)).flatMapN {
                 case (None, None) => F.unit
-                case (Some((_, _, finalizer)), None) =>
+                case (Some((_, oldChild, _, finalizer)), None) =>
                   F.uncancelable { _ =>
-                    F.delay(container.removeChild(container.firstChild)) *>
+                    container.removeChild(oldChild) *>
                       currentRoute.set(None) *>
                       finalizer.evalOn(MacrotaskExecutor)
                   }
@@ -128,18 +127,18 @@ object Router:
                   F.uncancelable { poll =>
                     poll(route.build(uri).allocated).flatMap {
                       case ((sink, child), finalizer) =>
-                        F.delay(container.appendChild(child)) *>
-                          currentRoute.set(Some((route.key, sink, finalizer)))
+                        container.appendChild(child) *>
+                          currentRoute.set(Some((route.key, child, sink, finalizer)))
                     }
                   }
-                case (Some((key, sink, oldFinalizer)), Some(route)) =>
+                case (Some((key, oldChild, sink, oldFinalizer)), Some(route)) =>
                   if route.key === key then sink.set(uri)
                   else
                     F.uncancelable { poll =>
                       poll(route.build(uri).allocated).flatMap {
                         case ((sink, child), newFinalizer) =>
-                          F.delay(container.replaceChild(child, container.firstChild)) *>
-                            currentRoute.set(Some((route.key, sink, newFinalizer)))
+                          container.replaceChild(child, oldChild) *>
+                            currentRoute.set(Some((route.key, child, sink, newFinalizer)))
                       } *> oldFinalizer.evalOn(MacrotaskExecutor)
                     }
               }
@@ -147,5 +146,5 @@ object Router:
             .compile
             .drain
             .background
-        yield container
+        yield container.asInstanceOf[fs2.dom.HtmlElement[F]]
     }

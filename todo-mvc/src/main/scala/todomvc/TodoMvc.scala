@@ -117,7 +117,11 @@ object TodoMvc extends IOWebApp:
                   typ := "checkbox",
                   checked <-- todo.map(_.fold(false)(_.completed)),
                   onInput --> {
-                    _.foreach(_ => todo.update(_.map(_.copy(completed = self.checked))))
+                    _.foreach { _ =>
+                      self.checked.get.flatMap { checked =>
+                        todo.update(_.map(_.copy(completed = checked)))
+                      }
+                    }
                   }
                 )
               },
