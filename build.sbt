@@ -25,7 +25,7 @@ val Fs2DomVersion = "0.1-d92ea1c-SNAPSHOT"
 val MonocleVersion = "3.1.0"
 
 lazy val root =
-  tlCrossRootProject.aggregate(frp, calico, router, widget, example, todoMvc, unidocs)
+  tlCrossRootProject.aggregate(frp, calico, router, example, todoMvc, unidocs)
 
 lazy val frp = crossProject(JVMPlatform, JSPlatform)
   .crossType(CrossType.Pure)
@@ -71,18 +71,10 @@ lazy val router = project
     )
   )
 
-lazy val widget = project
-  .in(file("widget"))
-  .enablePlugins(ScalaJSPlugin)
-  .settings(
-    name := "calico-widget"
-  )
-  .dependsOn(calico)
-
 lazy val example = project
   .in(file("example"))
   .enablePlugins(ScalaJSPlugin, NoPublishPlugin)
-  .dependsOn(calico, widget, router)
+  .dependsOn(calico, router)
   .settings(
     scalaJSUseMainModuleInitializer := true,
     Compile / fastLinkJS / scalaJSLinkerConfig ~= {
@@ -129,7 +121,7 @@ lazy val unidocs = project
     ScalaUnidoc / unidoc / unidocProjectFilter := inProjects(frp.js, calico, router)
   )
 
-lazy val jsdocs = project.dependsOn(calico, router, widget).enablePlugins(ScalaJSPlugin)
+lazy val jsdocs = project.dependsOn(calico, router).enablePlugins(ScalaJSPlugin)
 lazy val docs = project
   .in(file("site"))
   .enablePlugins(TypelevelSitePlugin)
