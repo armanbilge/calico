@@ -27,6 +27,7 @@ import fs2.concurrent.Signal
 import fs2.concurrent.Topic
 import fs2.dom.Dom
 import fs2.dom.History
+import fs2.dom.Location
 import org.http4s.Uri
 import org.scalajs.dom
 import org.scalajs.macrotaskexecutor.MacrotaskExecutor
@@ -80,8 +81,10 @@ abstract class Router[F[_]] private ():
     Resource.eval(routes).flatMap(dispatch)
 
 object Router:
-  def apply[F[_]: Dom](history: History[F, Unit])(using F: Async[F]): F[Router[F]] =
+  def apply[F[_]: Dom](location: Location[F], history: History[F, Unit])(
+      using F: Async[F]): F[Router[F]] =
     Topic[F, Uri].map { gps =>
+      val _location = location
       new:
         export history.{back, forward, go, length}
 
@@ -98,12 +101,10 @@ object Router:
         yield ()
 
         private def mkAbsolute(uri: Uri): F[Uri] =
-          F.delay(dom.window.location.toString)
-            .flatMap(Uri.fromString(_).liftTo)
-            .map(_.resolve(uri))
+          _location.href.get.flatMap(Uri.fromString(_).liftTo).map(_.resolve(uri))
 
         def location = new:
-          def get = F.delay(dom.window.location.href).flatMap(Uri.fromString(_).liftTo[F])
+          def get = _location.href.get.flatMap(Uri.fromString(_).liftTo[F])
           def continuous = Stream.repeatEval(get)
           def discrete = history.state.discrete.evalMap(_ => get).merge(gps.subscribe(0))
 
