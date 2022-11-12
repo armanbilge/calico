@@ -53,7 +53,7 @@ import scala.collection.mutable
 import scala.scalajs.js
 import scala.collection.mutable.ListBuffer
 
-object io extends Html[IO]
+given io: Html[IO] = Html[IO]
 
 object Html:
   def apply[F[_]: Async]: Html[F] = new Html[F] {}

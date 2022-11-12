@@ -18,9 +18,10 @@ package todomvc
 
 import calico.*
 import calico.frp.{*, given}
-import calico.html.io.{*, given}
+import calico.html.Html
 import calico.router.*
 import calico.syntax.*
+import cats.*
 import cats.data.*
 import cats.effect.*
 import cats.effect.std.*
@@ -39,35 +40,50 @@ import scala.collection.immutable.SortedMap
 object TodoMvc extends IOWebApp:
 
   def render =
-    (TodoStore.make, Router(History[IO, Unit]).toResource).flatMapN { (store, router) =>
-      router.dispatch {
-        Routes.one[IO] {
-          case uri if uri.fragment == Some("/active") => Filter.Active
-          case uri if uri.fragment == Some("/completed") => Filter.Completed
-          case _ => Filter.All
-        } { filter =>
-          div(
-            cls := "todoapp",
-            div(cls := "header", h1("todos"), TodoInput(store)),
-            div(
-              cls := "main",
-              ul(
-                cls := "todo-list",
-                children[Long](id => TodoItem(store.entry(id))) <-- filter.flatMap(store.ids(_))
-              )
-            ),
-            store
-              .size
-              .map(_ > 0)
-              .changes
-              .map(if _ then StatusBar(store.activeCount, filter, router).some else None)
-          )
-        }
-
-      }
+    (TodoStore(Storage.local[IO]), Router(History[IO, Unit]).toResource).flatMapN {
+      (store, router) =>
+        import calico.html.given
+        TodoRouter(store, router)
     }
 
-  def TodoInput(store: TodoStore) =
+object TodoRouter:
+  def apply[F[_]: Concurrent: Html: Dom](
+      store: TodoStore[F],
+      router: Router[F]
+  ) = router.dispatch {
+    Routes.one[F] {
+      case uri if uri.fragment == Some("/active") => Filter.Active
+      case uri if uri.fragment == Some("/completed") => Filter.Completed
+      case _ => Filter.All
+    }(TodoList(store, router, _))
+  }
+
+object TodoList:
+  def apply[F[_]: Concurrent: Dom](
+      store: TodoStore[F],
+      router: Router[F],
+      filter: Signal[F, Filter])(using html: Html[F]) =
+    import html.{*, given}
+    div(
+      cls := "todoapp",
+      div(cls := "header", h1("todos"), TodoInput(store)),
+      div(
+        cls := "main",
+        ul(
+          cls := "todo-list",
+          children[Long](id => TodoItem(store.entry(id))) <-- filter.flatMap(store.ids(_))
+        )
+      ),
+      store
+        .size
+        .map(_ > 0)
+        .changes
+        .map(if _ then StatusBar(store.activeCount, filter, router).some else None)
+    )
+
+object TodoInput:
+  def apply[F[_]: Apply: Dom](store: TodoStore[F])(using html: Html[F]) =
+    import html.{*, given}
     input { self =>
       (
         cls := "new-todo",
@@ -82,10 +98,12 @@ object TodoMvc extends IOWebApp:
       )
     }
 
-  def TodoItem(todo: SignallingRef[IO, Option[Todo]]) =
-    SignallingRef[IO].of(false).toResource.flatMap { editing =>
+object TodoItem:
+  def apply[F[_]: Concurrent: Dom](todo: SignallingRef[F, Option[Todo]])(using html: Html[F]) =
+    import html.{*, given}
+    SignallingRef[F].of(false).toResource.flatMap { editing =>
       li(
-        cls <-- (todo: Signal[IO, Option[Todo]], editing: Signal[IO, Boolean]).mapN { (t, e) =>
+        cls <-- (todo: Signal[F, Option[Todo]], editing: Signal[F, Boolean]).mapN { (t, e) =>
           val completed = Option.when(t.exists(_.completed))("completed")
           val editing = Option.when(e)("editing")
           completed.toList ++ editing.toList
@@ -132,7 +150,12 @@ object TodoMvc extends IOWebApp:
       )
     }
 
-  def StatusBar(activeCount: Signal[IO, Int], filter: Signal[IO, Filter], router: Router[IO]) =
+object StatusBar:
+  def apply[F[_]: Functor](
+      activeCount: Signal[F, Int],
+      filter: Signal[F, Filter],
+      router: Router[F])(using html: Html[F]) =
+    import html.{*, given}
     footer(
       cls := "footer",
       span(
@@ -159,52 +182,55 @@ object TodoMvc extends IOWebApp:
       )
     )
 
-class TodoStore(entries: SignallingSortedMapRef[IO, Long, Todo], nextId: IO[Long]):
-  def create(text: String): IO[Unit] =
-    nextId.flatMap(entries(_).set(Some(Todo(text, false))))
-
-  def entry(id: Long): SignallingRef[IO, Option[Todo]] = entries(id)
-
-  def ids(filter: Filter): Signal[IO, List[Long]] =
-    entries.map(_.filter((_, t) => filter.pred(t)).keySet.toList)
-
-  def size: Signal[IO, Int] = entries.map(_.size)
-
-  def activeCount: Signal[IO, Int] = entries.map(_.values.count(!_.completed))
+trait TodoStore[F[_]]:
+  def create(text: String): F[Unit]
+  def entry(id: Long): SignallingRef[F, Option[Todo]]
+  def ids(filter: Filter): Signal[F, List[Long]]
+  def size: Signal[F, Int]
+  def activeCount: Signal[F, Int]
 
 object TodoStore:
-
-  def make: Resource[IO, TodoStore] =
+  def apply[F[_]](storage: Storage[F])(using F: Temporal[F]): Resource[F, TodoStore[F]] =
     val key = "todos-calico"
 
     for
-      mapRef <- SignallingSortedMapRef[IO, Long, Todo].toResource
+      entries <- SignallingSortedMapRef[F, Long, Todo].toResource
 
       _ <- Resource.eval {
-        OptionT(Storage.local[IO].getItem(key))
+        OptionT(storage.getItem(key))
           .subflatMap(jawn.decode[SortedMap[Long, Todo]](_).toOption)
-          .foreachF(mapRef.set(_))
+          .foreachF(entries.set(_))
       }
 
-      _ <- Storage
-        .local[IO]
+      _ <- storage
         .events
         .foreach {
           case Storage.Event.Updated(`key`, _, value, _) =>
-            jawn.decode[SortedMap[Long, Todo]](value).foldMapM(mapRef.set(_))
-          case _ => IO.unit
+            jawn.decode[SortedMap[Long, Todo]](value).foldMapM(entries.set(_))
+          case _ => F.unit
         }
         .compile
         .drain
         .background
 
-      _ <- mapRef
+      _ <- entries
         .discrete
-        .foreach(todos => Storage.local[IO].setItem(key, todos.asJson.noSpaces))
+        .foreach(todos => storage.setItem(key, todos.asJson.noSpaces))
         .compile
         .drain
-        .backgroundOn(calico.unsafe.MacrotaskExecutor)
-    yield TodoStore(mapRef, IO.realTime.map(_.toMillis))
+        .background
+    yield new:
+      def create(text: String) =
+        F.realTime.flatMap(t => entries(t.toMillis).set(Some(Todo(text, false))))
+
+      def entry(id: Long) = entries(id)
+
+      def ids(filter: Filter) =
+        entries.map(_.filter((_, t) => filter.pred(t)).keySet.toList)
+
+      def size = entries.map(_.size)
+
+      def activeCount = entries.map(_.values.count(!_.completed))
 
 case class Todo(text: String, completed: Boolean) derives Codec.AsObject
 
