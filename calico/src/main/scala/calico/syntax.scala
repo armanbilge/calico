@@ -98,17 +98,3 @@ extension [F[_], A, B](pipe: Pipe[F, A, B])
       ch <- Channel.unbounded[F, A].toResource
       _ <- ch.stream.through(pipe).compile.drain.background
     yield ch
-
-extension [F[_]](events: Stream[F, dom.Event])
-  def mapToTargetValue(using F: Sync[F]): Stream[F, String] =
-    events
-      .map(_.target)
-      .evalMap {
-        case button: dom.HTMLButtonElement => F.delay(button.value.some)
-        case input: dom.HTMLInputElement => F.delay(input.value.some)
-        case option: dom.HTMLOptionElement => F.delay(option.value.some)
-        case select: dom.HTMLSelectElement => F.delay(select.value.some)
-        case textArea: dom.HTMLTextAreaElement => F.delay(textArea.value.some)
-        case _ => F.pure(None)
-      }
-      .unNone

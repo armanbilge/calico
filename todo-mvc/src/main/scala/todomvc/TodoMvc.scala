@@ -75,7 +75,7 @@ object TodoMvc extends IOWebApp:
         autoFocus := true,
         onKeyDown --> {
           _.filter(_.keyCode == KeyCode.Enter)
-            .mapToTargetValue
+            .evalMap(_ => self.value.get)
             .filterNot(_.isEmpty)
             .foreach(store.create(_) *> self.value.set(""))
         }
