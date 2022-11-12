@@ -594,7 +594,7 @@ trait KeyedChildrenModifiers[F[_]](using F: Async[F]):
   given forListSignalKeyedChildren[N <: fs2.dom.Node[F], K: Hash]
       : Modifier[F, N, ListSignalModifier[F, K]] = (m, _n) =>
     val n = _n.asInstanceOf[dom.Node]
-    inline def build(k: K) = m.build.asInstanceOf[Resource[F, dom.Node]]
+    inline def build(k: K) = m.build(k).asInstanceOf[Resource[F, dom.Node]]
     for
       (head, tail) <- m.keys.getAndUpdates
       active <- Resource.makeFull[F, Ref[F, mutable.Map[K, (dom.Node, F[Unit])]]] { poll =>
