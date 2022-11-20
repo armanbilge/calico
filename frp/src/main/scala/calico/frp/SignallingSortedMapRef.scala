@@ -19,12 +19,12 @@ package calico.frp
 import cats.effect.kernel.Concurrent
 import cats.effect.kernel.Deferred
 import cats.effect.kernel.Ref
-import cats.effect.std.MapRef
 import cats.kernel.Order
 import cats.syntax.all.*
 import fs2.Stream
 import fs2.concurrent.Signal
 import fs2.concurrent.SignallingRef
+import fs2.concurrent.SignallingMapRef
 
 import scala.collection.immutable.LongMap
 import scala.collection.immutable.SortedMap
@@ -32,7 +32,7 @@ import scala.collection.immutable.SortedSet
 
 abstract class SignallingSortedMapRef[F[_], K, V]
     extends SignallingRef[F, SortedMap[K, V]]
-    with MapRef[F, K, Option[V]]:
+    with SignallingMapRef[F, K, Option[V]]:
   override def apply(k: K): SignallingRef[F, Option[V]]
 
   def keys: Signal[F, SortedSet[K]]
