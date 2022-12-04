@@ -19,9 +19,6 @@ package html
 
 import calico.syntax.*
 import calico.util.DomHotswap
-import cats.Foldable
-import cats.Hash
-import cats.Monad
 import cats.effect.IO
 import cats.effect.kernel.Async
 import cats.effect.kernel.Ref
@@ -29,6 +26,9 @@ import cats.effect.kernel.Resource
 import cats.effect.kernel.Sync
 import cats.effect.std.Dispatcher
 import cats.effect.syntax.all.*
+import cats.Foldable
+import cats.Hash
+import cats.Monad
 import cats.syntax.all.*
 import com.raquo.domtypes.generic.builders.EventPropBuilder
 import com.raquo.domtypes.generic.builders.HtmlAttrBuilder
@@ -42,16 +42,16 @@ import com.raquo.domtypes.generic.defs.props.*
 import com.raquo.domtypes.generic.defs.reflectedAttrs.*
 import com.raquo.domtypes.generic.defs.tags.*
 import com.raquo.domtypes.jsdom.defs.eventProps.*
-import fs2.Pipe
-import fs2.Stream
 import fs2.concurrent.Channel
 import fs2.concurrent.Signal
+import fs2.Pipe
+import fs2.Stream
 import org.scalajs.dom
 import shapeless3.deriving.K0
 
 import scala.collection.mutable
-import scala.scalajs.js
 import scala.collection.mutable.ListBuffer
+import scala.scalajs.js
 
 object io extends Html[IO]
 
@@ -174,6 +174,7 @@ trait HtmlBuilders[F[_]](using F: Async[F])
       HtmlAttrModifiers[F],
       PropModifiers[F],
       ClassPropModifiers[F],
+      DataPropModifiers[F],
       EventPropModifiers[F],
       ChildrenModifiers[F],
       KeyedChildrenModifiers[F]:
@@ -198,6 +199,8 @@ trait HtmlBuilders[F[_]](using F: Async[F])
     EventProp(key)
 
   def cls: ClassProp[F] = ClassProp[F]
+
+  def data(suffix: String): DataProp[F] = DataProp[F](suffix)
 
   def children: Children[F] = Children[F]
 
@@ -498,6 +501,28 @@ trait ClassPropModifiers[F[_]](using F: Async[F]):
     _forConstantClassProp.asInstanceOf[Modifier[F, N, SingleConstantModifier]]
   private val _forConstantClassProp: Modifier[F, Any, SingleConstantModifier] =
     (m, n) => Resource.eval(F.delay(n.asInstanceOf[js.Dictionary[String]]("className") = m.cls))
+
+final class DataProp[F[_]] private[calico] (suffix: String)
+    extends Prop[F, DataProp.SingleConstantModifier, String](
+      s"data-$suffix",
+      new:
+        def decode(domValue: String) = DataProp.SingleConstantModifier(suffix, domValue)
+
+        def encode(scalaValue: DataProp.SingleConstantModifier) = scalaValue.value
+    ):
+  import DataProp.*
+
+  inline def :=(value: String): SingleConstantModifier =
+    SingleConstantModifier(suffix, value)
+
+object DataProp:
+  final class SingleConstantModifier(val suffix: String, val value: String)
+
+trait DataPropModifiers[F[_]](using F: Async[F]):
+  import DataProp.*
+  inline given forConstantDataProp[N <: fs2.dom.HtmlElement[F]]
+      : Modifier[F, N, SingleConstantModifier] = (m, n) =>
+    Resource.eval(F.delay(n.asInstanceOf[dom.HTMLElement].dataset(m.suffix) = m.value))
 
 final class Children[F[_]] private[calico]:
   import Children.*
