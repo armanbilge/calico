@@ -504,7 +504,7 @@ trait ClassPropModifiers[F[_]](using F: Async[F]):
 
 final class DataProp[F[_]] private[calico] (suffix: String)
     extends Prop[F, DataProp.SingleConstantModifier, String](
-      s"data-$suffix",
+      "dataset",
       new:
         def decode(domValue: String) = DataProp.SingleConstantModifier(suffix, domValue)
 
