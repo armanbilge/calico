@@ -243,6 +243,15 @@ trait Modifier[F[_], E, A]:
   inline final def contramap[B](inline f: B => A): Modifier[F, E, B] =
     (b: B, e: E) => outer.modify(f(b), e)
 
+object Modifier:
+  def forSignal[F[_]: Async, A, B, C](setter: (A, B, C) => F[Unit])(
+      signal: B => Signal[F, C]): Modifier[F, A, B] = (m, n) =>
+    signal(m).getAndUpdates.flatMap { (head, tail) =>
+      def set(v: C) = setter(n, m, v)
+      Resource.eval(set(head)) *>
+        tail.foreach(set(_)).compile.drain.cedeBackground.void
+    }
+
 trait Modifiers[F[_]](using F: Async[F]):
   inline given forUnit[E]: Modifier[F, E, Unit] =
     _forUnit.asInstanceOf[Modifier[F, E, Unit]]
@@ -423,7 +432,11 @@ object Prop:
 trait PropModifiers[F[_]](using F: Async[F]):
   import Prop.*
 
-  private inline def setProp[N, V, J](node: N, value: V, name: String, codec: Codec[V, J]) =
+  private[calico] inline def setProp[N, V, J](
+      node: N,
+      value: V,
+      name: String,
+      codec: Codec[V, J]) =
     F.delay(node.asInstanceOf[js.Dictionary[J]](name) = codec.encode(value))
 
   inline given forConstantProp[N, V, J]: Modifier[F, N, ConstantModifier[V, J]] =
@@ -435,27 +448,21 @@ trait PropModifiers[F[_]](using F: Async[F]):
   inline given forSignalProp[N, V, J]: Modifier[F, N, SignalModifier[F, V, J]] =
     _forSignalProp.asInstanceOf[Modifier[F, N, SignalModifier[F, V, J]]]
 
-  private val _forSignalProp: Modifier[F, Any, SignalModifier[F, Any, Any]] = (m, n) =>
-    m.values.getAndUpdates.flatMap { (head, tail) =>
-      def set(v: Any) = setProp(n, v, m.name, m.codec)
-      Resource.eval(set(head)) *>
-        tail.foreach(set(_)).compile.drain.cedeBackground.void
-    }
+  private val _forSignalProp: Modifier[F, Any, SignalModifier[F, Any, Any]] =
+    Modifier.forSignal[F, Any, SignalModifier[F, Any, Any], Any]((any, m, v) =>
+      setProp(any, v, m.name, m.codec))(_.values)
 
   inline given forOptionSignalProp[N, V, J]: Modifier[F, N, OptionSignalModifier[F, V, J]] =
     _forOptionSignalProp.asInstanceOf[Modifier[F, N, OptionSignalModifier[F, V, J]]]
 
   private val _forOptionSignalProp: Modifier[F, Any, OptionSignalModifier[F, Any, Any]] =
-    (m, n) =>
-      m.values.getAndUpdates.flatMap { (head, tail) =>
-        def set(v: Option[Any]) = F.delay {
-          val dict = n.asInstanceOf[js.Dictionary[Any]]
-          v.fold(dict -= m.name)(v => dict(m.name) = m.codec.encode(v))
+    Modifier.forSignal[F, Any, OptionSignalModifier[F, Any, Any], Option[Any]](
+      (any, osm, oany) =>
+        F.delay {
+          val dict = any.asInstanceOf[js.Dictionary[Any]]
+          oany.fold(dict -= osm.name)(v => dict(osm.name) = osm.codec.encode(v))
           ()
-        }
-        Resource.eval(set(head)) *>
-          tail.foreach(set(_)).compile.drain.cedeBackground.void
-      }
+        })(_.values)
 
 final class EventProp[F[_], E] private[calico] (key: String):
   import EventProp.*
@@ -502,27 +509,61 @@ trait ClassPropModifiers[F[_]](using F: Async[F]):
   private val _forConstantClassProp: Modifier[F, Any, SingleConstantModifier] =
     (m, n) => Resource.eval(F.delay(n.asInstanceOf[js.Dictionary[String]]("className") = m.cls))
 
-final class DataProp[F[_]] private[calico] (suffix: String)
-    extends Prop[F, DataProp.SingleConstantModifier, String](
-      "dataset",
-      new:
-        def decode(domValue: String) = DataProp.SingleConstantModifier(suffix, domValue)
-
-        def encode(scalaValue: DataProp.SingleConstantModifier) = scalaValue.value
-    ):
+final class DataProp[F[_]] private[calico] (name: String):
   import DataProp.*
 
-  inline def :=(value: String): SingleConstantModifier =
-    SingleConstantModifier(suffix, value)
+  inline def :=(v: String): ConstantModifier =
+    ConstantModifier(name, v)
+
+  inline def <--(vs: Signal[F, String]): SignalModifier[F] =
+    SignalModifier(name, vs)
+
+  inline def <--(vs: Signal[F, Option[String]]): OptionSignalModifier[F] =
+    OptionSignalModifier(name, vs)
 
 object DataProp:
-  final class SingleConstantModifier(val suffix: String, val value: String)
+  final class ConstantModifier(
+      val name: String,
+      val value: String
+  )
+
+  final class SignalModifier[F[_]](
+      val name: String,
+      val values: Signal[F, String]
+  )
+
+  final class OptionSignalModifier[F[_]](
+      val name: String,
+      val values: Signal[F, Option[String]]
+  )
 
 trait DataPropModifiers[F[_]](using F: Async[F]):
   import DataProp.*
+
+  private inline def setDataProp[N](node: N, value: String, name: String) =
+    F.delay(node.asInstanceOf[dom.HTMLElement].dataset(name) = value)
+
   inline given forConstantDataProp[N <: fs2.dom.HtmlElement[F]]
-      : Modifier[F, N, SingleConstantModifier] = (m, n) =>
-    Resource.eval(F.delay(n.asInstanceOf[dom.HTMLElement].dataset(m.suffix) = m.value))
+      : Modifier[F, N, ConstantModifier] =
+    _forConstantDataProp.asInstanceOf[Modifier[F, N, ConstantModifier]]
+
+  private val _forConstantDataProp: Modifier[F, fs2.dom.HtmlElement[F], ConstantModifier] =
+    (m, n) => Resource.eval(setDataProp(n, m.value, m.name))
+
+  private val _forSignalDataProp: Modifier[F, Any, SignalModifier[F]] =
+    Modifier.forSignal[F, Any, SignalModifier[F], String]((any, sm, s) =>
+      setDataProp(any, s, sm.name))(_.values)
+
+  inline given forOptionSignalDataProp[N]: Modifier[F, N, OptionSignalModifier[F]] =
+    _forOptionSignalDataProp.asInstanceOf[Modifier[F, N, OptionSignalModifier[F]]]
+
+  private val _forOptionSignalDataProp: Modifier[F, Any, OptionSignalModifier[F]] =
+    Modifier.forSignal[F, Any, OptionSignalModifier[F], Option[String]]((any, osm, os) =>
+      F.delay {
+        val e = any.asInstanceOf[dom.HTMLElement]
+        os.fold(e.dataset -= osm.name)(v => e.dataset(osm.name) = v)
+        ()
+      })(_.values)
 
 final class Children[F[_]] private[calico]:
   import Children.*
