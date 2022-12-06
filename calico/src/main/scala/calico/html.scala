@@ -245,9 +245,9 @@ trait Modifier[F[_], E, A]:
 
 object Modifier:
   def forSignal[F[_]: Async, A, B, C](setter: (A, B, C) => F[Unit])(
-      signal: B => Signal[F, C]): Modifier[F, A, B] = (m, n) =>
-    signal(m).getAndUpdates.flatMap { (head, tail) =>
-      def set(v: C) = setter(n, m, v)
+      signal: B => Signal[F, C]): Modifier[F, A, B] = (b, a) =>
+    signal(b).getAndUpdates.flatMap { (head, tail) =>
+      def set(c: C) = setter(a, b, c)
       Resource.eval(set(head)) *>
         tail.foreach(set(_)).compile.drain.cedeBackground.void
     }
