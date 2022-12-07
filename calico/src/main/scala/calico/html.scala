@@ -49,14 +49,17 @@ import fs2.Stream
 import org.scalajs.dom
 import shapeless3.deriving.K0
 
+import com.raquo.domtypes.generic.defs.attrs.AriaAttrs
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.scalajs.js
 
-object io extends Html[IO]
+object io extends Html[IO]:
+  override val aria: Aria[IO] = Aria[IO]
 
 object Html:
-  def apply[F[_]: Async]: Html[F] = new Html[F] {}
+  def apply[F[_]: Async]: Html[F] = new:
+    override val aria: Aria[F] = Aria[F]
 
 trait Html[F[_]]
     extends HtmlBuilders[F],
@@ -162,7 +165,13 @@ trait Html[F[_]]
       MediaEventProps[EventProp[F, _]],
       MiscellaneousEventProps[EventProp[F, _]],
       MouseEventProps[EventProp[F, _]],
-      PointerEventProps[EventProp[F, _]]
+      PointerEventProps[EventProp[F, _]]:
+  def aria: Aria[F]
+
+object Aria:
+  def apply[F[_]: Async]: Aria[F] = new Aria[F] {}
+
+trait Aria[F[_]] extends HtmlBuilders[F], AriaAttrs[HtmlAttr[F, _]]
 
 trait HtmlBuilders[F[_]](using F: Async[F])
     extends HtmlTagBuilder[HtmlTagT[F], fs2.dom.HtmlElement[F]],
