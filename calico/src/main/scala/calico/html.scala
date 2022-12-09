@@ -186,7 +186,8 @@ trait HtmlBuilders[F[_]](using F: Async[F])
       DataPropModifiers[F],
       EventPropModifiers[F],
       ChildrenModifiers[F],
-      KeyedChildrenModifiers[F]:
+      KeyedChildrenModifiers[F],
+      StylePropModifiers[F]:
 
   protected def htmlTag[E <: fs2.dom.HtmlElement[F]](tagName: String, void: Boolean) =
     HtmlTag(tagName, void)
@@ -209,12 +210,14 @@ trait HtmlBuilders[F[_]](using F: Async[F])
 
   def cls: ClassProp[F] = ClassProp[F]
 
-  def data(suffix: String): DataProp[F] = DataProp[F](suffix)
+  def dataAttr(suffix: String): DataProp[F] = DataProp[F](suffix)
 
   def children: Children[F] = Children[F]
 
   def children[K](f: K => Resource[F, fs2.dom.Node[F]]): KeyedChildren[F, K] =
     KeyedChildren[F, K](f)
+
+  def styleAttr: StyleProp[F] = StyleProp[F]
 
 type HtmlTagT[F[_]] = [E <: fs2.dom.HtmlElement[F]] =>> HtmlTag[F, E]
 
@@ -517,6 +520,59 @@ trait ClassPropModifiers[F[_]](using F: Async[F]):
     _forConstantClassProp.asInstanceOf[Modifier[F, N, SingleConstantModifier]]
   private val _forConstantClassProp: Modifier[F, Any, SingleConstantModifier] =
     (m, n) => Resource.eval(F.delay(n.asInstanceOf[js.Dictionary[String]]("className") = m.cls))
+
+final class StyleProp[F[_]] private[calico]:
+  import StyleProp.*
+
+  inline def :=(v: String): ConstantModifier =
+    ConstantModifier(v)
+
+  inline def <--(vs: Signal[F, String]): SignalModifier[F] =
+    SignalModifier(vs)
+
+  inline def <--(vs: Signal[F, Option[String]]): OptionSignalModifier[F] =
+    OptionSignalModifier(vs)
+
+object StyleProp:
+  final class ConstantModifier(
+      val value: String
+  )
+
+  final class SignalModifier[F[_]](
+      val values: Signal[F, String]
+  )
+
+  final class OptionSignalModifier[F[_]](
+      val values: Signal[F, Option[String]]
+  )
+
+trait StylePropModifiers[F[_]](using F: Async[F]):
+  import StyleProp.*
+
+  private inline def setStyleProp[N](node: N, value: String) =
+    F.delay(node.asInstanceOf[dom.HTMLElement].style = value)
+
+  inline given forConstantStyleProp[N <: fs2.dom.HtmlElement[F]]
+      : Modifier[F, N, ConstantModifier] =
+    _forConstantStyleProp.asInstanceOf[Modifier[F, N, ConstantModifier]]
+
+  private val _forConstantStyleProp: Modifier[F, fs2.dom.HtmlElement[F], ConstantModifier] =
+    (m, n) => Resource.eval(setStyleProp(n, m.value))
+
+  private val _forSignalStyleProp: Modifier[F, Any, SignalModifier[F]] =
+    Modifier.forSignal[F, Any, SignalModifier[F], String]((any, sm, s) =>
+      setStyleProp(any, s))(_.values)
+
+  inline given forOptionSignalStyleProp[N]: Modifier[F, N, OptionSignalModifier[F]] =
+    _forOptionSignalStyleProp.asInstanceOf[Modifier[F, N, OptionSignalModifier[F]]]
+
+  private val _forOptionSignalStyleProp: Modifier[F, Any, OptionSignalModifier[F]] =
+    Modifier.forSignal[F, Any, OptionSignalModifier[F], Option[String]]((any, osm, os) =>
+      F.delay {
+        val e = any.asInstanceOf[dom.HTMLElement]
+        os.fold(e.removeAttribute("style"))(e.style = _)
+        ()
+      })(_.values)
 
 final class DataProp[F[_]] private[calico] (name: String):
   import DataProp.*
