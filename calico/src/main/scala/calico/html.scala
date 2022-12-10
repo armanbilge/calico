@@ -50,6 +50,7 @@ import org.scalajs.dom
 import shapeless3.deriving.K0
 
 import com.raquo.domtypes.generic.defs.attrs.AriaAttrs
+import org.scalajs.dom.Attr
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.scalajs.js
@@ -187,7 +188,8 @@ trait HtmlBuilders[F[_]](using F: Async[F])
       EventPropModifiers[F],
       ChildrenModifiers[F],
       KeyedChildrenModifiers[F],
-      StylePropModifiers[F]:
+      StylePropModifiers[F],
+      RolePropModifiers[F]:
 
   protected def htmlTag[E <: fs2.dom.HtmlElement[F]](tagName: String, void: Boolean) =
     HtmlTag(tagName, void)
@@ -209,6 +211,8 @@ trait HtmlBuilders[F[_]](using F: Async[F])
     EventProp(key)
 
   def cls: ClassProp[F] = ClassProp[F]
+
+  def role: RoleProp[F] = RoleProp[F]
 
   def dataAttr(suffix: String): DataProp[F] = DataProp[F](suffix)
 
@@ -493,18 +497,7 @@ trait EventPropModifiers[F[_]](using F: Async[F]):
 final class ClassProp[F[_]] private[calico]
     extends Prop[F, List[String], String](
       "className",
-      new:
-        def decode(domValue: String) = domValue.split(" ").toList
-
-        def encode(scalaValue: List[String]) =
-          if scalaValue.isEmpty then ""
-          else
-            var acc = scalaValue.head
-            var tail = scalaValue.tail
-            while tail.nonEmpty do
-              acc += " " + tail.head
-              tail = tail.tail
-            acc
+      whitespaceSeparatedStringsCodec
     ):
   import ClassProp.*
 
@@ -560,8 +553,8 @@ trait StylePropModifiers[F[_]](using F: Async[F]):
     (m, n) => Resource.eval(setStyleProp(n, m.value))
 
   private val _forSignalStyleProp: Modifier[F, Any, SignalModifier[F]] =
-    Modifier.forSignal[F, Any, SignalModifier[F], String]((any, sm, s) =>
-      setStyleProp(any, s))(_.values)
+    Modifier.forSignal[F, Any, SignalModifier[F], String]((any, sm, s) => setStyleProp(any, s))(
+      _.values)
 
   inline given forOptionSignalStyleProp[N]: Modifier[F, N, OptionSignalModifier[F]] =
     _forOptionSignalStyleProp.asInstanceOf[Modifier[F, N, OptionSignalModifier[F]]]
@@ -571,6 +564,59 @@ trait StylePropModifiers[F[_]](using F: Async[F]):
       F.delay {
         val e = any.asInstanceOf[dom.HTMLElement]
         os.fold(e.removeAttribute("style"))(e.style = _)
+        ()
+      })(_.values)
+
+final class RoleProp[F[_]] private[calico]:
+  import RoleProp.*
+
+  inline def :=(v: String): ConstantModifier =
+    ConstantModifier(v)
+
+  inline def <--(vs: Signal[F, String]): SignalModifier[F] =
+    SignalModifier(vs)
+
+  inline def <--(vs: Signal[F, Option[String]]): OptionSignalModifier[F] =
+    OptionSignalModifier(vs)
+
+object RoleProp:
+  final class ConstantModifier(
+      val value: String
+  )
+
+  final class SignalModifier[F[_]](
+      val values: Signal[F, String]
+  )
+
+  final class OptionSignalModifier[F[_]](
+      val values: Signal[F, Option[String]]
+  )
+
+trait RolePropModifiers[F[_]](using F: Async[F]):
+  import RoleProp.*
+
+  private inline def setRoleProp[N](node: N, value: String) =
+    F.delay(node.asInstanceOf[dom.Element].setAttribute("role", value))
+
+  inline given forConstantRoleProp[N <: fs2.dom.HtmlElement[F]]
+      : Modifier[F, N, ConstantModifier] =
+    _forConstantRoleProp.asInstanceOf[Modifier[F, N, ConstantModifier]]
+
+  private val _forConstantRoleProp: Modifier[F, fs2.dom.HtmlElement[F], ConstantModifier] =
+    (m, n) => Resource.eval(setRoleProp(n, m.value))
+
+  private val _forSignalRoleProp: Modifier[F, Any, SignalModifier[F]] =
+    Modifier.forSignal[F, Any, SignalModifier[F], String]((any, sm, s) => setRoleProp(any, s))(
+      _.values)
+
+  inline given forOptionSignalRoleProp[N]: Modifier[F, N, OptionSignalModifier[F]] =
+    _forOptionSignalRoleProp.asInstanceOf[Modifier[F, N, OptionSignalModifier[F]]]
+
+  private val _forOptionSignalRoleProp: Modifier[F, Any, OptionSignalModifier[F]] =
+    Modifier.forSignal[F, Any, OptionSignalModifier[F], Option[String]]((any, osm, os) =>
+      F.delay {
+        val e = any.asInstanceOf[dom.Element]
+        os.fold(e.removeAttribute("role"))(e.setAttribute("role", _))
         ()
       })(_.values)
 
@@ -782,3 +828,16 @@ trait KeyedChildrenModifiers[F[_]](using F: Async[F]):
         .drain
         .cedeBackground
     yield ()
+
+private val whitespaceSeparatedStringsCodec: Codec[List[String], String] = new:
+  def decode(domValue: String) = domValue.split(" ").toList
+
+  def encode(scalaValue: List[String]) =
+    if scalaValue.isEmpty then ""
+    else
+      var acc = scalaValue.head
+      var tail = scalaValue.tail
+      while tail.nonEmpty do
+        acc += " " + tail.head
+        tail = tail.tail
+      acc
