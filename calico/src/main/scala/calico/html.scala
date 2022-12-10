@@ -172,7 +172,9 @@ trait Html[F[_]]
 object Aria:
   def apply[F[_]: Async]: Aria[F] = new Aria[F] {}
 
-trait Aria[F[_]] extends HtmlBuilders[F], AriaAttrs[HtmlAttr[F, _]]
+trait Aria[F[_]] extends HtmlBuilders[F], AriaAttrs[HtmlAttr[F, _]]:
+  //TODO remove this once there's a new release of scala-dom-types
+  lazy val current: HtmlAttr[F, String] = stringHtmlAttr("aria-current")
 
 trait HtmlBuilders[F[_]](using F: Async[F])
     extends HtmlTagBuilder[HtmlTagT[F], fs2.dom.HtmlElement[F]],
