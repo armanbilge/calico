@@ -17,7 +17,6 @@
 package calico
 package syntax
 
-import cats.Functor
 import cats.data.State
 import cats.effect.kernel.Async
 import cats.effect.kernel.Concurrent
@@ -28,16 +27,17 @@ import cats.effect.kernel.Ref
 import cats.effect.kernel.Resource
 import cats.effect.kernel.Sync
 import cats.effect.syntax.all.*
+import cats.Functor
 import cats.kernel.Eq
 import cats.syntax.all.*
-import fs2.Pipe
-import fs2.Pull
-import fs2.Stream
 import fs2.concurrent.Channel
 import fs2.concurrent.Signal
 import fs2.concurrent.SignallingRef
 import fs2.concurrent.Topic
 import fs2.dom.Dom
+import fs2.Pipe
+import fs2.Pull
+import fs2.Stream
 import monocle.Lens
 import org.scalajs.dom
 
@@ -68,7 +68,7 @@ extension [F[_], A](fa: F[A])
 extension [F[_], A](signal: Signal[F, A])
   private[calico] def getAndUpdates(using Concurrent[F]): Resource[F, (A, Stream[F, A])] =
     // this hack makes me sad
-    Resource.eval(signal.get.tupleRight(signal.discrete.drop(1)))
+    Resource.eval(signal.get.tupleRight(signal.discrete))
 
   def changes(using Eq[A]): Signal[F, A] =
     new:
