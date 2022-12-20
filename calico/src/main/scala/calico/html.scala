@@ -609,6 +609,9 @@ trait DataPropModifiers[F[_]](using F: Async[F]):
   private val _forConstantDataProp: Modifier[F, fs2.dom.HtmlElement[F], ConstantModifier] =
     (m, n) => Resource.eval(setDataProp(n, m.value, m.name))
 
+  inline given forSignalDataProp[N]: Modifier[F, N, SignalModifier[F]] =
+    _forSignalDataProp.asInstanceOf[Modifier[F, N, SignalModifier[F]]]
+
   private val _forSignalDataProp: Modifier[F, Any, SignalModifier[F]] =
     Modifier.forSignal[F, Any, SignalModifier[F], String]((any, sm, s) =>
       setDataProp(any, s, sm.name))(_.values)

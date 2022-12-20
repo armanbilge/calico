@@ -47,7 +47,9 @@ object TodoMvc extends IOWebApp:
           case _ => Filter.All
         } { filter =>
           div(
-            cls := "todoapp",
+            role := List("testrole1"),
+            cls := List("todoapp"),
+            aria.current := "page",
             div(cls := "header", h1("todos"), TodoInput(store)),
             div(
               cls := "main",
