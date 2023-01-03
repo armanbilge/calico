@@ -11,12 +11,18 @@ ThisBuild / tlSitePublishBranch := Some("series/0.1")
 ThisBuild / tlSonatypeUseLegacyHost := false
 
 ThisBuild / crossScalaVersions := Seq("3.2.1")
-ThisBuild / scalacOptions ++= Seq("-new-syntax", "-indent", "-source:future")
+ThisBuild / scalacOptions ++= Seq("-new-syntax", "-indent")
 
 ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17"))
 ThisBuild / tlJdkRelease := Some(8)
 
 ThisBuild / resolvers ++= Resolver.sonatypeOssRepos("snapshots")
+
+lazy val precompile = taskKey[Unit]("runs Calico-specific pre-compile tasks")
+
+precompile := DomDefsGenerator.cachedGenerate()
+
+(Compile / compile) := ((Compile / compile) dependsOn precompile).value
 
 val CatsVersion = "2.8.0"
 val CatsEffectVersion = "3.4.0-RC2"
