@@ -10,6 +10,7 @@ import com.raquo.domtypes.codegen.{
 }
 import com.raquo.domtypes.codegen.DefType
 import com.raquo.domtypes.codegen.generators.AttrsTraitGenerator
+import com.raquo.domtypes.codegen.generators.PropsTraitGenerator
 import com.raquo.domtypes.codegen.generators.TagsTraitGenerator
 import com.raquo.domtypes.common
 import com.raquo.domtypes.common.TagType
@@ -139,6 +140,51 @@ object DomDefsGenerator {
         baseImplDef = baseImplDef,
         transformCodecName = _ + "Codec",
         namespaceImpl = namespaceImpl,
+        outputImplDefs = true,
+        format = format
+      ).printTrait().getOutput()
+    }
+
+    override def generatePropsTrait(
+        defGroups: List[(String, List[common.PropDef])],
+        printDefGroupComments: Boolean,
+        traitCommentLines: List[String],
+        traitName: String,
+        keyKind: String,
+        implNameSuffix: String,
+        baseImplDefComments: List[String],
+        baseImplName: String,
+        defType: DefType): String = {
+
+      val (defs, defGroupComments) = defsAndGroupComments(defGroups, printDefGroupComments)
+
+      val baseImplDef = List(
+        s"def ${baseImplName}[V, DomV](key: String, codec: Codec[V, DomV]): ${keyKind}[F, V, DomV] = ${keyKindConstructor(keyKind)}(key, codec)"
+      )
+
+      val headerLines = List(
+        s"package $propDefsPackagePath",
+        "",
+        keyTypeImport(keyKind),
+        codecsImport,
+        ""
+      ) ++ standardTraitCommentLines.map("// " + _)
+
+      new PropsTraitGenerator(
+        defs = defs,
+        defGroupComments = defGroupComments,
+        headerLines = headerLines,
+        traitCommentLines = traitCommentLines,
+        traitName = traitName,
+        traitExtends = Nil,
+        traitThisType = None,
+        defType = _ => defType,
+        keyKind = keyKind,
+        keyImplName = prop => propImplName(prop.codec, implNameSuffix),
+        baseImplDefComments = baseImplDefComments,
+        baseImplName = baseImplName,
+        baseImplDef = baseImplDef,
+        transformCodecName = _ + "Codec",
         outputImplDefs = true,
         format = format
       ).printTrait().getOutput()
@@ -346,12 +392,16 @@ object DomDefsGenerator {
 
     {
       val traitName = "HtmlProps"
+      val traitNameWithParams = s"$traitName[F[_]]"
 
       val fileContent = generator.generatePropsTrait(
-        defGroups = defGroups.propDefGroups,
+        defGroups = defGroups.propDefGroups.map {
+          case (key, vals) =>
+            (key, vals.map(attr => attr.copy(scalaValueType = "F, " + attr.scalaValueType)))
+        },
         printDefGroupComments = true,
         traitCommentLines = Nil,
-        traitName = traitName,
+        traitName = traitNameWithParams,
         keyKind = "HtmlProp",
         implNameSuffix = "Prop",
         baseImplDefComments = List(
