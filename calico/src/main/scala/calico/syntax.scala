@@ -17,10 +17,13 @@
 package calico
 package syntax
 
+import cats.Functor
 import cats.data.State
 import cats.effect.kernel.Async
 import cats.effect.kernel.Concurrent
+import cats.effect.kernel.Fiber
 import cats.effect.kernel.MonadCancel
+import cats.effect.kernel.Outcome
 import cats.effect.kernel.Ref
 import cats.effect.kernel.Resource
 import cats.effect.kernel.Sync
@@ -28,21 +31,48 @@ import cats.effect.syntax.all.*
 import cats.kernel.Eq
 import cats.syntax.all.*
 import fs2.Pipe
+import fs2.Pull
 import fs2.Stream
 import fs2.concurrent.Channel
-import fs2.concurrent.Topic
 import fs2.concurrent.Signal
 import fs2.concurrent.SignallingRef
+import fs2.concurrent.Topic
+import fs2.dom.Dom
 import monocle.Lens
 import org.scalajs.dom
 
 import scala.scalajs.js
 
-extension [F[_]](component: Resource[F, dom.Node])
-  def renderInto(root: dom.Node)(using F: Sync[F]): Resource[F, Unit] =
-    component.flatMap { e =>
-      Resource.make(F.delay(root.appendChild(e)))(_ => F.delay(root.removeChild(e))).void
+extension [F[_]](component: Resource[F, fs2.dom.Node[F]])
+  def renderInto(root: fs2.dom.Node[F])(using Functor[F], Dom[F]): Resource[F, Unit] =
+    component.flatMap { e => Resource.make(root.appendChild(e))(_ => root.removeChild(e)) }
+
+extension [F[_], A](fa: F[A])
+  private[calico] def cedeBackground(
+      using F: Async[F]): Resource[F, F[Outcome[F, Throwable, A]]] =
+    F.executionContext.toResource.flatMap { ec =>
+      Resource
+        .make(F.deferred[Fiber[F, Throwable, A]])(_.get.flatMap(_.cancel))
+        .evalTap { deferred =>
+          fa.start
+            .flatMap(deferred.complete(_))
+            .evalOn(ec)
+            .startOn(unsafe.BatchingMacrotaskExecutor)
+            .start
+        }
+        .map(_.get.flatMap(_.join))
     }
+
+extension [F[_], A](signal: Signal[F, A])
+  private[calico] def getAndUpdates(using Concurrent[F]): Resource[F, (A, Stream[F, A])] =
+    // this hack makes me sad
+    Resource.eval(signal.get.tupleRight(signal.discrete.drop(1)))
+
+  def changes(using Eq[A]): Signal[F, A] =
+    new:
+      def continuous = signal.continuous
+      def discrete = signal.discrete.changes
+      def get = signal.get
 
 extension [F[_], A](sigRef: SignallingRef[F, A])
   def zoom[B <: AnyRef](lens: Lens[A, B])(using Sync[F]): SignallingRef[F, B] =
@@ -60,34 +90,9 @@ extension [F[_], A](sigRef: SignallingRef[F, A])
       def continuous = sigRef.map(lens.get).continuous
       def discrete = sigRef.map(lens.get).discrete
 
-extension [F[_], A](stream: Stream[F, A])
-  @deprecated("This is not a valid signal; use Stream#holdOptionResource instead", "0.1.1")
-  def signal(using Concurrent[F]): Resource[F, Signal[F, A]] =
-    for
-      sig <- SignallingRef[F].of(none[A]).toResource
-      _ <- stream.foreach(a => sig.set(Some(a))).compile.drain.background
-    yield new:
-      def continuous = sig.continuous.unNone
-      def discrete = sig.discrete.unNone
-      def get = discrete.head.compile.lastOrError
-
 extension [F[_], A, B](pipe: Pipe[F, A, B])
   def channel(using F: Concurrent[F]): Resource[F, Channel[F, A]] =
     for
       ch <- Channel.unbounded[F, A].toResource
       _ <- ch.stream.through(pipe).compile.drain.background
     yield ch
-
-extension [F[_]](events: Stream[F, dom.Event])
-  def mapToTargetValue(using F: Sync[F]): Stream[F, String] =
-    events
-      .map(_.target)
-      .evalMap {
-        case button: dom.HTMLButtonElement => F.delay(button.value.some)
-        case input: dom.HTMLInputElement => F.delay(input.value.some)
-        case option: dom.HTMLOptionElement => F.delay(option.value.some)
-        case select: dom.HTMLSelectElement => F.delay(select.value.some)
-        case textArea: dom.HTMLTextAreaElement => F.delay(textArea.value.some)
-        case _ => F.pure(None)
-      }
-      .unNone

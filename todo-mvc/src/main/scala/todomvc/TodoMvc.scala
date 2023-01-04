@@ -17,8 +17,8 @@
 package todomvc
 
 import calico.*
-import calico.dsl.io.*
 import calico.frp.{*, given}
+import calico.html.io.{*, given}
 import calico.router.*
 import calico.syntax.*
 import cats.data.*
@@ -38,8 +38,8 @@ import scala.collection.immutable.SortedMap
 
 object TodoMvc extends IOWebApp:
 
-  def render =
-    (TodoStore.make, Router(History[IO, Unit]).toResource).flatMapN { (store, router) =>
+  def render = (TodoStore.make, Router(Location[IO], History[IO, Unit]).toResource).flatMapN {
+    (store, router) =>
       router.dispatch {
         Routes.one[IO] {
           case uri if uri.fragment == Some("/active") => Filter.Active
@@ -53,13 +53,11 @@ object TodoMvc extends IOWebApp:
               cls := "main",
               ul(
                 cls := "todo-list",
-                children[Long](id => TodoItem(store.entry(id))) <--
-                  filter.flatMap(store.ids(_)).discrete.changes
+                children[Long](id => TodoItem(store.entry(id))) <-- filter.flatMap(store.ids(_))
               )
             ),
             store
               .size
-              .discrete
               .map(_ > 0)
               .changes
               .map(if _ then StatusBar(store.activeCount, filter, router).some else None)
@@ -67,7 +65,7 @@ object TodoMvc extends IOWebApp:
         }
 
       }
-    }
+  }
 
   def TodoInput(store: TodoStore) =
     input { self =>
@@ -77,9 +75,9 @@ object TodoMvc extends IOWebApp:
         autoFocus := true,
         onKeyDown --> {
           _.filter(_.keyCode == KeyCode.Enter)
-            .mapToTargetValue
+            .evalMap(_ => self.value.get)
             .filterNot(_.isEmpty)
-            .foreach(store.create(_) *> IO(self.value = ""))
+            .foreach(store.create(_) *> self.value.set(""))
         }
       )
     }
@@ -97,7 +95,7 @@ object TodoMvc extends IOWebApp:
           case true =>
             List(
               input { self =>
-                val endEdit = IO(self.value).flatMap { text =>
+                val endEdit = self.value.get.flatMap { text =>
                   todo.update(_.map(_.copy(text = text))) *> editing.set(false)
                 }
 
@@ -119,7 +117,11 @@ object TodoMvc extends IOWebApp:
                   typ := "checkbox",
                   checked <-- todo.map(_.fold(false)(_.completed)),
                   onInput --> {
-                    _.foreach(_ => todo.update(_.map(_.copy(completed = self.checked))))
+                    _.foreach { _ =>
+                      self.checked.get.flatMap { checked =>
+                        todo.update(_.map(_.copy(completed = checked)))
+                      }
+                    }
                   }
                 )
               },
@@ -138,7 +140,7 @@ object TodoMvc extends IOWebApp:
         activeCount.map {
           case 1 => "1 item left"
           case n => n.toString + " items left"
-        }.discrete // TODO dotty bug
+        }
       ),
       ul(
         cls := "filters",

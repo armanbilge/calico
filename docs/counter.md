@@ -2,7 +2,7 @@
 
 ```scala mdoc:js
 import calico.*
-import calico.dsl.io.*
+import calico.html.io.{*, given}
 import calico.syntax.*
 import calico.unsafe.given
 import cats.effect.*
@@ -20,17 +20,19 @@ def Counter(label: String, initialStep: Int) =
       div(
         p(
           "Step: ",
-          select(
-            allowedSteps.map(step => option(value := step.toString, step.toString)),
-            value <-- step.map(_.toString),
-            onChange --> {
-              _.mapToTargetValue.map(_.toIntOption).unNone.foreach(step.set)
-            }
-          )
+          select { self =>
+            (
+              allowedSteps.map(step => option(value := step.toString, step.toString)),
+              value <-- step.map(_.toString),
+              onChange --> {
+                _.evalMap(_ => self.value.get).map(_.toIntOption).unNone.foreach(step.set)
+              }
+            )
+          }
         ),
         p(
           label + ": ",
-          b(diff.stream.scanMonoid.map(_.toString)),
+          b(diff.stream.scanMonoid.map(_.toString).holdOptionResource),
           " ",
           button(
             "-",
@@ -51,5 +53,5 @@ val app = div(
   Counter("Sheep", initialStep = 3)
 )
 
-app.renderInto(node).allocated.unsafeRunAndForget()
+app.renderInto(node.asInstanceOf[fs2.dom.Node[IO]]).allocated.unsafeRunAndForget()
 ```

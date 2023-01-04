@@ -4,7 +4,7 @@
 
 ```scala mdoc:js
 import calico.*
-import calico.dsl.io.*
+import calico.html.io.{*, given}
 import calico.syntax.*
 import calico.unsafe.given
 import cats.effect.*
@@ -19,27 +19,26 @@ import scala.concurrent.duration.*
 val app = Stream.fixedRate[IO](1.second).as(1).scanMonoid.holdOptionResource
   .flatMap { tick =>
     div(
-      div(
-        "Tick #: ",
-        tick.discrete.unNone.map(_.toString)
-      ),
+      div("Tick #: ", tick.map(_.toString)),
       div(
         "Random #: ",
-        Stream.eval(Random.scalaUtilRandom[IO]).flatMap { random =>
-          tick.discrete.unNone.evalMap(_ => random.nextInt).map(_ % 100).map(_.toString)
+        Random.scalaUtilRandom[IO].toResource.flatMap { random =>
+          tick.discrete
+            .evalMap(_ => random.nextInt.map(i => (i % 100).toString))
+            .holdOptionResource
         }
       )
     )
   }
 
-app.renderInto(node).allocated.unsafeRunAndForget()
+app.renderInto(node.asInstanceOf[fs2.dom.Node[IO]]).allocated.unsafeRunAndForget()
 ```
 
 ## Delay
 
 ```scala mdoc:js
 import calico.*
-import calico.dsl.io.*
+import calico.html.io.{*, given}
 import calico.syntax.*
 import calico.unsafe.given
 import cats.effect.*
@@ -56,20 +55,21 @@ val app = Channel.unbounded[IO, Unit].toResource.flatMap { clickCh =>
 
   div(
     button(onClick --> (_.void.through(clickCh.sendAll)), "Click me"),
-    alert
+    alert.holdResource("")
   )
 }
 
-app.renderInto(node).allocated.unsafeRunAndForget()
+app.renderInto(node.asInstanceOf[fs2.dom.Node[IO]]).allocated.unsafeRunAndForget()
 ```
 
 ## Debounce
 
-```scala mdoc:js
+```scala
 import calico.*
-import calico.dsl.io.*
+import calico.html.io.{*, given}
 import calico.syntax.*
 import calico.unsafe.given
+import cats.data.*
 import cats.effect.*
 import cats.effect.syntax.all.*
 import cats.syntax.all.*
@@ -89,21 +89,23 @@ val app = Channel.unbounded[IO, String].toResource.flatMap { emailCh =>
     div(
       span(
         label("Your email: "),
-        input(onInput --> (_.mapToTargetValue.through(emailCh.sendAll)))
+        input { self =>
+          onInput --> (_.evalMap(_ => self.value.get).through(emailCh.sendAll))
+        }
       ),
       span(
-        cls <-- validatedSig.discrete.unNone.map {
+        cls <-- Nested(validatedSig).map {
           case Left(_) => List("-error")
           case Right(_) => List("-success")
-        },
-        validatedSig.discrete.unNone.map {
+        }.value,
+        Nested(validatedSig).map {
           case Left(err) => s"Error: $err"
           case Right(()) => "Email ok!"
-        }
+        }.value
       )
     )
   }
 }
 
-app.renderInto(node).allocated.unsafeRunAndForget()
+app.renderInto(node.asInstanceOf[fs2.dom.Node[IO]]).allocated.unsafeRunAndForget()
 ```
