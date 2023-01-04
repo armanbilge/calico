@@ -23,7 +23,9 @@ val app = Stream.fixedRate[IO](1.second).as(1).scanMonoid.holdOptionResource
       div(
         "Random #: ",
         Random.scalaUtilRandom[IO].toResource.flatMap { random =>
-          tick.evalMap(_ => random.nextInt).map(_ % 100).map(_.toString)
+          tick.discrete
+            .evalMap(_ => random.nextInt.map(i => (i % 100).toString))
+            .holdOptionResource
         }
       )
     )
@@ -53,7 +55,7 @@ val app = Channel.unbounded[IO, Unit].toResource.flatMap { clickCh =>
 
   div(
     button(onClick --> (_.void.through(clickCh.sendAll)), "Click me"),
-    alert.hold("")
+    alert.holdResource("")
   )
 }
 
@@ -62,7 +64,7 @@ app.renderInto(node.asInstanceOf[fs2.dom.Node[IO]]).allocated.unsafeRunAndForget
 
 ## Debounce
 
-```scala mdoc:js
+```scala
 import calico.*
 import calico.html.io.{*, given}
 import calico.syntax.*
