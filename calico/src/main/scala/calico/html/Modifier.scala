@@ -8,6 +8,7 @@ import cats.effect.syntax.all.*
 import cats.Foldable
 import cats.syntax.all.*
 import fs2.concurrent.Signal
+import fs2.Stream
 import org.scalajs.dom
 
 trait Modifier[F[_], E, A]:
@@ -106,3 +107,25 @@ trait Modifiers[F[_]](using F: Async[F]):
     Resource.eval(F.delay(Resource.pure[F, dom.Node](dom.document.createComment("")))).flatMap {
       sentinel => _forNodeSignal.modify(n2s.map(_.getOrElse(sentinel)), n)
     }
+
+  // TODO implement without Async
+  given forStringStream[F[_] : fs2.dom.Dom, E <: fs2.dom.Node[F]](
+      using F: Async[F]): Modifier[F, E, Stream[F, String]] with
+    def modify(s: Stream[F, String], e: E) = for
+      n <- F
+        .delay(dom.document.createTextNode(""))
+        .flatTap(n => F.delay(e.appendChild(n.asInstanceOf[fs2.dom.Node[F]])))
+        .toResource
+      _ <- s.foreach(t => F.delay(n.textContent = t)).compile.drain.background
+    yield ()
+
+  // TODO implement without Async
+  given forOptionStringStream[F[_] : fs2.dom.Dom, E <: fs2.dom.Node[F]](
+      using F: Async[F]): Modifier[F, E, Stream[F, Option[String]]] with
+    def modify(s: Stream[F, Option[String]], e: E) = for
+      n <- F
+        .delay(dom.document.createTextNode(""))
+        .flatTap(n => F.delay(e.appendChild(n.asInstanceOf[fs2.dom.Node[F]])))
+        .toResource
+      _ <- s.foreach(t => F.delay(n.textContent = t.getOrElse(""))).compile.drain.background
+    yield ()

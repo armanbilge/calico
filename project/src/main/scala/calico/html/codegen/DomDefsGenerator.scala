@@ -37,7 +37,7 @@ object DomDefsGenerator {
 
     override def scalaJsElementTypeParam: String = "Ref"
 
-    override val baseScalaJsHtmlElementType: String = "Element[F]"
+    override val baseScalaJsHtmlElementType: String = "HtmlElement[F]"
 
     override def generateTagsTrait(
         tagType: TagType,
@@ -255,7 +255,7 @@ object DomDefsGenerator {
     // -- HTML tags --
 
     {
-      val traitName = "HtmlTagBuilder"
+      val traitName = "HtmlTags"
       val traitNameWithParams = s"$traitName[F[_], T[_ <: HtmlElement[F]]]"
 
       val fileContent = generator.generateTagsTrait(
@@ -548,68 +548,68 @@ object DomDefsGenerator {
 
     // -- Style props --
 
-    {
-      val traitName = "StyleProps"
+    //{
+      //val traitName = "StyleProps"
 
-      val fileContent = generator.generateStylePropsTrait(
-        defSources = defGroups.stylePropDefGroups,
-        printDefGroupComments = true,
-        traitCommentLines = Nil,
-        traitName = traitName,
-        keyKind = "StyleProp",
-        keyKindAlias = "StyleProp",
-        setterType = "StyleSetter",
-        setterTypeAlias = "SS",
-        derivedKeyKind = "DerivedStyleProp",
-        derivedKeyKindAlias = "DSP",
-        baseImplDefComments = List(
-          "Create custom CSS property",
-          "",
-          "@param key - name of CSS property, e.g. \"font-weight\"",
-          "",
-          "@tparam V  - type of values recognized by JS for this property, e.g. Int",
-          "             Note: String is always allowed regardless of the type you put here.",
-          "             If unsure, use String type as V."
-        ),
-        baseImplName = "styleProp",
-        defType = LazyVal,
-        lengthUnitsNumType = "Int",
-        outputUnitTraits = true
-      )
+      //val fileContent = generator.generateStylePropsTrait(
+        //defSources = defGroups.stylePropDefGroups,
+        //printDefGroupComments = true,
+        //traitCommentLines = Nil,
+        //traitName = traitName,
+        //keyKind = "StyleProp",
+        //keyKindAlias = "StyleProp",
+        //setterType = "StyleSetter",
+        //setterTypeAlias = "SS",
+        //derivedKeyKind = "DerivedStyleProp",
+        //derivedKeyKindAlias = "DSP",
+        //baseImplDefComments = List(
+          //"Create custom CSS property",
+          //"",
+          //"@param key - name of CSS property, e.g. \"font-weight\"",
+          //"",
+          //"@tparam V  - type of values recognized by JS for this property, e.g. Int",
+          //"             Note: String is always allowed regardless of the type you put here.",
+          //"             If unsure, use String type as V."
+        //),
+        //baseImplName = "styleProp",
+        //defType = LazyVal,
+        //lengthUnitsNumType = "Int",
+        //outputUnitTraits = true
+      //)
 
-      generator.writeToFile(
-        packagePath = generator.stylePropDefsPackagePath,
-        fileName = traitName,
-        fileContent = fileContent
-      )
-    }
+      //generator.writeToFile(
+        //packagePath = generator.stylePropDefsPackagePath,
+        //fileName = traitName,
+        //fileContent = fileContent
+      //)
+    //}
 
     // -- Style keyword traits
 
-    {
-      StyleTraitDefs.defs.foreach { styleTrait =>
-        val fileContent = generator.generateStyleKeywordsTrait(
-          defSources = styleTrait.keywordDefGroups,
-          printDefGroupComments = styleTrait.keywordDefGroups.length > 1,
-          traitCommentLines = Nil,
-          traitName = styleTrait.scalaName.replace("[_]", ""),
-          extendsTraits = styleTrait.extendsTraits.map(_.replace("[_]", "")),
-          extendsUnitTraits = styleTrait.extendsUnits,
-          propKind = "StyleProp",
-          keywordType = "StyleSetter",
-          derivedKeyKind = "DerivedStyleProp",
-          lengthUnitsNumType = "Int",
-          defType = LazyVal,
-          outputUnitTypes = true,
-          allowSuperCallInOverride = false // can't access lazy val from `super`
-        )
+    //{
+      //StyleTraitDefs.defs.foreach { styleTrait =>
+        //val fileContent = generator.generateStyleKeywordsTrait(
+          //defSources = styleTrait.keywordDefGroups,
+          //printDefGroupComments = styleTrait.keywordDefGroups.length > 1,
+          //traitCommentLines = Nil,
+          //traitName = styleTrait.scalaName.replace("[_]", ""),
+          //extendsTraits = styleTrait.extendsTraits.map(_.replace("[_]", "")),
+          //extendsUnitTraits = styleTrait.extendsUnits,
+          //propKind = "StyleProp",
+          //keywordType = "StyleSetter",
+          //derivedKeyKind = "DerivedStyleProp",
+          //lengthUnitsNumType = "Int",
+          //defType = LazyVal,
+          //outputUnitTypes = true,
+          //allowSuperCallInOverride = false // can't access lazy val from `super`
+        //)
 
-        generator.writeToFile(
-          packagePath = generator.styleTraitsPackagePath(),
-          fileName = styleTrait.scalaName.replace("[_]", ""),
-          fileContent = fileContent
-        )
-      }
-    }
+        //generator.writeToFile(
+          //packagePath = generator.styleTraitsPackagePath(),
+          //fileName = styleTrait.scalaName.replace("[_]", ""),
+          //fileContent = fileContent
+        //)
+      //}
+    //}
   }
 }
