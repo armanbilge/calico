@@ -1,8 +1,13 @@
 package calico.html.keys
 
 import calico.html.codecs.Codec
+import calico.html.Modifier
+import calico.syntax.*
 import cats.effect.kernel.Async
+import cats.effect.kernel.Resource
+import cats.syntax.all.*
 import fs2.concurrent.Signal
+import org.scalajs.dom
 
 final class HtmlAttr[F[_], V] private[calico] (key: String, codec: Codec[V, String]):
   import HtmlAttr.*
