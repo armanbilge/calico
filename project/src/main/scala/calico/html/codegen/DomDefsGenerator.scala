@@ -1,3 +1,5 @@
+package calico.html.codegen
+
 import com.raquo.domtypes.codegen.DefType.LazyVal
 import com.raquo.domtypes.codegen.{
   CanonicalCache,
@@ -32,6 +34,8 @@ object DomDefsGenerator {
 
     override def scalaJsElementTypeParam: String = "Ref"
 
+    override val baseScalaJsHtmlElementType: String = "Element[F]"
+
     override def generateTagsTrait(
         tagType: TagType,
         defGroups: List[(String, List[common.TagDef])],
@@ -44,22 +48,21 @@ object DomDefsGenerator {
         defType: DefType): String = {
       val (defs, defGroupComments) = defsAndGroupComments(defGroups, printDefGroupComments)
 
-      val baseImplDef = if(tagType == HtmlTagType) {
+      val baseImplDef = if (tagType == HtmlTagType) {
         List(
           s"def ${keyImplName}[$scalaJsElementTypeParam <: $baseScalaJsHtmlElementType](key: String, void: Boolean = false): ${keyKind}[$scalaJsElementTypeParam]"
         )
       } else {
         List(
-          s"def ${keyImplName}[$scalaJsElementTypeParam <: $baseScalaJsSvgElementType](key: String): ${keyKind}[$scalaJsElementTypeParam] = ${keyKindConstructor(keyKind)}(key)",
+          s"def ${keyImplName}[$scalaJsElementTypeParam <: $baseScalaJsSvgElementType](key: String): ${keyKind}[$scalaJsElementTypeParam] = ${keyKindConstructor(keyKind)}(key)"
         )
       }
 
       val headerLines = List(
         s"package $tagDefsPackagePath",
         "",
-        //tagKeyTypeImport(keyKind),
-        scalaJsDomImport,
-        "",
+        "import fs2.dom._",
+        ""
       ) ++ standardTraitCommentLines.map("// " + _)
 
       new TagsTraitGenerator(
@@ -71,7 +74,7 @@ object DomDefsGenerator {
         traitExtends = Nil,
         traitThisType = None,
         defType = _ => defType,
-        keyType = tag => keyKind + "[" + tag.scalaJsElementType + "]",
+        keyType = tag => keyKind + "[" + TagDefMapper.extractFs2DomElementType(tag) + "]",
         keyImplName = _ => keyImplName,
         baseImplDefComments = baseImplDefComments,
         baseImplDef = baseImplDef,
@@ -97,11 +100,14 @@ object DomDefsGenerator {
 
     {
       val traitName = "HtmlTagBuilder"
-      val traitNameWithParams = s"$traitName[T[_ <: DomHtmlElement], -DomHtmlElement]"
+      val traitNameWithParams = s"$traitName[F[_], T[_ <: DomHtmlElement], -DomHtmlElement]"
 
       val fileContent = generator.generateTagsTrait(
         tagType = HtmlTagType,
-        defGroups = defGroups.htmlTagsDefGroups,
+        //TODO introduce HTMLDialogElement to fs2-dom
+        defGroups = defGroups.htmlTagsDefGroups.map {
+          case (key, list) => (key, list.filter(_.javascriptElementType == "HTMLDialogElement"))
+        },
         printDefGroupComments = true,
         traitCommentLines = Nil,
         traitName = traitNameWithParams,

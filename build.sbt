@@ -1,3 +1,5 @@
+import _root_.calico.html.codegen.DomDefsGenerator
+
 ThisBuild / tlBaseVersion := "0.2"
 
 ThisBuild / organization := "com.armanbilge"
