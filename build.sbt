@@ -22,7 +22,7 @@ ThisBuild / resolvers ++= Resolver.sonatypeOssRepos("snapshots")
 val CatsVersion = "2.9.0"
 val CatsEffectVersion = "3.4.4"
 val Fs2Version = "3.4.0"
-val Fs2DomVersion = "0.1-d92ea1c-SNAPSHOT"
+val Fs2DomVersion = "0.1.0"
 val MonocleVersion = "3.2.0"
 
 lazy val root =
