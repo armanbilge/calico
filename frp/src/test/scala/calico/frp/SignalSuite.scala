@@ -32,10 +32,16 @@ import munit.DisciplineSuite
 import org.scalacheck.Arbitrary
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen
+import org.scalacheck.rng.Seed
 
+import java.util.Base64
 import scala.concurrent.duration.*
 
 class SignalSuite extends DisciplineSuite, TestInstances:
+
+  def testControlSeed =
+    val bytes = Seed.fromBase64(scalaCheckInitialSeed).get.long._1.toString.getBytes()
+    new String(Base64.getEncoder().encode(bytes))
 
   override def scalaCheckTestParameters =
     if sys.props("java.vm.name").contains("Scala.js") then
@@ -81,7 +87,8 @@ class SignalSuite extends DisciplineSuite, TestInstances:
           .evalMap(x => ref.update(x :: _))
           .compile
           .drain
-          .timeoutTo(Long.MaxValue.nanos, IO.unit)
+          .timeoutTo(Long.MaxValue.nanos, IO.unit),
+        seed = Some(testControlSeed)
       ) *> ref.get.map(_.distinctBy(_._2))
     }
   }

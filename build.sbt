@@ -2,6 +2,7 @@ ThisBuild / tlBaseVersion := "0.2"
 
 ThisBuild / organization := "com.armanbilge"
 ThisBuild / organizationName := "Arman Bilge"
+ThisBuild / startYear := Some(2022)
 ThisBuild / developers := List(
   tlGitHubDev("armanbilge", "Arman Bilge")
 )
@@ -10,16 +11,16 @@ ThisBuild / tlCiReleaseBranches ++= Seq("series/0.1")
 ThisBuild / tlSitePublishBranch := Some("series/0.1")
 ThisBuild / tlSonatypeUseLegacyHost := false
 
-ThisBuild / crossScalaVersions := Seq("3.2.0")
+ThisBuild / crossScalaVersions := Seq("3.2.1")
 ThisBuild / scalacOptions ++= Seq("-new-syntax", "-indent", "-source:future")
 
 ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17"))
 ThisBuild / tlJdkRelease := Some(8)
 
-val CatsVersion = "2.8.0"
-val CatsEffectVersion = "3.4.0-RC2"
-val Fs2Version = "3.3.0"
-val Fs2DomVersion = "0.1.0-M1"
+val CatsVersion = "2.9.0"
+val CatsEffectVersion = "3.4.4"
+val Fs2Version = "3.4.0"
+val Fs2DomVersion = "0.1.0"
 val MonocleVersion = "3.1.0"
 
 lazy val root =
@@ -49,7 +50,7 @@ lazy val calico = project
     name := "calico",
     libraryDependencies ++= Seq(
       "com.armanbilge" %%% "fs2-dom" % Fs2DomVersion,
-      "org.typelevel" %%% "shapeless3-deriving" % "3.2.0",
+      "org.typelevel" %%% "shapeless3-deriving" % "3.3.0",
       "dev.optics" %%% "monocle-core" % MonocleVersion,
       "com.raquo" %%% "domtypes" % "0.16.0-RC3",
       "org.scala-js" %%% "scalajs-dom" % "2.3.0"
@@ -65,7 +66,7 @@ lazy val router = project
     tlVersionIntroduced := Map("3" -> "0.1.2"),
     libraryDependencies ++= Seq(
       "com.armanbilge" %%% "fs2-dom" % Fs2DomVersion,
-      "org.http4s" %%% "http4s-core" % "0.23.16"
+      "org.http4s" %%% "http4s-core" % "0.23.17"
     )
   )
 
