@@ -1,25 +1,84 @@
 import com.raquo.domtypes.codegen.DefType.LazyVal
-import com.raquo.domtypes.codegen.{CanonicalCache, CanonicalDefGroups, CanonicalGenerator, CodeFormatting, SourceRepr}
+import com.raquo.domtypes.codegen.{
+  CanonicalCache,
+  CanonicalDefGroups,
+  CanonicalGenerator,
+  CodeFormatting,
+  SourceRepr
+}
+import com.raquo.domtypes.codegen.DefType
+import com.raquo.domtypes.codegen.generators.TagsTraitGenerator
+import com.raquo.domtypes.common
+import com.raquo.domtypes.common.TagType
 import com.raquo.domtypes.common.{HtmlTagType, SvgTagType}
 import com.raquo.domtypes.defs.styles.StyleTraitDefs
 
 object DomDefsGenerator {
 
-  private object generator extends CanonicalGenerator(
-    baseOutputDirectoryPath = "calico/src/main/scala/calico/html",
-    basePackagePath = "calico.html",
-    standardTraitCommentLines = List(
-      "#NOTE: GENERATED CODE",
-      s" - This file is generated at compile time from the data in Scala DOM Types",
-      " - See `project/DomDefsGenerator.scala` for code generation params",
-      " - Contribute to https://github.com/raquo/scala-dom-types to add missing tags / attrs / props / etc.",
-    ),
-    format = CodeFormatting()
-  ) {
+  private object generator
+      extends CanonicalGenerator(
+        baseOutputDirectoryPath = "calico/src/main/scala/calico/html",
+        basePackagePath = "calico.html",
+        standardTraitCommentLines = List(
+          "#NOTE: GENERATED CODE",
+          s" - This file is generated at compile time from the data in Scala DOM Types",
+          " - See `project/DomDefsGenerator.scala` for code generation params",
+          " - Contribute to https://github.com/raquo/scala-dom-types to add missing tags / attrs / props / etc."
+        ),
+        format = CodeFormatting()
+      ) {
 
     override def settersPackagePath: String = basePackagePath + ".modifiers.KeySetter"
 
     override def scalaJsElementTypeParam: String = "Ref"
+
+    override def generateTagsTrait(
+        tagType: TagType,
+        defGroups: List[(String, List[common.TagDef])],
+        printDefGroupComments: Boolean,
+        traitCommentLines: List[String],
+        traitName: String,
+        keyKind: String,
+        baseImplDefComments: List[String],
+        keyImplName: String,
+        defType: DefType): String = {
+      val (defs, defGroupComments) = defsAndGroupComments(defGroups, printDefGroupComments)
+
+      val baseImplDef = if(tagType == HtmlTagType) {
+        List(
+          s"def ${keyImplName}[$scalaJsElementTypeParam <: $baseScalaJsHtmlElementType](key: String, void: Boolean = false): ${keyKind}[$scalaJsElementTypeParam]"
+        )
+      } else {
+        List(
+          s"def ${keyImplName}[$scalaJsElementTypeParam <: $baseScalaJsSvgElementType](key: String): ${keyKind}[$scalaJsElementTypeParam] = ${keyKindConstructor(keyKind)}(key)",
+        )
+      }
+
+      val headerLines = List(
+        s"package $tagDefsPackagePath",
+        "",
+        //tagKeyTypeImport(keyKind),
+        scalaJsDomImport,
+        "",
+      ) ++ standardTraitCommentLines.map("// " + _)
+
+      new TagsTraitGenerator(
+        defs = defs,
+        defGroupComments = defGroupComments,
+        headerLines = headerLines,
+        traitCommentLines = traitCommentLines,
+        traitName = traitName,
+        traitExtends = Nil,
+        traitThisType = None,
+        defType = _ => defType,
+        keyType = tag => keyKind + "[" + tag.scalaJsElementType + "]",
+        keyImplName = _ => keyImplName,
+        baseImplDefComments = baseImplDefComments,
+        baseImplDef = baseImplDef,
+        outputImplDefs = true,
+        format = format
+      ).printTrait().getOutput()
+    }
   }
 
   private val cache = new CanonicalCache("project")
@@ -37,15 +96,16 @@ object DomDefsGenerator {
     // -- HTML tags --
 
     {
-      val traitName = "HtmlTags"
+      val traitName = "HtmlTagBuilder"
+      val traitNameWithParams = s"$traitName[T[_ <: DomHtmlElement], -DomHtmlElement]"
 
       val fileContent = generator.generateTagsTrait(
         tagType = HtmlTagType,
         defGroups = defGroups.htmlTagsDefGroups,
         printDefGroupComments = true,
         traitCommentLines = Nil,
-        traitName = traitName,
-        keyKind = "HtmlTag",
+        traitName = traitNameWithParams,
+        keyKind = "T",
         baseImplDefComments = List(
           "Create HTML tag",
           "",
@@ -119,7 +179,7 @@ object DomDefsGenerator {
           "@param key   - name of the attribute, e.g. \"value\"",
           "@param codec - used to encode V into String, e.g. StringAsIsCodec",
           "",
-          "@tparam V    - value type for this attr in Scala",
+          "@tparam V    - value type for this attr in Scala"
         ),
         baseImplName = "htmlAttr",
         namespaceImports = Nil,
@@ -152,7 +212,7 @@ object DomDefsGenerator {
           "@param key   - name of the attribute, e.g. \"value\"",
           "@param codec - used to encode V into String, e.g. StringAsIsCodec",
           "",
-          "@tparam V    - value type for this attr in Scala",
+          "@tparam V    - value type for this attr in Scala"
         ),
         implNameSuffix = "SvgAttr",
         baseImplName = "svgAttr",
@@ -195,7 +255,7 @@ object DomDefsGenerator {
           "@param key   - suffix of the attribute, without \"aria-\" prefix, e.g. \"labelledby\"",
           "@param codec - used to encode V into String, e.g. StringAsIsCodec",
           "",
-          "@tparam V    - value type for this attr in Scala",
+          "@tparam V    - value type for this attr in Scala"
         ),
         baseImplName = "ariaAttr",
         namespaceImports = Nil,
@@ -230,7 +290,7 @@ object DomDefsGenerator {
           "@param codec - used to encode V into DomV, e.g. StringAsIsCodec,",
           "",
           "@tparam V    - value type for this prop in Scala",
-          "@tparam DomV - value type for this prop in the underlying JS DOM.",
+          "@tparam DomV - value type for this prop in the underlying JS DOM."
         ),
         baseImplName = "htmlProp",
         defType = LazyVal
@@ -266,7 +326,7 @@ object DomDefsGenerator {
             "",
             "@param key - event type in JS, e.g. \"click\"",
             "",
-            "@tparam Ev - event type in JS, e.g. dom.MouseEvent",
+            "@tparam Ev - event type in JS, e.g. dom.MouseEvent"
           ),
           outputBaseImpl = true,
           keyKind = "EventProp",
@@ -281,26 +341,27 @@ object DomDefsGenerator {
         )
       }
 
-      subTraits.foreach { case (traitName, eventPropsDefGroups) =>
-        val fileContent = generator.generateEventPropsTrait(
-          defSources = eventPropsDefGroups,
-          printDefGroupComments = true,
-          traitCommentLines = List(eventPropsDefGroups.head._1),
-          traitName = traitName,
-          traitExtends = Nil,
-          traitThisType = Some(baseTraitName),
-          baseImplDefComments = Nil,
-          outputBaseImpl = false,
-          keyKind = "EventProp",
-          keyImplName = "eventProp",
-          defType = LazyVal
-        )
+      subTraits.foreach {
+        case (traitName, eventPropsDefGroups) =>
+          val fileContent = generator.generateEventPropsTrait(
+            defSources = eventPropsDefGroups,
+            printDefGroupComments = true,
+            traitCommentLines = List(eventPropsDefGroups.head._1),
+            traitName = traitName,
+            traitExtends = Nil,
+            traitThisType = Some(baseTraitName),
+            baseImplDefComments = Nil,
+            outputBaseImpl = false,
+            keyKind = "EventProp",
+            keyImplName = "eventProp",
+            defType = LazyVal
+          )
 
-        generator.writeToFile(
-          packagePath = generator.eventPropDefsPackagePath,
-          fileName = traitName,
-          fileContent = fileContent
-        )
+          generator.writeToFile(
+            packagePath = generator.eventPropDefsPackagePath,
+            fileName = traitName,
+            fileContent = fileContent
+          )
       }
     }
 
@@ -327,7 +388,7 @@ object DomDefsGenerator {
           "",
           "@tparam V  - type of values recognized by JS for this property, e.g. Int",
           "             Note: String is always allowed regardless of the type you put here.",
-          "             If unsure, use String type as V.",
+          "             If unsure, use String type as V."
         ),
         baseImplName = "styleProp",
         defType = LazyVal,
@@ -370,5 +431,4 @@ object DomDefsGenerator {
       }
     }
   }
-
 }
