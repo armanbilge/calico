@@ -9,7 +9,7 @@ import org.scalajs.dom
 //  - Contribute to https://github.com/raquo/scala-dom-types to add missing tags / attrs / props / etc.
 
 /** Window-only Events */
-trait WindowEventProps { this: GlobalEventProps =>
+trait WindowEventProps[F[_]] { this: GlobalEventProps[F] =>
 
 
 
@@ -22,7 +22,7 @@ trait WindowEventProps { this: GlobalEventProps =>
     * 
     * @see https://developer.mozilla.org/en-US/docs/Web/API/Window/afterprint_event
     */
-  lazy val onAfterPrint: EventProp[dom.Event] = eventProp("afterprint")
+  lazy val onAfterPrint: EventProp[F, dom.Event] = eventProp("afterprint")
 
 
   /**
@@ -30,7 +30,7 @@ trait WindowEventProps { this: GlobalEventProps =>
     * 
     * @see https://developer.mozilla.org/en-US/docs/Web/API/Window/beforeprint_event
     */
-  lazy val onBeforePrint: EventProp[dom.Event] = eventProp("beforeprint")
+  lazy val onBeforePrint: EventProp[F, dom.Event] = eventProp("beforeprint")
 
 
   /**
@@ -39,7 +39,7 @@ trait WindowEventProps { this: GlobalEventProps =>
     * @see https://developer.mozilla.org/en-US/docs/Web/API/Window/beforeunload_event
     * @see https://developer.mozilla.org/en-US/docs/Web/API/BeforeUnloadEvent
     */
-  lazy val onBeforeUnload: EventProp[dom.BeforeUnloadEvent] = eventProp("beforeunload")
+  lazy val onBeforeUnload: EventProp[F, dom.BeforeUnloadEvent] = eventProp("beforeunload")
 
 
   /**
@@ -48,7 +48,7 @@ trait WindowEventProps { this: GlobalEventProps =>
     * @see https://developer.mozilla.org/en-US/docs/Web/API/Window/hashchange_event
     * @see https://developer.mozilla.org/en-US/docs/Web/API/HashChangeEvent
     */
-  lazy val onHashChange: EventProp[dom.HashChangeEvent] = eventProp("hashchange")
+  lazy val onHashChange: EventProp[F, dom.HashChangeEvent] = eventProp("hashchange")
 
 
   /**
@@ -57,7 +57,7 @@ trait WindowEventProps { this: GlobalEventProps =>
     * @see https://developer.mozilla.org/en-US/docs/Web/API/Window/message_event
     * @see https://developer.mozilla.org/en-US/docs/Web/API/MessageEvent
     */
-  lazy val onMessage: EventProp[dom.MessageEvent] = eventProp("message")
+  lazy val onMessage: EventProp[F, dom.MessageEvent] = eventProp("message")
 
 
   /**
@@ -67,7 +67,7 @@ trait WindowEventProps { this: GlobalEventProps =>
     * @see https://developer.mozilla.org/en-US/docs/Web/API/Window/messageerror_event
     * @see https://developer.mozilla.org/en-US/docs/Web/API/MessageEvent
     */
-  lazy val onMessageError: EventProp[dom.MessageEvent] = eventProp("messageerror")
+  lazy val onMessageError: EventProp[F, dom.MessageEvent] = eventProp("messageerror")
 
 
   /**
@@ -75,7 +75,7 @@ trait WindowEventProps { this: GlobalEventProps =>
     * 
     * @see https://developer.mozilla.org/en-US/docs/Web/API/Window/offline_event
     */
-  lazy val onOffline: EventProp[dom.Event] = eventProp("offline")
+  lazy val onOffline: EventProp[F, dom.Event] = eventProp("offline")
 
 
   /**
@@ -83,7 +83,7 @@ trait WindowEventProps { this: GlobalEventProps =>
     * 
     * @see https://developer.mozilla.org/en-US/docs/Web/API/Window/online_event
     */
-  lazy val onOnline: EventProp[dom.Event] = eventProp("online")
+  lazy val onOnline: EventProp[F, dom.Event] = eventProp("online")
 
 
   /**
@@ -92,7 +92,7 @@ trait WindowEventProps { this: GlobalEventProps =>
     * @see https://developer.mozilla.org/en-US/docs/Web/API/Window/pagehide_event
     * @see https://developer.mozilla.org/en-US/docs/Web/API/PageTransitionEvent
     */
-  lazy val onPageHide: EventProp[dom.PageTransitionEvent] = eventProp("pagehide")
+  lazy val onPageHide: EventProp[F, dom.PageTransitionEvent] = eventProp("pagehide")
 
 
   /**
@@ -101,7 +101,7 @@ trait WindowEventProps { this: GlobalEventProps =>
     * @see https://developer.mozilla.org/en-US/docs/Web/API/Window/pageshow_event
     * @see https://developer.mozilla.org/en-US/docs/Web/API/PageTransitionEvent
     */
-  lazy val onPageShow: EventProp[dom.PageTransitionEvent] = eventProp("pageshow")
+  lazy val onPageShow: EventProp[F, dom.PageTransitionEvent] = eventProp("pageshow")
 
 
   /**
@@ -110,7 +110,7 @@ trait WindowEventProps { this: GlobalEventProps =>
     * @see https://developer.mozilla.org/en-US/docs/Web/API/Window/popstate_event
     * @see https://developer.mozilla.org/en-US/docs/Web/API/PopStateEvent
     */
-  lazy val onPopState: EventProp[dom.PopStateEvent] = eventProp("popstate")
+  lazy val onPopState: EventProp[F, dom.PopStateEvent] = eventProp("popstate")
 
 
   /**
@@ -119,7 +119,7 @@ trait WindowEventProps { this: GlobalEventProps =>
     * @see https://developer.mozilla.org/en-US/docs/Web/API/Window/storage_event
     * @see https://developer.mozilla.org/en-US/docs/Web/API/StorageEvent
     */
-  lazy val onStorage: EventProp[dom.StorageEvent] = eventProp("storage")
+  lazy val onStorage: EventProp[F, dom.StorageEvent] = eventProp("storage")
 
 
   /**
@@ -128,7 +128,7 @@ trait WindowEventProps { this: GlobalEventProps =>
     * @see https://developer.mozilla.org/en-US/docs/Web/API/Window/unload_event
     * @see https://developer.mozilla.org/en-US/docs/Web/API/UIEvent
     */
-  lazy val onUnload: EventProp[dom.UIEvent] = eventProp("unload")
+  lazy val onUnload: EventProp[F, dom.UIEvent] = eventProp("unload")
 
 
 }

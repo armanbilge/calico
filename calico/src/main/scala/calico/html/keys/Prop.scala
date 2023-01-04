@@ -5,6 +5,8 @@ import calico.html.Modifier
 import cats.effect.kernel.Async
 import cats.effect.kernel.Resource
 import fs2.concurrent.Signal
+import fs2.Pipe
+import org.scalajs.dom
 import scala.scalajs.js
 
 sealed class HtmlProp[F[_], V, J] private[calico] (name: String, codec: Codec[V, J]):
@@ -72,3 +74,17 @@ trait HtmlPropModifiers[F[_]](using F: Async[F]):
           oany.fold(dict -= osm.name)(v => dict(osm.name) = osm.codec.encode(v))
           ()
         })(_.values)
+
+final class EventProp[F[_], E] private[calico] (key: String):
+  import EventProp.*
+  inline def -->(sink: Pipe[F, E, Nothing]): PipeModifier[F, E] = PipeModifier(key, sink)
+
+object EventProp:
+  final class PipeModifier[F[_], E](val key: String, val sink: Pipe[F, E, Nothing])
+
+trait EventPropModifiers[F[_]](using F: Async[F]):
+  import EventProp.*
+  inline given forPipeEventProp[T <: fs2.dom.Node[F], E]: Modifier[F, T, PipeModifier[F, E]] =
+    _forPipeEventProp.asInstanceOf[Modifier[F, T, PipeModifier[F, E]]]
+  private val _forPipeEventProp: Modifier[F, dom.EventTarget, PipeModifier[F, Any]] =
+    (m, t) => fs2.dom.events(t, m.key).through(m.sink).compile.drain.cedeBackground.void

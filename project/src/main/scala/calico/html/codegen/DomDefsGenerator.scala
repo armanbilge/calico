@@ -10,6 +10,7 @@ import com.raquo.domtypes.codegen.{
 }
 import com.raquo.domtypes.codegen.DefType
 import com.raquo.domtypes.codegen.generators.AttrsTraitGenerator
+import com.raquo.domtypes.codegen.generators.EventPropsTraitGenerator
 import com.raquo.domtypes.codegen.generators.PropsTraitGenerator
 import com.raquo.domtypes.codegen.generators.TagsTraitGenerator
 import com.raquo.domtypes.common
@@ -185,6 +186,54 @@ object DomDefsGenerator {
         baseImplName = baseImplName,
         baseImplDef = baseImplDef,
         transformCodecName = _ + "Codec",
+        outputImplDefs = true,
+        format = format
+      ).printTrait().getOutput()
+    }
+
+    override def generateEventPropsTrait(
+        defSources: List[(String, List[common.EventPropDef])],
+        printDefGroupComments: Boolean,
+        traitCommentLines: List[String],
+        traitName: String,
+        traitExtends: List[String],
+        traitThisType: Option[String],
+        baseImplDefComments: List[String],
+        outputBaseImpl: Boolean,
+        keyKind: String,
+        keyImplName: String,
+        defType: DefType): String = {
+      val (defs, defGroupComments) = defsAndGroupComments(defSources, printDefGroupComments)
+
+      val baseImplDef = if (outputBaseImpl)
+        List(
+          s"def ${keyImplName}[Ev <: ${baseScalaJsEventType}](key: String): ${keyKind}[F, Ev] = ${keyKindConstructor(keyKind)}(key)"
+        )
+      else {
+        Nil
+      }
+
+      val headerLines = List(
+        s"package $eventPropDefsPackagePath",
+        "",
+        keyTypeImport(keyKind),
+        scalaJsDomImport,
+        ""
+      ) ++ standardTraitCommentLines.map("// " + _)
+
+      new EventPropsTraitGenerator(
+        defs = defs,
+        defGroupComments = defGroupComments,
+        headerLines = headerLines,
+        traitCommentLines = traitCommentLines,
+        traitName = traitName,
+        traitExtends = traitExtends,
+        traitThisType = traitThisType,
+        defType = _ => defType,
+        keyKind = keyKind,
+        keyImplName = _ => keyImplName,
+        baseImplDefComments = baseImplDefComments,
+        baseImplDef = baseImplDef,
         outputImplDefs = true,
         format = format
       ).printTrait().getOutput()
@@ -428,18 +477,24 @@ object DomDefsGenerator {
 
     {
       val baseTraitName = "GlobalEventProps"
+      val baseTraitNameWithParams = s"$baseTraitName[F[_]]"
 
       val subTraits = List(
-        "WindowEventProps" -> defGroups.windowEventPropDefGroups,
-        "DocumentEventProps" -> defGroups.documentEventPropDefGroups
+        ("WindowEventProps", "WindowEventProps[F[_]]", defGroups.windowEventPropDefGroups),
+        ("DocumentEventProps", "DocumentEventProps[F[_]]", defGroups.documentEventPropDefGroups)
       )
 
       {
         val fileContent = generator.generateEventPropsTrait(
-          defSources = defGroups.globalEventPropDefGroups,
+          defSources = defGroups.globalEventPropDefGroups.map {
+            case (key, vals) =>
+              (
+                key,
+                vals.map(attr => attr.copy(scalaJsEventType = "F, " + attr.scalaJsEventType)))
+          },
           printDefGroupComments = true,
           traitCommentLines = Nil,
-          traitName = baseTraitName,
+          traitName = baseTraitNameWithParams,
           traitExtends = Nil,
           traitThisType = None,
           baseImplDefComments = List(
@@ -463,14 +518,19 @@ object DomDefsGenerator {
       }
 
       subTraits.foreach {
-        case (traitName, eventPropsDefGroups) =>
+        case (traitName, traitNameWithParams, eventPropsDefGroups) =>
           val fileContent = generator.generateEventPropsTrait(
-            defSources = eventPropsDefGroups,
+            defSources = eventPropsDefGroups.map {
+              case (key, vals) =>
+                (
+                  key,
+                  vals.map(attr => attr.copy(scalaJsEventType = "F, " + attr.scalaJsEventType)))
+            },
             printDefGroupComments = true,
             traitCommentLines = List(eventPropsDefGroups.head._1),
-            traitName = traitName,
+            traitName = traitNameWithParams,
             traitExtends = Nil,
-            traitThisType = Some(baseTraitName),
+            traitThisType = Some(baseTraitName + "[F]"),
             baseImplDefComments = Nil,
             outputBaseImpl = false,
             keyKind = "EventProp",

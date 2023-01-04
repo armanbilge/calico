@@ -9,7 +9,7 @@ import org.scalajs.dom
 //  - Contribute to https://github.com/raquo/scala-dom-types to add missing tags / attrs / props / etc.
 
 /** Document-only Events */
-trait DocumentEventProps { this: GlobalEventProps =>
+trait DocumentEventProps[F[_]] { this: GlobalEventProps[F] =>
 
 
 
@@ -27,7 +27,7 @@ trait DocumentEventProps { this: GlobalEventProps =>
     * 
     * @see https://developer.mozilla.org/en-US/docs/Web/API/Document/DOMContentLoaded_event
     */
-  lazy val onDomContentLoaded: EventProp[dom.Event] = eventProp("DOMContentLoaded")
+  lazy val onDomContentLoaded: EventProp[F, dom.Event] = eventProp("DOMContentLoaded")
 
 
   /**
@@ -35,7 +35,7 @@ trait DocumentEventProps { this: GlobalEventProps =>
     * 
     * @see https://developer.mozilla.org/en-US/docs/Web/API/Document/fullscreenchange_event
     */
-  lazy val onFullScreenChange: EventProp[dom.Event] = eventProp("fullscreenchange")
+  lazy val onFullScreenChange: EventProp[F, dom.Event] = eventProp("fullscreenchange")
 
 
   /**
@@ -43,7 +43,7 @@ trait DocumentEventProps { this: GlobalEventProps =>
     * 
     * @see https://developer.mozilla.org/en-US/docs/Web/API/Document/fullscreenerror_event
     */
-  lazy val onFullScreenError: EventProp[dom.Event] = eventProp("fullscreenerror")
+  lazy val onFullScreenError: EventProp[F, dom.Event] = eventProp("fullscreenerror")
 
 
   /**
@@ -51,7 +51,7 @@ trait DocumentEventProps { this: GlobalEventProps =>
     * 
     * @see https://developer.mozilla.org/en-US/docs/Web/API/Document/visibilitychange_event
     */
-  lazy val onVisibilityChange: EventProp[dom.Event] = eventProp("visibilitychange")
+  lazy val onVisibilityChange: EventProp[F, dom.Event] = eventProp("visibilitychange")
 
 
 }
