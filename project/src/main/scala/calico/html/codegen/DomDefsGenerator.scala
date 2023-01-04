@@ -100,13 +100,13 @@ object DomDefsGenerator {
 
     {
       val traitName = "HtmlTagBuilder"
-      val traitNameWithParams = s"$traitName[F[_], T[_ <: DomHtmlElement], -DomHtmlElement]"
+      val traitNameWithParams = s"$traitName[F[_], T[_ <: HtmlElement[F]]]"
 
       val fileContent = generator.generateTagsTrait(
         tagType = HtmlTagType,
         //TODO introduce HTMLDialogElement to fs2-dom
         defGroups = defGroups.htmlTagsDefGroups.map {
-          case (key, list) => (key, list.filter(_.javascriptElementType == "HTMLDialogElement"))
+          case (key, list) => (key, list.filter(_.javascriptElementType != "HTMLDialogElement"))
         },
         printDefGroupComments = true,
         traitCommentLines = Nil,
