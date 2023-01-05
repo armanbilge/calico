@@ -27,13 +27,6 @@ ThisBuild / resolvers ++= Resolver.sonatypeOssRepos("snapshots")
 
 /*(Compile / compile) := ((Compile / compile) dependsOn precompile).value*/
 
-Compile / sourceGenerators += Def.task {
-  val calicoSourceManaged = (calico / sourceManaged).value
-  DomDefsGenerator.cachedGenerate(calicoSourceManaged)
-  val finder: PathFinder = calicoSourceManaged ** "*.scala"
-  finder.get
-}.taskValue
-
 val CatsVersion = "2.9.0"
 val CatsEffectVersion = "3.4.4"
 val Fs2Version = "3.4.0"
@@ -70,7 +63,13 @@ lazy val calico = project
       "org.typelevel" %%% "shapeless3-deriving" % "3.3.0",
       "dev.optics" %%% "monocle-core" % MonocleVersion,
       "org.scala-js" %%% "scalajs-dom" % "2.3.0"
-    )
+    ),
+    Compile / sourceGenerators += Def.task {
+      val calicoSourceManaged = sourceManaged.value
+      DomDefsGenerator.cachedGenerate(calicoSourceManaged)
+      val finder: PathFinder = calicoSourceManaged ** "*.scala"
+      finder.get
+    }.taskValue,
   )
   .dependsOn(frp.js)
 
