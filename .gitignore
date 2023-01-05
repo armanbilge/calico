@@ -20,3 +20,4 @@ metals.sbt
 
 # Generated STD Code
 calico/src/main/scala/calico/html/defs
+project/lastScalaDomTypesVersion.txt
