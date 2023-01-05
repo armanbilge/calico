@@ -1,6 +1,6 @@
 package calico.html.defs.tags
 
-import fs2.dom._
+import fs2.dom.*
 
 // #NOTE: GENERATED CODE
 //  - This file is generated at compile time from the data in Scala DOM Types

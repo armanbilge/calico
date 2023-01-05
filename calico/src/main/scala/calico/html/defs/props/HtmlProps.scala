@@ -1,7 +1,7 @@
 package calico.html.defs.props
 
 import calico.html.keys.HtmlProp
-import calico.html.codecs.Codec._; import calico.html.codecs.AsIsCodec._; import calico.html.codecs._
+import calico.html.codecs.Codec.*; import calico.html.codecs.AsIsCodec.*; import calico.html.codecs.*
 
 // #NOTE: GENERATED CODE
 //  - This file is generated at compile time from the data in Scala DOM Types
