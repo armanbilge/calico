@@ -17,3 +17,6 @@ target/
 .bloop/
 metals.sbt
 .vscode
+
+# Generated STD Code
+calico/src/main/scala/calico/html/defs
