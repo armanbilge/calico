@@ -7,6 +7,6 @@ lazy val root = (project in file("."))
     buildInfoPackage := "metaProject",
     // Compile-time dependencies
     libraryDependencies ++= Seq(
-      "com.raquo" %% "domtypes" % "0.16.0-SNAPSHOT"
+      "com.raquo" %% "domtypes" % "17.0.0-M1"
     )
   )
