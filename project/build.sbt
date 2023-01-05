@@ -8,6 +8,6 @@ lazy val root = (project in file("."))
     // Compile-time dependencies
     libraryDependencies ++= Seq(
       "com.raquo" %% "domtypes" % "17.0.0-M1",
-      "org.scalameta" %% "scalafmt-dynamic" % "3.6.1",
+      "org.scalameta" %% "scalafmt-dynamic" % "3.6.1"
     )
   )
