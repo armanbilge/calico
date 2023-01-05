@@ -16,11 +16,7 @@
 
 package calico
 
-<<<<<<< HEAD
 import calico.html.io.{*, given}
-=======
-import calico.html.io.*
->>>>>>> origin/main
 import calico.router.*
 import calico.syntax.*
 import cats.effect.*
@@ -34,7 +30,6 @@ import org.http4s.syntax.all.*
 
 object Example extends IOWebApp:
 
-<<<<<<< HEAD
   def render = Resource.eval(Router(Location[IO], History[IO, Unit])).flatMap { router =>
     (SignallingRef[IO].of(0), SignallingRef[IO].of(0)).tupled.toResource.flatMap {
       (helloCounter, countCounter) =>
@@ -98,6 +93,3 @@ object Example extends IOWebApp:
     }
 
   }
-=======
-  def render = Resource.never
->>>>>>> origin/main
