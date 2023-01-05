@@ -63,7 +63,7 @@ lazy val calico = project
       DomDefsGenerator.cachedGenerate(calicoSourceManaged)
       val finder: PathFinder = calicoSourceManaged ** "*.scala"
       finder.get
-    }.taskValue,
+    }.taskValue
   )
   .dependsOn(frp.js)
 
