@@ -48,7 +48,6 @@ object TodoMvc extends IOWebApp:
         } { filter =>
           div(
             cls := List("todoapp"),
-            aria.current := "page",
             div(cls := "header", h1("todos"), TodoInput(store)),
             div(
               cls := "main",
