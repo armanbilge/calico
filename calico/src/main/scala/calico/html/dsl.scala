@@ -27,8 +27,6 @@ import calico.html.defs.props.HtmlProps
 import calico.html.defs.tags.HtmlTags
 import calico.html.keys.ClassProp
 import calico.html.keys.ClassPropModifiers
-import calico.html.keys.DataProp
-import calico.html.keys.DataPropModifiers
 import calico.html.keys.EventProp
 import calico.html.keys.EventPropModifiers
 import calico.html.keys.HtmlAttr
@@ -82,7 +80,6 @@ trait Html[F[_]](using F: Async[F])
       EventPropModifiers[F],
       StylePropModifiers[F],
       ClassPropModifiers[F],
-      DataPropModifiers[F],
       Modifiers[F],
       ChildrenModifiers[F],
       KeyedChildrenModifiers[F],
@@ -106,7 +103,7 @@ trait Html[F[_]](using F: Async[F])
 
   def role: HtmlAttr[F, List[String]] = HtmlAttr("role", Codec.whitespaceSeparatedStringsCodec)
 
-  def dataAttr(suffix: String): DataProp[F] = DataProp(suffix)
+  def dataAttr(suffix: String): HtmlAttr[F, List[String]] = HtmlAttr("data-" + suffix, Codec.whitespaceSeparatedStringsCodec)
 
   def children: Children[F] = Children[F]
 
