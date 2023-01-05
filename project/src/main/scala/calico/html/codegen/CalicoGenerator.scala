@@ -273,7 +273,7 @@ private[codegen] object CalicoGenerator
         | * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
         | * See the License for the specific language governing permissions and
         | * limitations under the License.
-        | */""".stripMargin('|') + System.lineSeparator
+        | */""".stripMargin('|') + System.lineSeparator + System.lineSeparator
     super.writeToFile(packagePath, fileName, header + fileContent)
   }
 }
