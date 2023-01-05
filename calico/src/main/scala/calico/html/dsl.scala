@@ -17,6 +17,7 @@
 package calico
 package html
 
+import calico.html.codecs.AsIsCodec
 import calico.html.codecs.Codec
 import calico.html.defs.attrs.AriaAttrs
 import calico.html.defs.attrs.HtmlAttrs
@@ -60,12 +61,10 @@ import scala.collection.mutable.ListBuffer
 import scala.scalajs.js
 import shapeless3.deriving.K0
 
-object io extends Html[IO]:
-  override val aria: Aria[IO] = Aria[IO]
+object io extends Html[IO]
 
 object Html:
-  def apply[F[_]: Async]: Html[F] = new:
-    override val aria: Aria[F] = Aria[F]
+  def apply[F[_]: Async]: Html[F] = new Html[F] {}
 
 trait Html[F[_]](using F: Async[F])
     extends HtmlTags[F, HtmlTagT[F]],
@@ -81,38 +80,28 @@ trait Html[F[_]](using F: Async[F])
       ChildrenModifiers[F],
       KeyedChildrenModifiers[F],
       HtmlAttrModifiers[F]:
-  def aria: Aria[F]
+  final val aria: Aria[F] = Aria[F]
 
   protected def htmlTag[E <: fs2.dom.HtmlElement[F]](tagName: String, void: Boolean) =
     HtmlTag(tagName, void)
-
-  protected def reflectedAttr[V, J](
-      attrKey: String,
-      propKey: String,
-      attrCodec: Codec[V, String],
-      propCodec: Codec[V, J]) =
-    HtmlProp(propKey, propCodec)
-
-  protected def prop[V, J](name: String, codec: Codec[V, J]) =
-    HtmlProp(name, codec)
 
   def cls: ClassProp[F] = ClassProp[F]
 
   def role: HtmlAttr[F, List[String]] = HtmlAttr("role", Codec.whitespaceSeparatedStringsCodec)
 
-  def dataAttr(suffix: String): HtmlAttr[F, List[String]] =
-    HtmlAttr("data-" + suffix, Codec.whitespaceSeparatedStringsCodec)
+  def dataAttr(suffix: String): HtmlAttr[F, String] =
+    HtmlAttr("data-" + suffix, AsIsCodec.StringAsIsCodec)
 
   def children: Children[F] = Children[F]
 
   def children[K](f: K => Resource[F, fs2.dom.Node[F]]): KeyedChildren[F, K] =
     KeyedChildren[F, K](f)
 
-  def styleAttr: HtmlAttr[F, List[String]] =
-    HtmlAttr("style", Codec.whitespaceSeparatedStringsCodec)
+  def styleAttr: HtmlAttr[F, String] =
+    HtmlAttr("style", AsIsCodec.StringAsIsCodec)
 
 object Aria:
-  def apply[F[_]: Async]: Aria[F] = new Aria[F] {}
+  def apply[F[_]]: Aria[F] = new Aria[F] {}
 
 trait Aria[F[_]] extends AriaAttrs[F]
 
