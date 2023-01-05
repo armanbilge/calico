@@ -1,3 +1,19 @@
+/*
+ * Copyright 2022 Arman Bilge
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package calico.html
 
 import calico.syntax.*
@@ -109,7 +125,7 @@ trait Modifiers[F[_]](using F: Async[F]):
     }
 
   // TODO implement without Async
-  given forStringStream[F[_] : fs2.dom.Dom, E <: fs2.dom.Node[F]](
+  given forStringStream[F[_]: fs2.dom.Dom, E <: fs2.dom.Node[F]](
       using F: Async[F]): Modifier[F, E, Stream[F, String]] with
     def modify(s: Stream[F, String], e: E) = for
       n <- F
@@ -120,7 +136,7 @@ trait Modifiers[F[_]](using F: Async[F]):
     yield ()
 
   // TODO implement without Async
-  given forOptionStringStream[F[_] : fs2.dom.Dom, E <: fs2.dom.Node[F]](
+  given forOptionStringStream[F[_]: fs2.dom.Dom, E <: fs2.dom.Node[F]](
       using F: Async[F]): Modifier[F, E, Stream[F, Option[String]]] with
     def modify(s: Stream[F, Option[String]], e: E) = for
       n <- F
