@@ -2,7 +2,7 @@ package calico.html.codegen
 
 import com.raquo.domtypes.common.TagDef
 
-object TagDefMapper {
+private[codegen] object TagDefMapper {
 
   def extractFs2DomElementType(tagDef: TagDef): String =
     tagDef.javascriptElementType match {
