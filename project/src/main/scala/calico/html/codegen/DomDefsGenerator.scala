@@ -33,20 +33,22 @@ import com.raquo.domtypes.common
 import com.raquo.domtypes.common.TagType
 import com.raquo.domtypes.common.{HtmlTagType, SvgTagType}
 import com.raquo.domtypes.defs.styles.StyleTraitDefs
+import java.io.File
 
 object DomDefsGenerator {
 
   private val cache = new CanonicalCache("project")
 
-  def cachedGenerate(): Unit = {
+  def cachedGenerate(srcManaged: File): Unit = {
     cache.triggerIfCacheKeyUpdated(
       metaProject.BuildInfo.scalaDomTypesVersion,
       forceOnEverySnapshot = true
-    )(_ => generate())
+    )(_ => generate(srcManaged))
   }
 
-  def generate(): Unit = {
+  def generate(srcManaged: File): Unit = {
     val defGroups = new CanonicalDefGroups()
+    val generator = new CalicoGenerator(srcManaged)
 
     // -- HTML tags --
 
@@ -54,7 +56,7 @@ object DomDefsGenerator {
       val traitName = "HtmlTags"
       val traitNameWithParams = s"$traitName[F[_], T[_ <: HtmlElement[F]]]"
 
-      val fileContent = CalicoGenerator.generateTagsTrait(
+      val fileContent = generator.generateTagsTrait(
         tagType = HtmlTagType,
         // TODO introduce HTMLDialogElement to fs2-dom
         defGroups = defGroups.htmlTagsDefGroups.map {
@@ -79,8 +81,8 @@ object DomDefsGenerator {
         defType = LazyVal
       )
 
-      CalicoGenerator.writeToFile(
-        packagePath = CalicoGenerator.tagDefsPackagePath,
+      generator.writeToFile(
+        packagePath = generator.tagDefsPackagePath,
         fileName = traitName,
         fileContent = fileContent
       )
@@ -91,7 +93,7 @@ object DomDefsGenerator {
     // {
     // val traitName = "SvgTags"
 
-    // val fileContent = CalicoGenerator.generateTagsTrait(
+    // val fileContent = generator.generateTagsTrait(
     // tagType = SvgTagType,
     // defGroups = defGroups.svgTagsDefGroups,
     // printDefGroupComments = false,
@@ -112,8 +114,8 @@ object DomDefsGenerator {
     // defType = LazyVal
     // )
 
-    // CalicoGenerator.writeToFile(
-    // packagePath = CalicoGenerator.tagDefsPackagePath,
+    // generator.writeToFile(
+    // packagePath = generator.tagDefsPackagePath,
     // fileName = traitName,
     // fileContent = fileContent
     // )
@@ -125,7 +127,7 @@ object DomDefsGenerator {
       val traitName = "HtmlAttrs"
       val traitNameWithParams = s"$traitName[F[_]]"
 
-      val fileContent = CalicoGenerator.generateAttrsTrait(
+      val fileContent = generator.generateAttrsTrait(
         defGroups = defGroups.htmlAttrDefGroups.map {
           case (key, vals) =>
             (key, vals.map(attr => attr.copy(scalaValueType = "F, " + attr.scalaValueType)))
@@ -150,8 +152,8 @@ object DomDefsGenerator {
         defType = LazyVal
       )
 
-      CalicoGenerator.writeToFile(
-        packagePath = CalicoGenerator.attrDefsPackagePath,
+      generator.writeToFile(
+        packagePath = generator.attrDefsPackagePath,
         fileName = traitName,
         fileContent = fileContent
       )
@@ -162,7 +164,7 @@ object DomDefsGenerator {
     // {
     // val traitName = "SvgAttrs"
 
-    // val fileContent = CalicoGenerator.generateAttrsTrait(
+    // val fileContent = generator.generateAttrsTrait(
     // defGroups = defGroups.svgAttrDefGroups,
     // printDefGroupComments = false,
     // traitName = traitName,
@@ -184,8 +186,8 @@ object DomDefsGenerator {
     // defType = LazyVal
     // )
 
-    // CalicoGenerator.writeToFile(
-    // packagePath = CalicoGenerator.attrDefsPackagePath,
+    // generator.writeToFile(
+    // packagePath = generator.attrDefsPackagePath,
     // fileName = traitName,
     // fileContent = fileContent
     // )
@@ -205,7 +207,7 @@ object DomDefsGenerator {
         }
       }
 
-      val fileContent = CalicoGenerator.generateAttrsTrait(
+      val fileContent = generator.generateAttrsTrait(
         defGroups = defGroups.ariaAttrDefGroups.map {
           case (key, vals) =>
             (key, vals.map(attr => attr.copy(scalaValueType = "F, " + attr.scalaValueType)))
@@ -230,8 +232,8 @@ object DomDefsGenerator {
         defType = LazyVal
       )
 
-      CalicoGenerator.writeToFile(
-        packagePath = CalicoGenerator.attrDefsPackagePath,
+      generator.writeToFile(
+        packagePath = generator.attrDefsPackagePath,
         fileName = traitName,
         fileContent = fileContent
       )
@@ -243,7 +245,7 @@ object DomDefsGenerator {
       val traitName = "HtmlProps"
       val traitNameWithParams = s"$traitName[F[_]]"
 
-      val fileContent = CalicoGenerator.generatePropsTrait(
+      val fileContent = generator.generatePropsTrait(
         defGroups = defGroups.propDefGroups.map {
           case (key, vals) =>
             (key, vals.map(attr => attr.copy(scalaValueType = "F, " + attr.scalaValueType)))
@@ -266,8 +268,8 @@ object DomDefsGenerator {
         defType = LazyVal
       )
 
-      CalicoGenerator.writeToFile(
-        packagePath = CalicoGenerator.propDefsPackagePath,
+      generator.writeToFile(
+        packagePath = generator.propDefsPackagePath,
         fileName = traitName,
         fileContent = fileContent
       )
@@ -285,7 +287,7 @@ object DomDefsGenerator {
       )
 
       {
-        val fileContent = CalicoGenerator.generateEventPropsTrait(
+        val fileContent = generator.generateEventPropsTrait(
           defSources = defGroups.globalEventPropDefGroups.map {
             case (key, vals) =>
               (
@@ -310,8 +312,8 @@ object DomDefsGenerator {
           defType = LazyVal
         )
 
-        CalicoGenerator.writeToFile(
-          packagePath = CalicoGenerator.eventPropDefsPackagePath,
+        generator.writeToFile(
+          packagePath = generator.eventPropDefsPackagePath,
           fileName = baseTraitName,
           fileContent = fileContent
         )
@@ -319,7 +321,7 @@ object DomDefsGenerator {
 
       subTraits.foreach {
         case (traitName, traitNameWithParams, eventPropsDefGroups) =>
-          val fileContent = CalicoGenerator.generateEventPropsTrait(
+          val fileContent = generator.generateEventPropsTrait(
             defSources = eventPropsDefGroups.map {
               case (key, vals) =>
                 (
@@ -338,8 +340,8 @@ object DomDefsGenerator {
             defType = LazyVal
           )
 
-          CalicoGenerator.writeToFile(
-            packagePath = CalicoGenerator.eventPropDefsPackagePath,
+          generator.writeToFile(
+            packagePath = generator.eventPropDefsPackagePath,
             fileName = traitName,
             fileContent = fileContent
           )
@@ -351,7 +353,7 @@ object DomDefsGenerator {
     // {
     // val traitName = "StyleProps"
 
-    // val fileContent = CalicoGenerator.generateStylePropsTrait(
+    // val fileContent = generator.generateStylePropsTrait(
     // defSources = defGroups.stylePropDefGroups,
     // printDefGroupComments = true,
     // traitCommentLines = Nil,
@@ -377,8 +379,8 @@ object DomDefsGenerator {
     // outputUnitTraits = true
     // )
 
-    // CalicoGenerator.writeToFile(
-    // packagePath = CalicoGenerator.stylePropDefsPackagePath,
+    // generator.writeToFile(
+    // packagePath = generator.stylePropDefsPackagePath,
     // fileName = traitName,
     // fileContent = fileContent
     // )
@@ -388,7 +390,7 @@ object DomDefsGenerator {
 
     // {
     // StyleTraitDefs.defs.foreach { styleTrait =>
-    // val fileContent = CalicoGenerator.generateStyleKeywordsTrait(
+    // val fileContent = generator.generateStyleKeywordsTrait(
     // defSources = styleTrait.keywordDefGroups,
     // printDefGroupComments = styleTrait.keywordDefGroups.length > 1,
     // traitCommentLines = Nil,
@@ -404,8 +406,8 @@ object DomDefsGenerator {
     // allowSuperCallInOverride = false // can't access lazy val from `super`
     // )
 
-    // CalicoGenerator.writeToFile(
-    // packagePath = CalicoGenerator.styleTraitsPackagePath(),
+    // generator.writeToFile(
+    // packagePath = generator.styleTraitsPackagePath(),
     // fileName = styleTrait.scalaName.replace("[_]", ""),
     // fileContent = fileContent
     // )

@@ -21,11 +21,18 @@ ThisBuild / tlJdkRelease := Some(8)
 
 ThisBuild / resolvers ++= Resolver.sonatypeOssRepos("snapshots")
 
-lazy val precompile = taskKey[Unit]("runs Calico-specific pre-compile tasks")
+/*lazy val precompile = taskKey[Unit]("runs Calico-specific pre-compile tasks")*/
 
-precompile := DomDefsGenerator.cachedGenerate()
+/*precompile := DomDefsGenerator.cachedGenerate((calico / sourceManaged).value)*/
 
-(Compile / compile) := ((Compile / compile) dependsOn precompile).value
+/*(Compile / compile) := ((Compile / compile) dependsOn precompile).value*/
+
+Compile / sourceGenerators += Def.task {
+  val calicoSourceManaged = (calico / sourceManaged).value
+  DomDefsGenerator.cachedGenerate(calicoSourceManaged)
+  val finder: PathFinder = calicoSourceManaged ** "*.scala"
+  finder.get
+}.taskValue
 
 val CatsVersion = "2.9.0"
 val CatsEffectVersion = "3.4.4"
