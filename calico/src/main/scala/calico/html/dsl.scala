@@ -222,7 +222,7 @@ trait KeyedChildrenModifiers[F[_]](using F: Async[F]):
           .flatTap(active => go(head, active).onCancel(traverse_(active.values)(_._2)))
           .flatMap(F.ref(_))
       }(
-        _.get.flatMap(ns => traverse_(ns.values)(_._2)).evalOn(unsafe.BatchingMacrotaskExecutor)
+        _.get.flatMap(ns => traverse_(ns.values)(_._2)).evalOn(unsafe.MacrotaskExecutor)
       )
       sentinel <- Resource.eval(F.delay(n.appendChild(dom.document.createComment(""))))
       _ <- tail
@@ -252,7 +252,7 @@ trait KeyedChildrenModifiers[F[_]](using F: Async[F]):
                 }
 
                 (active.set(nextNodes) *> acquireNewNodes *> renderNextNodes).guarantee(
-                  releaseOldNodes.evalOn(unsafe.BatchingMacrotaskExecutor)
+                  releaseOldNodes.evalOn(unsafe.MacrotaskExecutor)
                 )
               }.flatten
             }

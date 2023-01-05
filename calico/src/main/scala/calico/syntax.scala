@@ -45,9 +45,7 @@ import scala.scalajs.js
 
 extension [F[_]](component: Resource[F, fs2.dom.Node[F]])
   def renderInto(root: fs2.dom.Node[F])(using Functor[F], Dom[F]): Resource[F, Unit] =
-    component.flatMap { e =>
-      Resource.make(root.appendChild(e))(_ => root.removeChild(e))
-    }
+    component.flatMap { e => Resource.make(root.appendChild(e))(_ => root.removeChild(e)) }
 
 extension [F[_], A](fa: F[A])
   private[calico] def cedeBackground(
@@ -59,7 +57,7 @@ extension [F[_], A](fa: F[A])
           fa.start
             .flatMap(deferred.complete(_))
             .evalOn(ec)
-            .startOn(unsafe.BatchingMacrotaskExecutor)
+            .startOn(unsafe.MacrotaskExecutor)
             .start
         }
         .map(_.get.flatMap(_.join))

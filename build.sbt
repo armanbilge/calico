@@ -4,6 +4,7 @@ ThisBuild / tlBaseVersion := "0.2"
 
 ThisBuild / organization := "com.armanbilge"
 ThisBuild / organizationName := "Arman Bilge"
+ThisBuild / startYear := Some(2022)
 ThisBuild / developers := List(
   tlGitHubDev("armanbilge", "Arman Bilge")
 )
@@ -26,11 +27,11 @@ precompile := DomDefsGenerator.cachedGenerate()
 
 (Compile / compile) := ((Compile / compile) dependsOn precompile).value
 
-val CatsVersion = "2.8.0"
-val CatsEffectVersion = "3.4.0-RC2"
-val Fs2Version = "3.3.0-113-afb5afc-SNAPSHOT"
+val CatsVersion = "2.9.0"
+val CatsEffectVersion = "3.4.4"
+val Fs2Version = "3.4.0"
 val Fs2DomVersion = "0.1-d92ea1c-SNAPSHOT"
-val MonocleVersion = "3.1.0"
+val MonocleVersion = "3.2.0"
 
 lazy val root =
   tlCrossRootProject.aggregate(frp, calico, router, example, todoMvc, unidocs)
@@ -59,7 +60,7 @@ lazy val calico = project
     name := "calico",
     libraryDependencies ++= Seq(
       "com.armanbilge" %%% "fs2-dom" % Fs2DomVersion,
-      "org.typelevel" %%% "shapeless3-deriving" % "3.2.0",
+      "org.typelevel" %%% "shapeless3-deriving" % "3.3.0",
       "dev.optics" %%% "monocle-core" % MonocleVersion,
       "org.scala-js" %%% "scalajs-dom" % "2.3.0"
     )
@@ -74,7 +75,7 @@ lazy val router = project
     tlVersionIntroduced := Map("3" -> "0.1.2"),
     libraryDependencies ++= Seq(
       "com.armanbilge" %%% "fs2-dom" % Fs2DomVersion,
-      "org.http4s" %%% "http4s-core" % "0.23.16"
+      "org.http4s" %%% "http4s-core" % "0.23.17"
     )
   )
 

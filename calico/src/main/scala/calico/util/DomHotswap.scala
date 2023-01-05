@@ -38,7 +38,7 @@ private[calico] object DomHotswap:
             (oldA, oldFinalizer) = tuple
             newA = nextAllocated._1
             _ <- render(oldA, newA)
-            _ <- oldFinalizer.evalOn(unsafe.BatchingMacrotaskExecutor)
+            _ <- oldFinalizer.evalOn(unsafe.MacrotaskExecutor)
           yield ()
         }
 
