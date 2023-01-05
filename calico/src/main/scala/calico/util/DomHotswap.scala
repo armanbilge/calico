@@ -34,8 +34,7 @@ private[calico] object DomHotswap:
         def swap(next: Resource[F, A])(render: (A, A) => F[Unit]) = F.uncancelable { poll =>
           for
             nextAllocated <- poll(next.allocated)
-            tuple <- active.getAndSet(nextAllocated)
-            (oldA, oldFinalizer) = tuple
+            (oldA, oldFinalizer) <- active.getAndSet(nextAllocated)
             newA = nextAllocated._1
             _ <- render(oldA, newA)
             _ <- oldFinalizer.evalOn(unsafe.MacrotaskExecutor)
