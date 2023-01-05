@@ -21,12 +21,6 @@ ThisBuild / tlJdkRelease := Some(8)
 
 ThisBuild / resolvers ++= Resolver.sonatypeOssRepos("snapshots")
 
-/*lazy val precompile = taskKey[Unit]("runs Calico-specific pre-compile tasks")*/
-
-/*precompile := DomDefsGenerator.cachedGenerate((calico / sourceManaged).value)*/
-
-/*(Compile / compile) := ((Compile / compile) dependsOn precompile).value*/
-
 val CatsVersion = "2.9.0"
 val CatsEffectVersion = "3.4.4"
 val Fs2Version = "3.4.0"
