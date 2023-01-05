@@ -107,59 +107,6 @@ trait EventPropModifiers[F[_]](using F: Async[F]):
   private val _forPipeEventProp: Modifier[F, dom.EventTarget, PipeModifier[F, Any]] =
     (m, t) => fs2.dom.events(t, m.key).through(m.sink).compile.drain.cedeBackground.void
 
-final class StyleProp[F[_]] private[calico]:
-  import StyleProp.*
-
-  inline def :=(v: String): ConstantModifier =
-    ConstantModifier(v)
-
-  inline def <--(vs: Signal[F, String]): SignalModifier[F] =
-    SignalModifier(vs)
-
-  inline def <--(vs: Signal[F, Option[String]]): OptionSignalModifier[F] =
-    OptionSignalModifier(vs)
-
-object StyleProp:
-  final class ConstantModifier(
-      val value: String
-  )
-
-  final class SignalModifier[F[_]](
-      val values: Signal[F, String]
-  )
-
-  final class OptionSignalModifier[F[_]](
-      val values: Signal[F, Option[String]]
-  )
-
-trait StylePropModifiers[F[_]](using F: Async[F]):
-  import StyleProp.*
-
-  private inline def setStyleProp[N](node: N, value: String) =
-    F.delay(node.asInstanceOf[dom.HTMLElement].style = value)
-
-  inline given forConstantStyleProp[N <: fs2.dom.HtmlElement[F]]
-      : Modifier[F, N, ConstantModifier] =
-    _forConstantStyleProp.asInstanceOf[Modifier[F, N, ConstantModifier]]
-
-  private val _forConstantStyleProp: Modifier[F, fs2.dom.HtmlElement[F], ConstantModifier] =
-    (m, n) => Resource.eval(setStyleProp(n, m.value))
-
-  private val _forSignalStyleProp: Modifier[F, Any, SignalModifier[F]] =
-    Modifier.forSignal[F, Any, SignalModifier[F], String]((any, sm, s) => setStyleProp(any, s))(
-      _.values)
-
-  inline given forOptionSignalStyleProp[N]: Modifier[F, N, OptionSignalModifier[F]] =
-    _forOptionSignalStyleProp.asInstanceOf[Modifier[F, N, OptionSignalModifier[F]]]
-
-  private val _forOptionSignalStyleProp: Modifier[F, Any, OptionSignalModifier[F]] =
-    Modifier.forSignal[F, Any, OptionSignalModifier[F], Option[String]]((any, osm, os) =>
-      F.delay {
-        val e = any.asInstanceOf[dom.HTMLElement]
-        os.fold(e.removeAttribute("style"))(e.style = _)
-        ()
-      })(_.values)
-
 final class ClassProp[F[_]] private[calico]
     extends HtmlProp[F, List[String], String](
       "className",

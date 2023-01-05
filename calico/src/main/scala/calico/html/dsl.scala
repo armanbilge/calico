@@ -34,8 +34,6 @@ import calico.html.keys.HtmlAttrModifiers
 import calico.html.keys.HtmlProp
 import calico.html.keys.HtmlProp.apply
 import calico.html.keys.HtmlPropModifiers
-import calico.html.keys.StyleProp
-import calico.html.keys.StylePropModifiers
 import calico.html.Modifier
 import calico.html.tags.HtmlTag
 import calico.syntax.*
@@ -78,7 +76,6 @@ trait Html[F[_]](using F: Async[F])
       HtmlAttrs[F],
       HtmlPropModifiers[F],
       EventPropModifiers[F],
-      StylePropModifiers[F],
       ClassPropModifiers[F],
       Modifiers[F],
       ChildrenModifiers[F],
@@ -103,14 +100,16 @@ trait Html[F[_]](using F: Async[F])
 
   def role: HtmlAttr[F, List[String]] = HtmlAttr("role", Codec.whitespaceSeparatedStringsCodec)
 
-  def dataAttr(suffix: String): HtmlAttr[F, List[String]] = HtmlAttr("data-" + suffix, Codec.whitespaceSeparatedStringsCodec)
+  def dataAttr(suffix: String): HtmlAttr[F, List[String]] =
+    HtmlAttr("data-" + suffix, Codec.whitespaceSeparatedStringsCodec)
 
   def children: Children[F] = Children[F]
 
   def children[K](f: K => Resource[F, fs2.dom.Node[F]]): KeyedChildren[F, K] =
     KeyedChildren[F, K](f)
 
-  def styleAttr: StyleProp[F] = StyleProp[F]
+  def styleAttr: HtmlAttr[F, List[String]] =
+    HtmlAttr("style", Codec.whitespaceSeparatedStringsCodec)
 
 object Aria:
   def apply[F[_]: Async]: Aria[F] = new Aria[F] {}
@@ -274,5 +273,3 @@ trait KeyedChildrenModifiers[F[_]](using F: Async[F]):
         .drain
         .cedeBackground
     yield ()
-
-
