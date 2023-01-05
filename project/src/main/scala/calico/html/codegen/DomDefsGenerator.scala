@@ -397,45 +397,49 @@ object DomDefsGenerator {
 
     // -- ARIA attributes --
 
-    // {
-    // val traitName = "AriaAttrs"
+    {
+      val traitName = "AriaAttrs"
+      val traitNameWithParams = s"$traitName[F[_]]"
 
-    // def transformAttrDomName(ariaAttrName: String): String = {
-    // if (ariaAttrName.startsWith("aria-")) {
-    // ariaAttrName.substring(5)
-    // } else {
-    // throw new Exception(s"Aria attribute does not start with `aria-`: $ariaAttrName")
-    // }
-    // }
+      def transformAttrDomName(ariaAttrName: String): String = {
+        if (ariaAttrName.startsWith("aria-")) {
+          ariaAttrName.substring(5)
+        } else {
+          throw new Exception(s"Aria attribute does not start with `aria-`: $ariaAttrName")
+        }
+      }
 
-    // val fileContent = generator.generateAttrsTrait(
-    // defGroups = defGroups.ariaAttrDefGroups,
-    // printDefGroupComments = false,
-    // traitName = traitName,
-    // traitCommentLines = Nil,
-    // keyKind = "AriaAttr",
-    // implNameSuffix = "AriaAttr",
-    // baseImplDefComments = List(
-    // "Create ARIA attribute (Note: for HTML attrs, use L.htmlAttr)",
-    // "",
-    // "@param key   - suffix of the attribute, without \"aria-\" prefix, e.g. \"labelledby\"",
-    // "@param codec - used to encode V into String, e.g. StringAsIsCodec",
-    // "",
-    // "@tparam V    - value type for this attr in Scala"
-    // ),
-    // baseImplName = "ariaAttr",
-    // namespaceImports = Nil,
-    // namespaceImpl = _ => ???,
-    // transformAttrDomName = transformAttrDomName,
-    // defType = LazyVal
-    // )
+      val fileContent = generator.generateAttrsTrait(
+        defGroups = defGroups.ariaAttrDefGroups.map {
+          case (key, vals) =>
+            (key, vals.map(attr => attr.copy(scalaValueType = "F, " + attr.scalaValueType)))
+        },
+        printDefGroupComments = false,
+        traitName = traitNameWithParams,
+        traitCommentLines = Nil,
+        keyKind = "AriaAttr",
+        implNameSuffix = "AriaAttr",
+        baseImplDefComments = List(
+          "Create ARIA attribute (Note: for HTML attrs, use L.htmlAttr)",
+          "",
+          "@param key   - suffix of the attribute, without \"aria-\" prefix, e.g. \"labelledby\"",
+          "@param codec - used to encode V into String, e.g. StringAsIsCodec",
+          "",
+          "@tparam V    - value type for this attr in Scala"
+        ),
+        baseImplName = "ariaAttr",
+        namespaceImports = Nil,
+        namespaceImpl = _ => ???,
+        transformAttrDomName = transformAttrDomName,
+        defType = LazyVal
+      )
 
-    // generator.writeToFile(
-    // packagePath = generator.attrDefsPackagePath,
-    // fileName = traitName,
-    // fileContent = fileContent
-    // )
-    // }
+      generator.writeToFile(
+        packagePath = generator.attrDefsPackagePath,
+        fileName = traitName,
+        fileContent = fileContent
+      )
+    }
 
     // -- HTML props --
 
@@ -548,68 +552,68 @@ object DomDefsGenerator {
 
     // -- Style props --
 
-    //{
-      //val traitName = "StyleProps"
+    // {
+    // val traitName = "StyleProps"
 
-      //val fileContent = generator.generateStylePropsTrait(
-        //defSources = defGroups.stylePropDefGroups,
-        //printDefGroupComments = true,
-        //traitCommentLines = Nil,
-        //traitName = traitName,
-        //keyKind = "StyleProp",
-        //keyKindAlias = "StyleProp",
-        //setterType = "StyleSetter",
-        //setterTypeAlias = "SS",
-        //derivedKeyKind = "DerivedStyleProp",
-        //derivedKeyKindAlias = "DSP",
-        //baseImplDefComments = List(
-          //"Create custom CSS property",
-          //"",
-          //"@param key - name of CSS property, e.g. \"font-weight\"",
-          //"",
-          //"@tparam V  - type of values recognized by JS for this property, e.g. Int",
-          //"             Note: String is always allowed regardless of the type you put here.",
-          //"             If unsure, use String type as V."
-        //),
-        //baseImplName = "styleProp",
-        //defType = LazyVal,
-        //lengthUnitsNumType = "Int",
-        //outputUnitTraits = true
-      //)
+    // val fileContent = generator.generateStylePropsTrait(
+    // defSources = defGroups.stylePropDefGroups,
+    // printDefGroupComments = true,
+    // traitCommentLines = Nil,
+    // traitName = traitName,
+    // keyKind = "StyleProp",
+    // keyKindAlias = "StyleProp",
+    // setterType = "StyleSetter",
+    // setterTypeAlias = "SS",
+    // derivedKeyKind = "DerivedStyleProp",
+    // derivedKeyKindAlias = "DSP",
+    // baseImplDefComments = List(
+    // "Create custom CSS property",
+    // "",
+    // "@param key - name of CSS property, e.g. \"font-weight\"",
+    // "",
+    // "@tparam V  - type of values recognized by JS for this property, e.g. Int",
+    // "             Note: String is always allowed regardless of the type you put here.",
+    // "             If unsure, use String type as V."
+    // ),
+    // baseImplName = "styleProp",
+    // defType = LazyVal,
+    // lengthUnitsNumType = "Int",
+    // outputUnitTraits = true
+    // )
 
-      //generator.writeToFile(
-        //packagePath = generator.stylePropDefsPackagePath,
-        //fileName = traitName,
-        //fileContent = fileContent
-      //)
-    //}
+    // generator.writeToFile(
+    // packagePath = generator.stylePropDefsPackagePath,
+    // fileName = traitName,
+    // fileContent = fileContent
+    // )
+    // }
 
     // -- Style keyword traits
 
-    //{
-      //StyleTraitDefs.defs.foreach { styleTrait =>
-        //val fileContent = generator.generateStyleKeywordsTrait(
-          //defSources = styleTrait.keywordDefGroups,
-          //printDefGroupComments = styleTrait.keywordDefGroups.length > 1,
-          //traitCommentLines = Nil,
-          //traitName = styleTrait.scalaName.replace("[_]", ""),
-          //extendsTraits = styleTrait.extendsTraits.map(_.replace("[_]", "")),
-          //extendsUnitTraits = styleTrait.extendsUnits,
-          //propKind = "StyleProp",
-          //keywordType = "StyleSetter",
-          //derivedKeyKind = "DerivedStyleProp",
-          //lengthUnitsNumType = "Int",
-          //defType = LazyVal,
-          //outputUnitTypes = true,
-          //allowSuperCallInOverride = false // can't access lazy val from `super`
-        //)
+    // {
+    // StyleTraitDefs.defs.foreach { styleTrait =>
+    // val fileContent = generator.generateStyleKeywordsTrait(
+    // defSources = styleTrait.keywordDefGroups,
+    // printDefGroupComments = styleTrait.keywordDefGroups.length > 1,
+    // traitCommentLines = Nil,
+    // traitName = styleTrait.scalaName.replace("[_]", ""),
+    // extendsTraits = styleTrait.extendsTraits.map(_.replace("[_]", "")),
+    // extendsUnitTraits = styleTrait.extendsUnits,
+    // propKind = "StyleProp",
+    // keywordType = "StyleSetter",
+    // derivedKeyKind = "DerivedStyleProp",
+    // lengthUnitsNumType = "Int",
+    // defType = LazyVal,
+    // outputUnitTypes = true,
+    // allowSuperCallInOverride = false // can't access lazy val from `super`
+    // )
 
-        //generator.writeToFile(
-          //packagePath = generator.styleTraitsPackagePath(),
-          //fileName = styleTrait.scalaName.replace("[_]", ""),
-          //fileContent = fileContent
-        //)
-      //}
-    //}
+    // generator.writeToFile(
+    // packagePath = generator.styleTraitsPackagePath(),
+    // fileName = styleTrait.scalaName.replace("[_]", ""),
+    // fileContent = fileContent
+    // )
+    // }
+    // }
   }
 }

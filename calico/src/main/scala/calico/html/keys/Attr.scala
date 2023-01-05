@@ -9,7 +9,7 @@ import cats.syntax.all.*
 import fs2.concurrent.Signal
 import org.scalajs.dom
 
-final class HtmlAttr[F[_], V] private[calico] (key: String, codec: Codec[V, String]):
+sealed class HtmlAttr[F[_], V] private[calico] (key: String, codec: Codec[V, String]):
   import HtmlAttr.*
 
   inline def :=(v: V): ConstantModifier[V] =
@@ -54,23 +54,18 @@ trait HtmlAttrModifiers[F[_]](using F: Async[F]):
       : Modifier[F, E, SignalModifier[F, V]] =
     _forSignalHtmlAttr.asInstanceOf[Modifier[F, E, SignalModifier[F, V]]]
 
-  private val _forSignalHtmlAttr: Modifier[F, dom.Element, SignalModifier[F, Any]] = (m, e) =>
-    m.values.getAndUpdates.flatMap { (head, tail) =>
-      def set(v: Any) = F.delay(e.setAttribute(m.key, m.codec.encode(v)))
-      Resource.eval(set(head)) *>
-        tail.foreach(set(_)).compile.drain.cedeBackground.void
-    }
+  private val _forSignalHtmlAttr: Modifier[F, dom.Element, SignalModifier[F, Any]] =
+    Modifier.forSignal[F, dom.Element, SignalModifier[F, Any], Any]((e, m, v) =>
+      F.delay(e.setAttribute(m.key, m.codec.encode(v))))(_.values)
 
   inline given forOptionSignalHtmlAttr[E <: fs2.dom.Element[F], V]
       : Modifier[F, E, OptionSignalModifier[F, V]] =
     _forOptionSignalHtmlAttr.asInstanceOf[Modifier[F, E, OptionSignalModifier[F, V]]]
 
   private val _forOptionSignalHtmlAttr: Modifier[F, dom.Element, OptionSignalModifier[F, Any]] =
-    (m, e) =>
-      m.values.getAndUpdates.flatMap { (head, tail) =>
-        def set(v: Option[Any]) = F.delay {
-          v.fold(e.removeAttribute(m.key))(v => e.setAttribute(m.key, m.codec.encode(v)))
-        }
-        Resource.eval(set(head)) *>
-          tail.foreach(set(_)).compile.drain.cedeBackground.void
-      }
+    Modifier.forSignal[F, dom.Element, OptionSignalModifier[F, Any], Option[Any]]((e, m, v) =>
+      F.delay(v.fold(e.removeAttribute(m.key))(v => e.setAttribute(m.key, m.codec.encode(v)))))(
+      _.values)
+
+final class AriaAttr[F[_], V] private[calico] (suffix: String, codec: Codec[V, String])
+    extends HtmlAttr[F, V]("aria-" + suffix, codec)
