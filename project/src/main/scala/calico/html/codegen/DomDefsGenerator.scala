@@ -53,7 +53,7 @@ object DomDefsGenerator {
 
       val baseImplDef = if (tagType == HtmlTagType) {
         List(
-          s"def ${keyImplName}[$scalaJsElementTypeParam <: $baseScalaJsHtmlElementType](key: String, void: Boolean = false): ${keyKind}[$scalaJsElementTypeParam]"
+          s"protected def ${keyImplName}[$scalaJsElementTypeParam <: $baseScalaJsHtmlElementType](key: String, void: Boolean = false): ${keyKind}[$scalaJsElementTypeParam]"
         )
       } else {
         List(
@@ -114,7 +114,7 @@ object DomDefsGenerator {
         )
       } else {
         List(
-          s"def ${baseImplName}[V](key: String, codec: Codec[V, String]): ${keyKind}[F, V] = ${keyKindConstructor(keyKind)}(key, codec)"
+          s"protected def ${baseImplName}[V](key: String, codec: Codec[V, String]): ${keyKind}[F, V] = ${keyKindConstructor(keyKind)}(key, codec)"
         )
       }
 

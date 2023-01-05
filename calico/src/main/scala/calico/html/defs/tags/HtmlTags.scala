@@ -21,7 +21,7 @@ trait HtmlTags[F[_], T[_ <: HtmlElement[F]]] {
     * @param tagName - e.g. "div" or "mwc-input"
     * @tparam Ref - type of elements with this tag, e.g. dom.html.Input for "input" tag
     */
-  def htmlTag[Ref <: HtmlElement[F]](key: String, void: Boolean = false): T[Ref]
+  protected def htmlTag[Ref <: HtmlElement[F]](key: String, void: Boolean = false): T[Ref]
 
 
   // -- Document Tags --

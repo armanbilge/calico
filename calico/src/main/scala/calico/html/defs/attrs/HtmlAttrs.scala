@@ -19,7 +19,7 @@ trait HtmlAttrs[F[_]] {
     * 
     * @tparam V    - value type for this attr in Scala
     */
-  def htmlAttr[V](key: String, codec: Codec[V, String]): HtmlAttr[F, V] = new HtmlAttr(key, codec)
+  protected def htmlAttr[V](key: String, codec: Codec[V, String]): HtmlAttr[F, V] = new HtmlAttr(key, codec)
 
 
   @inline protected def boolAsOnOffHtmlAttr(key: String): HtmlAttr[F, Boolean] = htmlAttr(key, BooleanAsOnOffStringCodec)

@@ -135,7 +135,7 @@ object TodoMvc extends IOWebApp:
     }
 
   def StatusBar(activeCount: Signal[IO, Int], filter: Signal[IO, Filter], router: Router[IO]) =
-    footer(
+    footerTag(
       cls := "footer",
       span(
         cls := "todo-count",

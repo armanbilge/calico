@@ -103,3 +103,18 @@ object codecs:
       */
     def encode(scalaValue: ScalaType): DomType
   }
+
+  object Codec {
+    private[calico] val whitespaceSeparatedStringsCodec: Codec[List[String], String] = new:
+      def decode(domValue: String) = domValue.split(" ").toList
+
+      def encode(scalaValue: List[String]) =
+        if scalaValue.isEmpty then ""
+        else
+          var acc = scalaValue.head
+          var tail = scalaValue.tail
+          while tail.nonEmpty do
+            acc += " " + tail.head
+            tail = tail.tail
+          acc
+  }

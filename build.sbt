@@ -61,7 +61,6 @@ lazy val calico = project
       "com.armanbilge" %%% "fs2-dom" % Fs2DomVersion,
       "org.typelevel" %%% "shapeless3-deriving" % "3.2.0",
       "dev.optics" %%% "monocle-core" % MonocleVersion,
-      "com.raquo" %%% "domtypes" % "0.16.0-RC3",
       "org.scala-js" %%% "scalajs-dom" % "2.3.0"
     )
   )
