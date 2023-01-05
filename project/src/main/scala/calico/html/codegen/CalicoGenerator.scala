@@ -51,7 +51,11 @@ private[codegen] object CalicoGenerator
   override val baseScalaJsHtmlElementType: String = "HtmlElement[F]"
 
   override val codecsImport: String =
-    s"import ${basePackagePath}.codecs.Codec.*; import ${basePackagePath}.codecs.AsIsCodec.*; import ${basePackagePath}.codecs.*"
+    List(
+      s"import ${basePackagePath}.codecs.Codec.*",
+      s"import ${basePackagePath}.codecs.AsIsCodec.*",
+      s"import ${basePackagePath}.codecs.*"
+    ).mkString("\n")
 
   override def generateTagsTrait(
       tagType: TagType,
@@ -251,5 +255,25 @@ private[codegen] object CalicoGenerator
       outputImplDefs = true,
       format = format
     ).printTrait().getOutput()
+  }
+
+  override def writeToFile(packagePath: String, fileName: String, fileContent: String): Unit = {
+    val header =
+      """/*
+        | * Copyright 2022 Arman Bilge
+        | *
+        | * Licensed under the Apache License, Version 2.0 (the "License");
+        | * you may not use this file except in compliance with the License.
+        | * You may obtain a copy of the License at
+        | *
+        | *     http://www.apache.org/licenses/LICENSE-2.0
+        | *
+        | * Unless required by applicable law or agreed to in writing, software
+        | * distributed under the License is distributed on an "AS IS" BASIS,
+        | * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+        | * See the License for the specific language governing permissions and
+        | * limitations under the License.
+        | */""".stripMargin('|') + System.lineSeparator
+    super.writeToFile(packagePath, fileName, header + fileContent)
   }
 }
