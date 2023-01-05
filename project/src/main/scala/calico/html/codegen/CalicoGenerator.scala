@@ -46,10 +46,6 @@ private[codegen] object CalicoGenerator
       format = CodeFormatting()
     ) {
 
-  override def settersPackagePath: String = basePackagePath + ".modifiers.KeySetter"
-
-  override def scalaJsElementTypeParam: String = "Ref"
-
   override val baseScalaJsHtmlElementType: String = "HtmlElement[F]"
 
   override val codecsImport: String =

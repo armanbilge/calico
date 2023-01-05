@@ -39,7 +39,7 @@ trait HtmlTags[F[_], T[_ <: HtmlElement[F]]] {
    * @tparam Ref
    *   \- type of elements with this tag, e.g. dom.html.Input for "input" tag
    */
-  protected def htmlTag[Ref <: HtmlElement[F]](key: String, void: Boolean = false): T[Ref]
+  protected def htmlTag[El <: HtmlElement[F]](key: String, void: Boolean = false): T[El]
 
   // -- Document Tags --
 
