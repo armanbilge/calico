@@ -30,6 +30,8 @@ import com.raquo.domtypes.common.PropDef
 import com.raquo.domtypes.common.SvgTagType
 import com.raquo.domtypes.common.TagDef
 import com.raquo.domtypes.common.TagType
+import java.nio.file.Paths
+import org.scalafmt.interfaces.Scalafmt
 
 private[codegen] object CalicoGenerator
     extends CanonicalGenerator(
@@ -274,6 +276,13 @@ private[codegen] object CalicoGenerator
         | * See the License for the specific language governing permissions and
         | * limitations under the License.
         | */""".stripMargin('|') + System.lineSeparator + System.lineSeparator
-    super.writeToFile(packagePath, fileName, header + fileContent)
+    val finalFileContent =
+      scalafmt.format(
+        Paths.get(".scalafmt.conf"),
+        Paths.get(fileName + ".scala"),
+        header + fileContent)
+    super.writeToFile(packagePath, fileName, finalFileContent)
   }
+
+  private lazy val scalafmt = Scalafmt.create(getClass.getClassLoader)
 }

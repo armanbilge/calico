@@ -24,50 +24,50 @@ import org.scalajs.dom
 //  - See `project/src/main/scala/calico/html/codegen/DomDefsGenerator.scala` for code generation params
 //  - Contribute to https://github.com/raquo/scala-dom-types to add missing tags / attrs / props / etc.
 
-/** Document-only Events */
+/**
+ * Document-only Events
+ */
 trait DocumentEventProps[F[_]] { this: GlobalEventProps[F] =>
-
-
-
 
   // -- Document-only Events --
 
-
   /**
-    * The `DOMContentLoaded` event is fired when the initial HTML document has been completely loaded and parsed,
-    * without waiting for stylesheets, images, and subframes to finish loading. A very different event `load`
-    * should be used only to detect a fully-loaded page.
-    * 
-    * It is an incredibly common mistake to use load where DOMContentLoaded would be much more appropriate,
-    * so be cautious.
-    * 
-    * @see https://developer.mozilla.org/en-US/docs/Web/API/Document/DOMContentLoaded_event
-    */
+   * The `DOMContentLoaded` event is fired when the initial HTML document has been completely
+   * loaded and parsed, without waiting for stylesheets, images, and subframes to finish
+   * loading. A very different event `load` should be used only to detect a fully-loaded page.
+   *
+   * It is an incredibly common mistake to use load where DOMContentLoaded would be much more
+   * appropriate, so be cautious.
+   *
+   * @see
+   *   https://developer.mozilla.org/en-US/docs/Web/API/Document/DOMContentLoaded_event
+   */
   lazy val onDomContentLoaded: EventProp[F, dom.Event] = eventProp("DOMContentLoaded")
 
-
   /**
-    * The fullscreenchange event is fired immediately after the browser switches into or out of full-screen mode.
-    * 
-    * @see https://developer.mozilla.org/en-US/docs/Web/API/Document/fullscreenchange_event
-    */
+   * The fullscreenchange event is fired immediately after the browser switches into or out of
+   * full-screen mode.
+   *
+   * @see
+   *   https://developer.mozilla.org/en-US/docs/Web/API/Document/fullscreenchange_event
+   */
   lazy val onFullScreenChange: EventProp[F, dom.Event] = eventProp("fullscreenchange")
 
-
   /**
-    * The fullscreenerror event is fired when the browser cannot switch to full-screen mode.
-    * 
-    * @see https://developer.mozilla.org/en-US/docs/Web/API/Document/fullscreenerror_event
-    */
+   * The fullscreenerror event is fired when the browser cannot switch to full-screen mode.
+   *
+   * @see
+   *   https://developer.mozilla.org/en-US/docs/Web/API/Document/fullscreenerror_event
+   */
   lazy val onFullScreenError: EventProp[F, dom.Event] = eventProp("fullscreenerror")
 
-
   /**
-    * The visibilitychange event is fired when the content of a tab has become visible or has been hidden.
-    * 
-    * @see https://developer.mozilla.org/en-US/docs/Web/API/Document/visibilitychange_event
-    */
+   * The visibilitychange event is fired when the content of a tab has become visible or has
+   * been hidden.
+   *
+   * @see
+   *   https://developer.mozilla.org/en-US/docs/Web/API/Document/visibilitychange_event
+   */
   lazy val onVisibilityChange: EventProp[F, dom.Event] = eventProp("visibilitychange")
-
 
 }

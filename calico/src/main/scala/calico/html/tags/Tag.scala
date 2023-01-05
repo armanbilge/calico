@@ -49,5 +49,3 @@ final class HtmlTag[F[_], E <: fs2.dom.HtmlElement[F]] private[calico] (
     }
 
   private def build = F.delay(dom.document.createElement(name).asInstanceOf[E])
-
-
