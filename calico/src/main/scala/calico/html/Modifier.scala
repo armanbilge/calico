@@ -124,24 +124,21 @@ trait Modifiers[F[_]](using F: Async[F]):
       sentinel => _forNodeSignal.modify(n2s.map(_.getOrElse(sentinel)), n)
     }
 
-  // TODO implement without Async
-  given forStringStream[F[_]: fs2.dom.Dom, E <: fs2.dom.Node[F]](
-      using F: Async[F]): Modifier[F, E, Stream[F, String]] with
+  given forStringStream[E <: fs2.dom.Node[F]]: Modifier[F, E, Stream[F, String]] with
     def modify(s: Stream[F, String], e: E) = for
       n <- F
         .delay(dom.document.createTextNode(""))
-        .flatTap(n => F.delay(e.appendChild(n.asInstanceOf[fs2.dom.Node[F]])))
+        .flatTap(n => F.delay(e.asInstanceOf[dom.Node].appendChild(n)))
         .toResource
       _ <- s.foreach(t => F.delay(n.textContent = t)).compile.drain.background
     yield ()
 
-  // TODO implement without Async
-  given forOptionStringStream[F[_]: fs2.dom.Dom, E <: fs2.dom.Node[F]](
-      using F: Async[F]): Modifier[F, E, Stream[F, Option[String]]] with
+  given forOptionStringStream[E <: fs2.dom.Node[F]]: Modifier[F, E, Stream[F, Option[String]]]
+    with
     def modify(s: Stream[F, Option[String]], e: E) = for
       n <- F
         .delay(dom.document.createTextNode(""))
-        .flatTap(n => F.delay(e.appendChild(n.asInstanceOf[fs2.dom.Node[F]])))
+        .flatTap(n => F.delay(e.asInstanceOf[dom.Node].appendChild(n)))
         .toResource
       _ <- s.foreach(t => F.delay(n.textContent = t.getOrElse(""))).compile.drain.background
     yield ()
