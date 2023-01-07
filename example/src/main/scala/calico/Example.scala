@@ -52,7 +52,7 @@ object Example extends IOWebApp:
           Resource.eval(countCounter.update(_ + 1)) *>
             p(
               "Sheep: ",
-              n.map(_.toString).discrete,
+              n.map(_.toString),
               " ",
               button(
                 "+",
@@ -66,8 +66,8 @@ object Example extends IOWebApp:
         val content = (helloRoute |+| countRoute).toResource.flatMap(router.dispatch)
 
         div(
-          p("Created hello page ", helloCounter.map(_.toString).discrete, " times."),
-          p("Created count page ", countCounter.map(_.toString).discrete, " times."),
+          p("Created hello page ", helloCounter.map(_.toString), " times."),
+          p("Created count page ", countCounter.map(_.toString), " times."),
           h4("Navigation"),
           ul(
             List("Shaun", "Shirley", "Timmy", "Nuts").map { sheep =>

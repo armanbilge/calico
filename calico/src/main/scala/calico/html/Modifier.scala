@@ -123,22 +123,3 @@ trait Modifiers[F[_]](using F: Async[F]):
     Resource.eval(F.delay(Resource.pure[F, dom.Node](dom.document.createComment("")))).flatMap {
       sentinel => _forNodeSignal.modify(n2s.map(_.getOrElse(sentinel)), n)
     }
-
-  given forStringStream[E <: fs2.dom.Node[F]]: Modifier[F, E, Stream[F, String]] with
-    def modify(s: Stream[F, String], e: E) = for
-      n <- F
-        .delay(dom.document.createTextNode(""))
-        .flatTap(n => F.delay(e.asInstanceOf[dom.Node].appendChild(n)))
-        .toResource
-      _ <- s.foreach(t => F.delay(n.textContent = t)).compile.drain.background
-    yield ()
-
-  given forOptionStringStream[E <: fs2.dom.Node[F]]: Modifier[F, E, Stream[F, Option[String]]]
-    with
-    def modify(s: Stream[F, Option[String]], e: E) = for
-      n <- F
-        .delay(dom.document.createTextNode(""))
-        .flatTap(n => F.delay(e.asInstanceOf[dom.Node].appendChild(n)))
-        .toResource
-      _ <- s.foreach(t => F.delay(n.textContent = t.getOrElse(""))).compile.drain.background
-    yield ()
