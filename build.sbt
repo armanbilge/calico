@@ -26,7 +26,7 @@ val Fs2DomVersion = "0.1-d92ea1c-SNAPSHOT"
 val MonocleVersion = "3.2.0"
 
 lazy val root =
-  tlCrossRootProject.aggregate(frp, calico, router, example, todoMvc, unidocs)
+  tlCrossRootProject.aggregate(frp, calico, router, sandbox, todoMvc, unidocs)
 
 lazy val frp = crossProject(JVMPlatform, JSPlatform)
   .crossType(CrossType.Pure)
@@ -72,8 +72,8 @@ lazy val router = project
     )
   )
 
-lazy val example = project
-  .in(file("example"))
+lazy val sandbox = project
+  .in(file("sandbox"))
   .enablePlugins(ScalaJSPlugin, NoPublishPlugin)
   .dependsOn(calico, router)
   .settings(

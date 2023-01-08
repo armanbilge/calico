@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package calico
+
 
 import calico.html.io.*
 import calico.router.*
@@ -28,6 +28,6 @@ import fs2.dom.*
 import org.http4s.*
 import org.http4s.syntax.all.*
 
-object Example extends IOWebApp:
+object Sandbox extends IOWebApp:
 
   def render = Resource.never
