@@ -59,7 +59,7 @@ lazy val calico = project
       "org.scala-js" %%% "scalajs-dom" % "2.3.0"
     ),
     Compile / sourceGenerators += Def.task {
-      val calicoSourceManaged = sourceManaged.value
+      val calicoSourceManaged = (Compile / sourceManaged).value / "domdefs"
       DomDefsGenerator.cachedGenerate(calicoSourceManaged)
       val finder: PathFinder = calicoSourceManaged ** "*.scala"
       finder.get
