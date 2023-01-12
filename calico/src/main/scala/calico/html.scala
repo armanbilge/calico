@@ -33,7 +33,6 @@ import calico.html.keys.EventPropModifiers
 import calico.html.keys.HtmlAttr
 import calico.html.keys.HtmlAttrModifiers
 import calico.html.keys.HtmlProp
-import calico.html.keys.HtmlProp.apply
 import calico.html.keys.HtmlPropModifiers
 import calico.html.Modifier
 import calico.html.tags.HtmlTag
