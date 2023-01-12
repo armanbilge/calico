@@ -17,6 +17,3 @@ target/
 .bloop/
 metals.sbt
 .vscode
-
-# Generated STD Code
-project/lastScalaDomTypesVersion.txt
