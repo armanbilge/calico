@@ -32,7 +32,6 @@ import com.raquo.domtypes.common.TagDef
 import com.raquo.domtypes.common.TagType
 import java.io.File
 import java.nio.file.Paths
-import org.scalafmt.interfaces.Scalafmt
 
 private[codegen] class CalicoGenerator(srcManaged: File)
     extends CanonicalGenerator(
@@ -256,30 +255,4 @@ private[codegen] class CalicoGenerator(srcManaged: File)
     ).printTrait().getOutput()
   }
 
-  override def writeToFile(packagePath: String, fileName: String, fileContent: String): Unit = {
-    val header =
-      """/*
-        | * Copyright 2022 Arman Bilge
-        | *
-        | * Licensed under the Apache License, Version 2.0 (the "License");
-        | * you may not use this file except in compliance with the License.
-        | * You may obtain a copy of the License at
-        | *
-        | *     http://www.apache.org/licenses/LICENSE-2.0
-        | *
-        | * Unless required by applicable law or agreed to in writing, software
-        | * distributed under the License is distributed on an "AS IS" BASIS,
-        | * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-        | * See the License for the specific language governing permissions and
-        | * limitations under the License.
-        | */""".stripMargin('|') + System.lineSeparator + System.lineSeparator
-    val finalFileContent =
-      scalafmt.format(
-        Paths.get(".scalafmt.conf"),
-        Paths.get(fileName + ".scala"),
-        header + fileContent)
-    super.writeToFile(packagePath, fileName, finalFileContent)
-  }
-
-  private lazy val scalafmt = Scalafmt.create(getClass.getClassLoader)
 }
