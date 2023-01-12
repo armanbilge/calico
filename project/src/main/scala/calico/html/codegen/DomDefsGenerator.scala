@@ -18,12 +18,13 @@ package calico.html.codegen
 
 import com.raquo.domtypes.codegen.DefType.LazyVal
 import com.raquo.domtypes.codegen.{
-  CanonicalCache,
   CanonicalDefGroups,
   CanonicalGenerator,
   CodeFormatting,
   SourceRepr
 }
+import cats.effect.IO
+import cats.syntax.all._
 import com.raquo.domtypes.codegen.DefType
 import com.raquo.domtypes.codegen.generators.AttrsTraitGenerator
 import com.raquo.domtypes.codegen.generators.EventPropsTraitGenerator
@@ -37,22 +38,21 @@ import java.io.File
 
 object DomDefsGenerator {
 
-  private val cache = new CanonicalCache("project")
-
-  def cachedGenerate(srcManaged: File): Unit = {
-    cache.triggerIfCacheKeyUpdated(
-      metaProject.BuildInfo.scalaDomTypesVersion,
-      forceOnEverySnapshot = true
-    )(_ => generate(srcManaged))
-  }
-
-  def generate(srcManaged: File): Unit = {
+  def generate(srcManaged: File): IO[List[File]] = {
     val defGroups = new CanonicalDefGroups()
     val generator = new CalicoGenerator(srcManaged)
 
+    def writeToFile(packagePath: String, fileName: String, fileContent: String): IO[File] =
+      IO(
+        generator.writeToFile(
+          packagePath = packagePath,
+          fileName = fileName,
+          fileContent = fileContent
+        )).as(new File(packagePath + File.separator + fileName + ".scala"))
+
     // -- HTML tags --
 
-    {
+    val htmlTags = {
       val traitName = "HtmlTags"
       val traitNameWithParams = s"$traitName[F[_], T[_ <: HtmlElement[F]]]"
 
@@ -81,11 +81,7 @@ object DomDefsGenerator {
         defType = LazyVal
       )
 
-      generator.writeToFile(
-        packagePath = generator.tagDefsPackagePath,
-        fileName = traitName,
-        fileContent = fileContent
-      )
+      writeToFile(generator.tagDefsPackagePath, traitName, fileContent)
     }
 
     // -- SVG tags --
@@ -123,7 +119,7 @@ object DomDefsGenerator {
 
     // -- HTML attributes --
 
-    {
+    val htmlAttrs = {
       val traitName = "HtmlAttrs"
       val traitNameWithParams = s"$traitName[F[_]]"
 
@@ -152,11 +148,7 @@ object DomDefsGenerator {
         defType = LazyVal
       )
 
-      generator.writeToFile(
-        packagePath = generator.attrDefsPackagePath,
-        fileName = traitName,
-        fileContent = fileContent
-      )
+      writeToFile(generator.attrDefsPackagePath, traitName, fileContent)
     }
 
     // -- SVG attributes --
@@ -195,7 +187,7 @@ object DomDefsGenerator {
 
     // -- ARIA attributes --
 
-    {
+    val ariaAttrs = {
       val traitName = "AriaAttrs"
       val traitNameWithParams = s"$traitName[F[_]]"
 
@@ -232,16 +224,12 @@ object DomDefsGenerator {
         defType = LazyVal
       )
 
-      generator.writeToFile(
-        packagePath = generator.attrDefsPackagePath,
-        fileName = traitName,
-        fileContent = fileContent
-      )
+      writeToFile(generator.attrDefsPackagePath, traitName, fileContent)
     }
 
     // -- HTML props --
 
-    {
+    val htmlProps = {
       val traitName = "HtmlProps"
       val traitNameWithParams = s"$traitName[F[_]]"
 
@@ -268,16 +256,12 @@ object DomDefsGenerator {
         defType = LazyVal
       )
 
-      generator.writeToFile(
-        packagePath = generator.propDefsPackagePath,
-        fileName = traitName,
-        fileContent = fileContent
-      )
+      writeToFile(generator.propDefsPackagePath, traitName, fileContent)
     }
 
     // -- Event props --
 
-    {
+    val eventProps = {
       val baseTraitName = "GlobalEventProps"
       val baseTraitNameWithParams = s"$baseTraitName[F[_]]"
 
@@ -286,7 +270,7 @@ object DomDefsGenerator {
         ("DocumentEventProps", "DocumentEventProps[F[_]]", defGroups.documentEventPropDefGroups)
       )
 
-      {
+      val global = {
         val fileContent = generator.generateEventPropsTrait(
           defSources = defGroups.globalEventPropDefGroups.map {
             case (key, vals) =>
@@ -312,40 +296,35 @@ object DomDefsGenerator {
           defType = LazyVal
         )
 
-        generator.writeToFile(
-          packagePath = generator.eventPropDefsPackagePath,
-          fileName = baseTraitName,
-          fileContent = fileContent
-        )
+        writeToFile(generator.eventPropDefsPackagePath, baseTraitName, fileContent)
       }
 
-      subTraits.foreach {
-        case (traitName, traitNameWithParams, eventPropsDefGroups) =>
-          val fileContent = generator.generateEventPropsTrait(
-            defSources = eventPropsDefGroups.map {
-              case (key, vals) =>
-                (
-                  key,
-                  vals.map(attr => attr.copy(scalaJsEventType = "F, " + attr.scalaJsEventType)))
-            },
-            printDefGroupComments = true,
-            traitCommentLines = List(eventPropsDefGroups.head._1),
-            traitName = traitNameWithParams,
-            traitExtends = Nil,
-            traitThisType = Some(baseTraitName + "[F]"),
-            baseImplDefComments = Nil,
-            outputBaseImpl = false,
-            keyKind = "EventProp",
-            keyImplName = "eventProp",
-            defType = LazyVal
-          )
-
-          generator.writeToFile(
-            packagePath = generator.eventPropDefsPackagePath,
-            fileName = traitName,
-            fileContent = fileContent
-          )
-      }
+      List(
+        subTraits.traverse {
+          case (traitName, traitNameWithParams, eventPropsDefGroups) =>
+            val fileContent = generator.generateEventPropsTrait(
+              defSources = eventPropsDefGroups.map {
+                case (key, vals) =>
+                  (
+                    key,
+                    vals.map(attr =>
+                      attr.copy(scalaJsEventType = "F, " + attr.scalaJsEventType)))
+              },
+              printDefGroupComments = true,
+              traitCommentLines = List(eventPropsDefGroups.head._1),
+              traitName = traitNameWithParams,
+              traitExtends = Nil,
+              traitThisType = Some(baseTraitName + "[F]"),
+              baseImplDefComments = Nil,
+              outputBaseImpl = false,
+              keyKind = "EventProp",
+              keyImplName = "eventProp",
+              defType = LazyVal
+            )
+            writeToFile(generator.eventPropDefsPackagePath, traitName, fileContent)
+        },
+        global.map(_.pure[List])
+      ).parFlatSequence
     }
 
     // -- Style props --
@@ -413,5 +392,6 @@ object DomDefsGenerator {
     // )
     // }
     // }
+    List(List(htmlTags, htmlAttrs, ariaAttrs, htmlProps).sequence, eventProps).parFlatSequence
   }
 }

@@ -1,4 +1,5 @@
 import _root_.calico.html.codegen.DomDefsGenerator
+import cats.effect.unsafe.implicits.global
 
 ThisBuild / tlBaseVersion := "0.2"
 
@@ -26,6 +27,12 @@ val CatsEffectVersion = "3.4.4"
 val Fs2Version = "3.4.0"
 val Fs2DomVersion = "0.1-d92ea1c-SNAPSHOT"
 val MonocleVersion = "3.2.0"
+
+Global / onLoad := {
+  val old = (Global / onLoad).value
+  DomDefsGenerator.generate((calico / Compile / sourceManaged).value / "domdefs").unsafeRunSync
+  old
+}
 
 lazy val root =
   tlCrossRootProject.aggregate(frp, calico, router, sandbox, todoMvc, unidocs)
@@ -60,7 +67,6 @@ lazy val calico = project
     ),
     Compile / sourceGenerators += Def.task {
       val calicoSourceManaged = (Compile / sourceManaged).value / "domdefs"
-      DomDefsGenerator.cachedGenerate(calicoSourceManaged)
       val finder: PathFinder = calicoSourceManaged ** "*.scala"
       finder.get
     }.taskValue
