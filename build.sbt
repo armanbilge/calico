@@ -30,7 +30,9 @@ val MonocleVersion = "3.2.0"
 
 Global / onLoad := {
   val old = (Global / onLoad).value
-  DomDefsGenerator.generate((calico / Compile / sourceManaged).value / "domdefs").unsafeRunSync
+  DomDefsGenerator
+    .generate((calico / Compile / sourceManaged).value / "domdefs")
+    .unsafeRunSync()
   old
 }
 
@@ -64,12 +66,7 @@ lazy val calico = project
       "org.typelevel" %%% "shapeless3-deriving" % "3.3.0",
       "dev.optics" %%% "monocle-core" % MonocleVersion,
       "org.scala-js" %%% "scalajs-dom" % "2.3.0"
-    ),
-    Compile / sourceGenerators += Def.task {
-      val calicoSourceManaged = (Compile / sourceManaged).value / "domdefs"
-      val finder: PathFinder = calicoSourceManaged ** "*.scala"
-      finder.get
-    }.taskValue
+    )
   )
   .dependsOn(frp.js)
 
