@@ -1,6 +1,3 @@
-import _root_.calico.html.codegen.DomDefsGenerator
-import cats.effect.unsafe.implicits.global
-
 ThisBuild / tlBaseVersion := "0.2"
 
 ThisBuild / organization := "com.armanbilge"
@@ -29,6 +26,9 @@ val Fs2DomVersion = "0.2-20afaf8-SNAPSHOT"
 val MonocleVersion = "3.2.0"
 
 Global / onLoad := {
+  import _root_.calico.html.codegen.DomDefsGenerator
+  import cats.effect.unsafe.implicits.global
+
   val old = (Global / onLoad).value
   DomDefsGenerator
     .generate((calico / Compile / sourceManaged).value / "domdefs")
