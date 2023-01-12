@@ -43,12 +43,14 @@ object DomDefsGenerator {
     val generator = new CalicoGenerator(srcManaged)
 
     def writeToFile(packagePath: String, fileName: String, fileContent: String): IO[File] =
-      IO(
+      IO {
         generator.writeToFile(
           packagePath = packagePath,
           fileName = fileName,
           fileContent = fileContent
-        )).as(new File(packagePath + File.separator + fileName + ".scala"))
+        )
+        new File(packagePath + File.separator + fileName + ".scala")
+      }
 
     // -- HTML tags --
 

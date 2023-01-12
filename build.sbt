@@ -25,15 +25,6 @@ val Fs2Version = "3.4.0"
 val Fs2DomVersion = "0.2-20afaf8-SNAPSHOT"
 val MonocleVersion = "3.2.0"
 
-Global / onLoad := {
-  import _root_.calico.html.codegen.DomDefsGenerator
-  import cats.effect.unsafe.implicits.global
-
-  val old = (Global / onLoad).value
-  DomDefsGenerator.generate((calico / Compile / sourceManaged).value / "domdefs").unsafeRunSync
-  old
-}
-
 lazy val root =
   tlCrossRootProject.aggregate(frp, calico, router, sandbox, todoMvc, unidocs)
 
@@ -54,6 +45,8 @@ lazy val frp = crossProject(JVMPlatform, JSPlatform)
     )
   )
 
+lazy val generatedDomDefs = settingKey[Seq[File]]("Generated SDT sources")
+
 lazy val calico = project
   .in(file("calico"))
   .enablePlugins(ScalaJSPlugin)
@@ -65,10 +58,13 @@ lazy val calico = project
       "dev.optics" %%% "monocle-core" % MonocleVersion,
       "org.scala-js" %%% "scalajs-dom" % "2.3.0"
     ),
+    Compile / generatedDomDefs := {
+      import _root_.calico.html.codegen.DomDefsGenerator
+      import cats.effect.unsafe.implicits.global
+      DomDefsGenerator.generate((Compile / sourceManaged).value / "domdefs").unsafeRunSync()
+    },
     Compile / sourceGenerators += Def.task {
-      val calicoSourceManaged = (Compile / sourceManaged).value / "domdefs"
-      val finder: PathFinder = calicoSourceManaged ** "*.scala"
-      finder.get
+      (Compile / generatedDomDefs).value
     }.taskValue
   )
   .dependsOn(frp.js)
