@@ -39,7 +39,7 @@ private[codegen] class CalicoGenerator(srcManaged: File)
       basePackagePath = "calico.html",
       standardTraitCommentLines = List(
         "#NOTE: GENERATED CODE",
-        s" - This file is generated at compile time from the data in Scala DOM Types",
+        " - This file is generated at compile time from the data in Scala DOM Types",
         " - See `project/src/main/scala/calico/html/codegen/DomDefsGenerator.scala` for code generation params",
         " - Contribute to https://github.com/raquo/scala-dom-types to add missing tags / attrs / props / etc."
       ),
