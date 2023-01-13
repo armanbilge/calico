@@ -80,6 +80,7 @@ private[codegen] class CalicoGenerator(srcManaged: File)
     val headerLines = List(
       s"package $tagDefsPackagePath",
       "",
+      "import calico.html.HtmlTagT",
       "import fs2.dom.*",
       ""
     ) ++ standardTraitCommentLines.map("// " + _)

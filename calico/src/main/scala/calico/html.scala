@@ -66,7 +66,7 @@ object Html:
   def apply[F[_]: Async]: Html[F] = new Html[F] {}
 
 trait Html[F[_]](using F: Async[F])
-    extends HtmlTags[F, HtmlTagT[F]],
+    extends HtmlTags[F],
       HtmlProps[F],
       GlobalEventProps[F],
       DocumentEventProps[F],

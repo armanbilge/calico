@@ -55,7 +55,7 @@ object DomDefsGenerator {
 
     val htmlTags = {
       val traitName = "HtmlTags"
-      val traitNameWithParams = s"$traitName[F[_], T[_ <: HtmlElement[F]]]"
+      val traitNameWithParams = s"$traitName[F[_]]"
 
       val fileContent = generator.generateTagsTrait(
         tagType = HtmlTagType,
@@ -63,7 +63,7 @@ object DomDefsGenerator {
         printDefGroupComments = true,
         traitCommentLines = Nil,
         traitName = traitNameWithParams,
-        keyKind = "T",
+        keyKind = "HtmlTagT[F]",
         baseImplDefComments = List(
           "Create HTML tag",
           "",
