@@ -1,4 +1,4 @@
-lazy val scalaDomTypesVersion = "17.0.0-M1"
+lazy val scalaDomTypesVersion = "17.0.0-M2"
 
 lazy val root = (project in file("."))
   .enablePlugins(BuildInfoPlugin)

@@ -49,7 +49,6 @@ object DomDefsGenerator {
           fileName = fileName,
           fileContent = fileContent
         )
-        new File(packagePath + File.separator + fileName + ".scala")
       }
 
     // -- HTML tags --
