@@ -92,9 +92,7 @@ private object Aria {
   private val instance: Aria[cats.Id] = new Aria[cats.Id] {}
 }
 
-final class HtmlTag[F[_], E] private[calico] (
-    name: String,
-    void: Boolean)(using F: Async[F]):
+final class HtmlTag[F[_], E] private[calico] (name: String, void: Boolean)(using F: Async[F]):
 
   def apply[M](modifier: M)(using M: Modifier[F, E, M]): Resource[F, E] =
     build.toResource.flatTap(M.modify(modifier, _))
