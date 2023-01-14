@@ -23,8 +23,8 @@ import cats.kernel.Order
 import cats.syntax.all.*
 import fs2.Stream
 import fs2.concurrent.Signal
-import fs2.concurrent.SignallingRef
 import fs2.concurrent.SignallingMapRef
+import fs2.concurrent.SignallingRef
 
 import scala.collection.immutable.LongMap
 import scala.collection.immutable.SortedMap

@@ -16,9 +16,9 @@
 
 package calico.unsafe
 
+import scala.concurrent.ExecutionContext
 import scala.scalajs.js
 import scala.scalajs.js.annotation.JSGlobal
-import scala.concurrent.ExecutionContext
 
 private[calico] object MicrotaskExecutor extends ExecutionContext:
 
