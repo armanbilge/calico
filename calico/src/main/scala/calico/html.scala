@@ -124,13 +124,13 @@ trait Modifier[F[_], E, A]:
   inline final def contramap[B](inline f: B => A): Modifier[F, E, B] =
     (b: B, e: E) => outer.modify(f(b), e)
 
-object Modifier:
-  def forSignal[F[_]: Async, A, B, C](setter: (A, B, C) => F[Unit])(
-      signal: B => Signal[F, C]): Modifier[F, A, B] = (b, a) =>
-    signal(b).getAndUpdates.flatMap { (head, tail) =>
-      def set(c: C) = setter(a, b, c)
-      Resource.eval(set(head)) *>
-        tail.foreach(set(_)).compile.drain.cedeBackground.void
+private object Modifier:
+  def forSignal[F[_]: Async, E, M, V](signal: M => Signal[F, V])(
+      mkModify: (M, E) => V => F[Unit]): Modifier[F, E, M] = (m, e) =>
+    signal(m).getAndUpdates.flatMap { (head, tail) =>
+      val modify = mkModify(m, e)
+      Resource.eval(modify(head)) *>
+        tail.foreach(modify(_)).compile.drain.cedeBackground.void
     }
 
 trait Modifiers[F[_]](using F: Async[F]):
@@ -258,18 +258,20 @@ trait HtmlAttrModifiers[F[_]](using F: Async[F]):
       : Modifier[F, E, SignalModifier[F, V]] =
     _forSignalHtmlAttr.asInstanceOf[Modifier[F, E, SignalModifier[F, V]]]
 
-  private val _forSignalHtmlAttr: Modifier[F, dom.Element, SignalModifier[F, Any]] =
-    Modifier.forSignal[F, dom.Element, SignalModifier[F, Any], Any]((e, m, v) =>
-      F.delay(e.setAttribute(m.key, m.codec.encode(v))))(_.values)
+  private val _forSignalHtmlAttr =
+    Modifier.forSignal[F, dom.Element, SignalModifier[F, Any], Any](_.values) { (m, e) => v =>
+      F.delay(e.setAttribute(m.key, m.codec.encode(v)))
+    }
 
   inline given forOptionSignalHtmlAttr[E <: fs2.dom.Element[F], V]
       : Modifier[F, E, OptionSignalModifier[F, V]] =
     _forOptionSignalHtmlAttr.asInstanceOf[Modifier[F, E, OptionSignalModifier[F, V]]]
 
-  private val _forOptionSignalHtmlAttr: Modifier[F, dom.Element, OptionSignalModifier[F, Any]] =
-    Modifier.forSignal[F, dom.Element, OptionSignalModifier[F, Any], Option[Any]]((e, m, v) =>
-      F.delay(v.fold(e.removeAttribute(m.key))(v => e.setAttribute(m.key, m.codec.encode(v)))))(
-      _.values)
+  private val _forOptionSignalHtmlAttr =
+    Modifier.forSignal[F, dom.Element, OptionSignalModifier[F, Any], Option[Any]](_.values) {
+      (m, e) => v =>
+        F.delay(v.fold(e.removeAttribute(m.key))(v => e.setAttribute(m.key, m.codec.encode(v))))
+    }
 
 final class AriaAttr[F[_], V] private[calico] (suffix: String, codec: Codec[V, String])
     extends HtmlAttr[F, V]("aria-" + suffix, codec)
@@ -320,21 +322,22 @@ trait PropModifiers[F[_]](using F: Async[F]):
   inline given forSignalProp[N, V, J]: Modifier[F, N, SignalModifier[F, V, J]] =
     _forSignalProp.asInstanceOf[Modifier[F, N, SignalModifier[F, V, J]]]
 
-  private val _forSignalProp: Modifier[F, Any, SignalModifier[F, Any, Any]] =
-    Modifier.forSignal[F, Any, SignalModifier[F, Any, Any], Any]((any, m, v) =>
-      setProp(any, v, m.name, m.codec))(_.values)
+  private val _forSignalProp =
+    Modifier.forSignal[F, Any, SignalModifier[F, Any, Any], Any](_.values) { (m, n) => v =>
+      setProp(n, v, m.name, m.codec)
+    }
 
   inline given forOptionSignalProp[N, V, J]: Modifier[F, N, OptionSignalModifier[F, V, J]] =
     _forOptionSignalProp.asInstanceOf[Modifier[F, N, OptionSignalModifier[F, V, J]]]
 
-  private val _forOptionSignalProp: Modifier[F, Any, OptionSignalModifier[F, Any, Any]] =
-    Modifier.forSignal[F, Any, OptionSignalModifier[F, Any, Any], Option[Any]](
-      (any, osm, oany) =>
+  private val _forOptionSignalProp =
+    Modifier.forSignal[F, Any, OptionSignalModifier[F, Any, Any], Option[Any]](_.values) {
+      (m, n) => v =>
         F.delay {
-          val dict = any.asInstanceOf[js.Dictionary[Any]]
-          oany.fold(dict -= osm.name)(v => dict(osm.name) = osm.codec.encode(v))
-          ()
-        })(_.values)
+          val dict = n.asInstanceOf[js.Dictionary[Any]]
+          v.fold(dict -= m.name)(v => dict(m.name) = m.codec.encode(v))
+        }
+    }
 
 final class EventProp[F[_], E] private[calico] (key: String):
   import EventProp.*
