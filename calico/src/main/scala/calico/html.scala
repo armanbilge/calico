@@ -91,11 +91,11 @@ trait Html[F[_]](using F: Async[F])
   def styleAttr: HtmlAttr[F, String] =
     HtmlAttr("style", AsIsCodec.StringAsIsCodec)
 
-type HtmlTagT[F[_]] = [E <: fs2.dom.HtmlElement[F]] =>> HtmlTag[F, E]
+type HtmlTagT[F[_]] = [E] =>> HtmlTag[F, E]
 
 sealed trait Aria[F[_]] extends AriaAttrs[F]
 
-final class HtmlTag[F[_], E <: fs2.dom.HtmlElement[F]] private[calico] (
+final class HtmlTag[F[_], E] private[calico] (
     name: String,
     void: Boolean)(using F: Async[F]):
 
