@@ -273,11 +273,10 @@ trait HtmlAttrModifiers[F[_]](using F: Async[F]):
       : Modifier[F, E, OptionSignalModifier[F, V]] =
     _forOptionSignalHtmlAttr.asInstanceOf[Modifier[F, E, OptionSignalModifier[F, V]]]
 
-  private val _forOptionSignalHtmlAttr
-      : Modifier[F, dom.Element, OptionSignalModifier[F, Any]] =
+  private val _forOptionSignalHtmlAttr: Modifier[F, dom.Element, OptionSignalModifier[F, Any]] =
     Modifier.forSignal[F, dom.Element, OptionSignalModifier[F, Any], Option[Any]]((e, m, v) =>
-      F.delay(v.fold(e.removeAttribute(m.key))(v =>
-        e.setAttribute(m.key, m.codec.encode(v)))))(_.values)
+      F.delay(v.fold(e.removeAttribute(m.key))(v => e.setAttribute(m.key, m.codec.encode(v)))))(
+      _.values)
 
 final class AriaAttr[F[_], V] private[calico] (suffix: String, codec: Codec[V, String])
     extends HtmlAttr[F, V]("aria-" + suffix, codec)
@@ -336,8 +335,7 @@ trait PropModifiers[F[_]](using F: Async[F]):
     Modifier.forSignal[F, Any, SignalModifier[F, Any, Any], Any]((any, m, v) =>
       setProp(any, v, m.name, m.codec))(_.values)
 
-  inline given forOptionSignalProp[N, V, J]
-      : Modifier[F, N, OptionSignalModifier[F, V, J]] =
+  inline given forOptionSignalProp[N, V, J]: Modifier[F, N, OptionSignalModifier[F, V, J]] =
     _forOptionSignalProp.asInstanceOf[Modifier[F, N, OptionSignalModifier[F, V, J]]]
 
   private val _forOptionSignalProp: Modifier[F, Any, OptionSignalModifier[F, Any, Any]] =
@@ -381,8 +379,7 @@ trait ClassPropModifiers[F[_]](using F: Async[F]):
   inline given forConstantClassProp[N]: Modifier[F, N, SingleConstantModifier] =
     _forConstantClassProp.asInstanceOf[Modifier[F, N, SingleConstantModifier]]
   private val _forConstantClassProp: Modifier[F, Any, SingleConstantModifier] =
-    (m, n) =>
-      Resource.eval(F.delay(n.asInstanceOf[js.Dictionary[String]]("className") = m.cls))
+    (m, n) => Resource.eval(F.delay(n.asInstanceOf[js.Dictionary[String]]("className") = m.cls))
 
 final class Children[F[_]] private[calico]:
   import Children.*
