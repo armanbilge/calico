@@ -85,11 +85,11 @@ trait Html[F[_]](using F: Async[F])
 
 type HtmlTagT[F[_]] = [E] =>> HtmlTag[F, E]
 
-sealed trait Aria[F[_]] extends AriaAttrs[F]
+final class Aria[F[_]] private extends AriaAttrs[F]
 
 private object Aria {
   inline def apply[F[_]]: Aria[F] = instance.asInstanceOf[Aria[F]]
-  private val instance: Aria[cats.Id] = new Aria[cats.Id] {}
+  private val instance: Aria[cats.Id] = new Aria[cats.Id]
 }
 
 final class HtmlTag[F[_], E] private[calico] (name: String, void: Boolean)(using F: Async[F]):
