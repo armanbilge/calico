@@ -70,7 +70,8 @@ trait Html[F[_]](using F: Async[F])
       ChildrenModifiers[F],
       KeyedChildrenModifiers[F],
       HtmlAttrModifiers[F]:
-  final val aria: Aria[F] = Aria[F]
+
+  final val aria: Aria[F] = new Aria[F] {}
 
   protected def htmlTag[E <: fs2.dom.HtmlElement[F]](tagName: String, void: Boolean) =
     HtmlTag(tagName, void)
@@ -92,10 +93,7 @@ trait Html[F[_]](using F: Async[F])
 
 type HtmlTagT[F[_]] = [E <: fs2.dom.HtmlElement[F]] =>> HtmlTag[F, E]
 
-object Aria:
-  def apply[F[_]]: Aria[F] = new Aria[F] {}
-
-trait Aria[F[_]] extends AriaAttrs[F]
+sealed trait Aria[F[_]] extends AriaAttrs[F]
 
 final class HtmlTag[F[_], E <: fs2.dom.HtmlElement[F]] private[calico] (
     name: String,
