@@ -308,11 +308,7 @@ object Prop:
 trait PropModifiers[F[_]](using F: Async[F]):
   import Prop.*
 
-  private[calico] inline def setProp[N, V, J](
-      node: N,
-      value: V,
-      name: String,
-      codec: Codec[V, J]) =
+  private inline def setProp[N, V, J](node: N, value: V, name: String, codec: Codec[V, J]) =
     F.delay(node.asInstanceOf[js.Dictionary[J]](name) = codec.encode(value))
 
   inline given forConstantProp[N, V, J]: Modifier[F, N, ConstantModifier[V, J]] =
