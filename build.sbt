@@ -45,7 +45,7 @@ lazy val frp = crossProject(JVMPlatform, JSPlatform)
     )
   )
 
-lazy val generatedDomDefs = settingKey[Seq[File]]("Generated SDT sources")
+lazy val generateDomDefs = taskKey[Seq[File]]("Generate SDT sources")
 
 lazy val calico = project
   .in(file("calico"))
@@ -58,14 +58,15 @@ lazy val calico = project
       "dev.optics" %%% "monocle-core" % MonocleVersion,
       "org.scala-js" %%% "scalajs-dom" % "2.3.0"
     ),
-    Compile / generatedDomDefs := {
+    Compile / generateDomDefs := {
       import _root_.calico.html.codegen.DomDefsGenerator
       import cats.effect.unsafe.implicits.global
-      DomDefsGenerator.generate((Compile / sourceManaged).value / "domdefs").unsafeRunSync()
+      import sbt.util.CacheImplicits._
+      (Compile / generateDomDefs).previous(sbt.fileJsonFormatter).getOrElse {
+        DomDefsGenerator.generate((Compile / sourceManaged).value / "domdefs").unsafeRunSync()
+      }
     },
-    Compile / sourceGenerators += Def.task {
-      (Compile / generatedDomDefs).value
-    }.taskValue
+    Compile / sourceGenerators += (Compile / generateDomDefs)
   )
   .dependsOn(frp.js)
 
