@@ -50,8 +50,8 @@ import org.scalajs.dom
 import shapeless3.deriving.K0
 
 import scala.collection.mutable
-import scala.scalajs.js
 import scala.collection.mutable.ListBuffer
+import scala.scalajs.js
 
 object io extends Html[IO]
 

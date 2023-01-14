@@ -17,8 +17,10 @@
 package todomvc
 
 import calico.*
-import calico.frp.{*, given}
-import calico.html.io.{*, given}
+import calico.frp.*
+import calico.frp.given
+import calico.html.io.*
+import calico.html.io.given
 import calico.router.*
 import calico.syntax.*
 import cats.data.*
