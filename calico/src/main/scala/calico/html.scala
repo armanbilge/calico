@@ -17,18 +17,21 @@
 package calico
 package html
 
-import calico.html.codecs.AsIsCodec
-import calico.html.codecs.Codec
 import calico.html.AriaAttrs
-import calico.html.HtmlAttrs
 import calico.html.DocumentEventProps
 import calico.html.GlobalEventProps
-import calico.html.WindowEventProps
-import calico.html.Props
+import calico.html.HtmlAttrs
 import calico.html.HtmlTags
 import calico.html.Modifier
+import calico.html.Props
+import calico.html.WindowEventProps
+import calico.html.codecs.AsIsCodec
+import calico.html.codecs.Codec
 import calico.syntax.*
 import calico.util.DomHotswap
+import cats.Foldable
+import cats.Hash
+import cats.Monad
 import cats.effect.IO
 import cats.effect.kernel.Async
 import cats.effect.kernel.Ref
@@ -36,20 +39,18 @@ import cats.effect.kernel.Resource
 import cats.effect.kernel.Sync
 import cats.effect.std.Dispatcher
 import cats.effect.syntax.all.*
-import cats.Foldable
-import cats.Hash
-import cats.Monad
 import cats.syntax.all.*
-import fs2.concurrent.Channel
-import fs2.concurrent.Signal
 import fs2.Pipe
 import fs2.Stream
+import fs2.concurrent.Channel
+import fs2.concurrent.Signal
 import org.scalajs.dom
 import org.scalajs.dom.Attr
+import shapeless3.deriving.K0
+
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.scalajs.js
-import shapeless3.deriving.K0
 
 object io extends Html[IO]
 

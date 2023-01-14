@@ -17,6 +17,7 @@
 package calico
 package syntax
 
+import cats.Functor
 import cats.data.State
 import cats.effect.kernel.Async
 import cats.effect.kernel.Concurrent
@@ -27,17 +28,16 @@ import cats.effect.kernel.Ref
 import cats.effect.kernel.Resource
 import cats.effect.kernel.Sync
 import cats.effect.syntax.all.*
-import cats.Functor
 import cats.kernel.Eq
 import cats.syntax.all.*
+import fs2.Pipe
+import fs2.Pull
+import fs2.Stream
 import fs2.concurrent.Channel
 import fs2.concurrent.Signal
 import fs2.concurrent.SignallingRef
 import fs2.concurrent.Topic
 import fs2.dom.Dom
-import fs2.Pipe
-import fs2.Pull
-import fs2.Stream
 import monocle.Lens
 import org.scalajs.dom
 
