@@ -23,7 +23,7 @@ ThisBuild / resolvers ++= Resolver.sonatypeOssRepos("snapshots")
 val CatsVersion = "2.9.0"
 val CatsEffectVersion = "3.4.4"
 val Fs2Version = "3.4.0"
-val Fs2DomVersion = "0.1-d92ea1c-SNAPSHOT"
+val Fs2DomVersion = "0.2-20afaf8-SNAPSHOT"
 val MonocleVersion = "3.2.0"
 
 lazy val root =
@@ -46,6 +46,8 @@ lazy val frp = crossProject(JVMPlatform, JSPlatform)
     )
   )
 
+lazy val generateDomDefs = taskKey[Seq[File]]("Generate SDT sources")
+
 lazy val calico = project
   .in(file("calico"))
   .enablePlugins(ScalaJSPlugin)
@@ -55,9 +57,17 @@ lazy val calico = project
       "com.armanbilge" %%% "fs2-dom" % Fs2DomVersion,
       "org.typelevel" %%% "shapeless3-deriving" % "3.3.0",
       "dev.optics" %%% "monocle-core" % MonocleVersion,
-      "com.raquo" %%% "domtypes" % "0.16.0-RC3",
       "org.scala-js" %%% "scalajs-dom" % "2.3.0"
-    )
+    ),
+    Compile / generateDomDefs := {
+      import _root_.calico.html.codegen.DomDefsGenerator
+      import cats.effect.unsafe.implicits.global
+      import sbt.util.CacheImplicits._
+      (Compile / generateDomDefs).previous(sbt.fileJsonFormatter).getOrElse {
+        DomDefsGenerator.generate((Compile / sourceManaged).value / "domdefs").unsafeRunSync()
+      }
+    },
+    Compile / sourceGenerators += (Compile / generateDomDefs)
   )
   .dependsOn(frp.js)
 
