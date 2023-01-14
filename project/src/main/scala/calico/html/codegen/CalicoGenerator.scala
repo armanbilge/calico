@@ -48,6 +48,10 @@ private[codegen] class CalicoGenerator(srcManaged: File)
 
   override val baseScalaJsHtmlElementType: String = "HtmlElement[F]"
 
+  override def keysPackagePath: String = basePackagePath
+
+  override def tagKeysPackagePath: String = basePackagePath
+
   override val codecsImport: String =
     List(
       s"import ${basePackagePath}.codecs.Codec.*",

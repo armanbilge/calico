@@ -26,16 +26,7 @@ import calico.html.defs.eventProps.GlobalEventProps
 import calico.html.defs.eventProps.WindowEventProps
 import calico.html.defs.props.HtmlProps
 import calico.html.defs.tags.HtmlTags
-import calico.html.keys.ClassProp
-import calico.html.keys.ClassPropModifiers
-import calico.html.keys.EventProp
-import calico.html.keys.EventPropModifiers
-import calico.html.keys.HtmlAttr
-import calico.html.keys.HtmlAttrModifiers
-import calico.html.keys.HtmlProp
-import calico.html.keys.HtmlPropModifiers
 import calico.html.Modifier
-import calico.html.tags.HtmlTag
 import calico.syntax.*
 import calico.util.DomHotswap
 import cats.effect.IO
@@ -106,32 +97,31 @@ object Aria:
 
 trait Aria[F[_]] extends AriaAttrs[F]
 
-object tags:
-  final class HtmlTag[F[_], E <: fs2.dom.HtmlElement[F]] private[calico] (
-      name: String,
-      void: Boolean)(using F: Async[F]):
+final class HtmlTag[F[_], E <: fs2.dom.HtmlElement[F]] private[calico] (
+    name: String,
+    void: Boolean)(using F: Async[F]):
 
-    def apply[M](modifier: M)(using M: Modifier[F, E, M]): Resource[F, E] =
-      build.toResource.flatTap(M.modify(modifier, _))
+  def apply[M](modifier: M)(using M: Modifier[F, E, M]): Resource[F, E] =
+    build.toResource.flatTap(M.modify(modifier, _))
 
-    def apply[M](mkModifier: E => M)(using M: Modifier[F, E, M]): Resource[F, E] =
-      build.toResource.flatTap(e => M.modify(mkModifier(e), e))
+  def apply[M](mkModifier: E => M)(using M: Modifier[F, E, M]): Resource[F, E] =
+    build.toResource.flatTap(e => M.modify(mkModifier(e), e))
 
-    def apply[M <: Tuple](modifiers: M)(
-        using inst: K0.ProductInstances[Modifier[F, E, _], M]): Resource[F, E] =
-      inst.foldLeft(modifiers)(build.toResource) {
+  def apply[M <: Tuple](modifiers: M)(
+      using inst: K0.ProductInstances[Modifier[F, E, _], M]): Resource[F, E] =
+    inst.foldLeft(modifiers)(build.toResource) {
+      [a] => (r: Resource[F, E], m: Modifier[F, E, a], a: a) => r.flatTap(m.modify(a, _))
+    }
+
+  def apply[M <: Tuple](mkModifiers: E => M)(
+      using inst: K0.ProductInstances[Modifier[F, E, _], M]): Resource[F, E] =
+    build.toResource.flatTap { e =>
+      inst.foldLeft(mkModifiers(e))(Resource.pure(e)) {
         [a] => (r: Resource[F, E], m: Modifier[F, E, a], a: a) => r.flatTap(m.modify(a, _))
       }
+    }
 
-    def apply[M <: Tuple](mkModifiers: E => M)(
-        using inst: K0.ProductInstances[Modifier[F, E, _], M]): Resource[F, E] =
-      build.toResource.flatTap { e =>
-        inst.foldLeft(mkModifiers(e))(Resource.pure(e)) {
-          [a] => (r: Resource[F, E], m: Modifier[F, E, a], a: a) => r.flatTap(m.modify(a, _))
-        }
-      }
-
-    private def build = F.delay(dom.document.createElement(name).asInstanceOf[E])
+  private def build = F.delay(dom.document.createElement(name).asInstanceOf[E])
 
 trait Modifier[F[_], E, A]:
   outer =>
@@ -230,170 +220,169 @@ trait Modifiers[F[_]](using F: Async[F]):
       sentinel => _forNodeSignal.modify(n2s.map(_.getOrElse(sentinel)), n)
     }
 
-object keys:
-  sealed class HtmlAttr[F[_], V] private[calico] (key: String, codec: Codec[V, String]):
-    import HtmlAttr.*
+sealed class HtmlAttr[F[_], V] private[calico] (key: String, codec: Codec[V, String]):
+  import HtmlAttr.*
 
-    inline def :=(v: V): ConstantModifier[V] =
-      ConstantModifier(key, codec, v)
+  inline def :=(v: V): ConstantModifier[V] =
+    ConstantModifier(key, codec, v)
 
-    inline def <--(vs: Signal[F, V]): SignalModifier[F, V] =
-      SignalModifier(key, codec, vs)
+  inline def <--(vs: Signal[F, V]): SignalModifier[F, V] =
+    SignalModifier(key, codec, vs)
 
-    inline def <--(vs: Signal[F, Option[V]]): OptionSignalModifier[F, V] =
-      OptionSignalModifier(key, codec, vs)
+  inline def <--(vs: Signal[F, Option[V]]): OptionSignalModifier[F, V] =
+    OptionSignalModifier(key, codec, vs)
 
-  object HtmlAttr:
-    final class ConstantModifier[V](
-        val key: String,
-        val codec: Codec[V, String],
-        val value: V
-    )
+object HtmlAttr:
+  final class ConstantModifier[V](
+      val key: String,
+      val codec: Codec[V, String],
+      val value: V
+  )
 
-    final class SignalModifier[F[_], V](
-        val key: String,
-        val codec: Codec[V, String],
-        val values: Signal[F, V]
-    )
+  final class SignalModifier[F[_], V](
+      val key: String,
+      val codec: Codec[V, String],
+      val values: Signal[F, V]
+  )
 
-    final class OptionSignalModifier[F[_], V](
-        val key: String,
-        val codec: Codec[V, String],
-        val values: Signal[F, Option[V]]
-    )
+  final class OptionSignalModifier[F[_], V](
+      val key: String,
+      val codec: Codec[V, String],
+      val values: Signal[F, Option[V]]
+  )
 
-  trait HtmlAttrModifiers[F[_]](using F: Async[F]):
-    import HtmlAttr.*
+trait HtmlAttrModifiers[F[_]](using F: Async[F]):
+  import HtmlAttr.*
 
-    inline given forConstantHtmlAttr[E <: fs2.dom.Element[F], V]
-        : Modifier[F, E, ConstantModifier[V]] =
-      _forConstantHtmlAttr.asInstanceOf[Modifier[F, E, ConstantModifier[V]]]
+  inline given forConstantHtmlAttr[E <: fs2.dom.Element[F], V]
+      : Modifier[F, E, ConstantModifier[V]] =
+    _forConstantHtmlAttr.asInstanceOf[Modifier[F, E, ConstantModifier[V]]]
 
-    private val _forConstantHtmlAttr: Modifier[F, dom.Element, ConstantModifier[Any]] =
-      (m, e) => Resource.eval(F.delay(e.setAttribute(m.key, m.codec.encode(m.value))))
+  private val _forConstantHtmlAttr: Modifier[F, dom.Element, ConstantModifier[Any]] =
+    (m, e) => Resource.eval(F.delay(e.setAttribute(m.key, m.codec.encode(m.value))))
 
-    inline given forSignalHtmlAttr[E <: fs2.dom.Element[F], V]
-        : Modifier[F, E, SignalModifier[F, V]] =
-      _forSignalHtmlAttr.asInstanceOf[Modifier[F, E, SignalModifier[F, V]]]
+  inline given forSignalHtmlAttr[E <: fs2.dom.Element[F], V]
+      : Modifier[F, E, SignalModifier[F, V]] =
+    _forSignalHtmlAttr.asInstanceOf[Modifier[F, E, SignalModifier[F, V]]]
 
-    private val _forSignalHtmlAttr: Modifier[F, dom.Element, SignalModifier[F, Any]] =
-      Modifier.forSignal[F, dom.Element, SignalModifier[F, Any], Any]((e, m, v) =>
-        F.delay(e.setAttribute(m.key, m.codec.encode(v))))(_.values)
+  private val _forSignalHtmlAttr: Modifier[F, dom.Element, SignalModifier[F, Any]] =
+    Modifier.forSignal[F, dom.Element, SignalModifier[F, Any], Any]((e, m, v) =>
+      F.delay(e.setAttribute(m.key, m.codec.encode(v))))(_.values)
 
-    inline given forOptionSignalHtmlAttr[E <: fs2.dom.Element[F], V]
-        : Modifier[F, E, OptionSignalModifier[F, V]] =
-      _forOptionSignalHtmlAttr.asInstanceOf[Modifier[F, E, OptionSignalModifier[F, V]]]
+  inline given forOptionSignalHtmlAttr[E <: fs2.dom.Element[F], V]
+      : Modifier[F, E, OptionSignalModifier[F, V]] =
+    _forOptionSignalHtmlAttr.asInstanceOf[Modifier[F, E, OptionSignalModifier[F, V]]]
 
-    private val _forOptionSignalHtmlAttr
-        : Modifier[F, dom.Element, OptionSignalModifier[F, Any]] =
-      Modifier.forSignal[F, dom.Element, OptionSignalModifier[F, Any], Option[Any]]((e, m, v) =>
-        F.delay(v.fold(e.removeAttribute(m.key))(v =>
-          e.setAttribute(m.key, m.codec.encode(v)))))(_.values)
+  private val _forOptionSignalHtmlAttr
+      : Modifier[F, dom.Element, OptionSignalModifier[F, Any]] =
+    Modifier.forSignal[F, dom.Element, OptionSignalModifier[F, Any], Option[Any]]((e, m, v) =>
+      F.delay(v.fold(e.removeAttribute(m.key))(v =>
+        e.setAttribute(m.key, m.codec.encode(v)))))(_.values)
 
-  final class AriaAttr[F[_], V] private[calico] (suffix: String, codec: Codec[V, String])
-      extends HtmlAttr[F, V]("aria-" + suffix, codec)
+final class AriaAttr[F[_], V] private[calico] (suffix: String, codec: Codec[V, String])
+    extends HtmlAttr[F, V]("aria-" + suffix, codec)
 
-  sealed class HtmlProp[F[_], V, J] private[calico] (name: String, codec: Codec[V, J]):
-    import HtmlProp.*
+sealed class HtmlProp[F[_], V, J] private[calico] (name: String, codec: Codec[V, J]):
+  import HtmlProp.*
 
-    inline def :=(v: V): ConstantModifier[V, J] =
-      ConstantModifier(name, codec, v)
+  inline def :=(v: V): ConstantModifier[V, J] =
+    ConstantModifier(name, codec, v)
 
-    inline def <--(vs: Signal[F, V]): SignalModifier[F, V, J] =
-      SignalModifier(name, codec, vs)
+  inline def <--(vs: Signal[F, V]): SignalModifier[F, V, J] =
+    SignalModifier(name, codec, vs)
 
-    inline def <--(vs: Signal[F, Option[V]]): OptionSignalModifier[F, V, J] =
-      OptionSignalModifier(name, codec, vs)
+  inline def <--(vs: Signal[F, Option[V]]): OptionSignalModifier[F, V, J] =
+    OptionSignalModifier(name, codec, vs)
 
-  object HtmlProp:
-    final class ConstantModifier[V, J](
-        val name: String,
-        val codec: Codec[V, J],
-        val value: V
-    )
+object HtmlProp:
+  final class ConstantModifier[V, J](
+      val name: String,
+      val codec: Codec[V, J],
+      val value: V
+  )
 
-    final class SignalModifier[F[_], V, J](
-        val name: String,
-        val codec: Codec[V, J],
-        val values: Signal[F, V]
-    )
+  final class SignalModifier[F[_], V, J](
+      val name: String,
+      val codec: Codec[V, J],
+      val values: Signal[F, V]
+  )
 
-    final class OptionSignalModifier[F[_], V, J](
-        val name: String,
-        val codec: Codec[V, J],
-        val values: Signal[F, Option[V]]
-    )
+  final class OptionSignalModifier[F[_], V, J](
+      val name: String,
+      val codec: Codec[V, J],
+      val values: Signal[F, Option[V]]
+  )
 
-  trait HtmlPropModifiers[F[_]](using F: Async[F]):
-    import HtmlProp.*
+trait HtmlPropModifiers[F[_]](using F: Async[F]):
+  import HtmlProp.*
 
-    private[calico] inline def setHtmlProp[N, V, J](
-        node: N,
-        value: V,
-        name: String,
-        codec: Codec[V, J]) =
-      F.delay(node.asInstanceOf[js.Dictionary[J]](name) = codec.encode(value))
+  private[calico] inline def setHtmlProp[N, V, J](
+      node: N,
+      value: V,
+      name: String,
+      codec: Codec[V, J]) =
+    F.delay(node.asInstanceOf[js.Dictionary[J]](name) = codec.encode(value))
 
-    inline given forConstantHtmlProp[N, V, J]: Modifier[F, N, ConstantModifier[V, J]] =
-      _forConstantHtmlProp.asInstanceOf[Modifier[F, N, ConstantModifier[V, J]]]
+  inline given forConstantHtmlProp[N, V, J]: Modifier[F, N, ConstantModifier[V, J]] =
+    _forConstantHtmlProp.asInstanceOf[Modifier[F, N, ConstantModifier[V, J]]]
 
-    private val _forConstantHtmlProp: Modifier[F, Any, ConstantModifier[Any, Any]] =
-      (m, n) => Resource.eval(setHtmlProp(n, m.value, m.name, m.codec))
+  private val _forConstantHtmlProp: Modifier[F, Any, ConstantModifier[Any, Any]] =
+    (m, n) => Resource.eval(setHtmlProp(n, m.value, m.name, m.codec))
 
-    inline given forSignalHtmlProp[N, V, J]: Modifier[F, N, SignalModifier[F, V, J]] =
-      _forSignalHtmlProp.asInstanceOf[Modifier[F, N, SignalModifier[F, V, J]]]
+  inline given forSignalHtmlProp[N, V, J]: Modifier[F, N, SignalModifier[F, V, J]] =
+    _forSignalHtmlProp.asInstanceOf[Modifier[F, N, SignalModifier[F, V, J]]]
 
-    private val _forSignalHtmlProp: Modifier[F, Any, SignalModifier[F, Any, Any]] =
-      Modifier.forSignal[F, Any, SignalModifier[F, Any, Any], Any]((any, m, v) =>
-        setHtmlProp(any, v, m.name, m.codec))(_.values)
+  private val _forSignalHtmlProp: Modifier[F, Any, SignalModifier[F, Any, Any]] =
+    Modifier.forSignal[F, Any, SignalModifier[F, Any, Any], Any]((any, m, v) =>
+      setHtmlProp(any, v, m.name, m.codec))(_.values)
 
-    inline given forOptionSignalHtmlProp[N, V, J]
-        : Modifier[F, N, OptionSignalModifier[F, V, J]] =
-      _forOptionSignalHtmlProp.asInstanceOf[Modifier[F, N, OptionSignalModifier[F, V, J]]]
+  inline given forOptionSignalHtmlProp[N, V, J]
+      : Modifier[F, N, OptionSignalModifier[F, V, J]] =
+    _forOptionSignalHtmlProp.asInstanceOf[Modifier[F, N, OptionSignalModifier[F, V, J]]]
 
-    private val _forOptionSignalHtmlProp: Modifier[F, Any, OptionSignalModifier[F, Any, Any]] =
-      Modifier.forSignal[F, Any, OptionSignalModifier[F, Any, Any], Option[Any]](
-        (any, osm, oany) =>
-          F.delay {
-            val dict = any.asInstanceOf[js.Dictionary[Any]]
-            oany.fold(dict -= osm.name)(v => dict(osm.name) = osm.codec.encode(v))
-            ()
-          })(_.values)
+  private val _forOptionSignalHtmlProp: Modifier[F, Any, OptionSignalModifier[F, Any, Any]] =
+    Modifier.forSignal[F, Any, OptionSignalModifier[F, Any, Any], Option[Any]](
+      (any, osm, oany) =>
+        F.delay {
+          val dict = any.asInstanceOf[js.Dictionary[Any]]
+          oany.fold(dict -= osm.name)(v => dict(osm.name) = osm.codec.encode(v))
+          ()
+        })(_.values)
 
-  final class EventProp[F[_], E] private[calico] (key: String):
-    import EventProp.*
-    inline def -->(sink: Pipe[F, E, Nothing]): PipeModifier[F, E] = PipeModifier(key, sink)
+final class EventProp[F[_], E] private[calico] (key: String):
+  import EventProp.*
+  inline def -->(sink: Pipe[F, E, Nothing]): PipeModifier[F, E] = PipeModifier(key, sink)
 
-  object EventProp:
-    final class PipeModifier[F[_], E](val key: String, val sink: Pipe[F, E, Nothing])
+object EventProp:
+  final class PipeModifier[F[_], E](val key: String, val sink: Pipe[F, E, Nothing])
 
-  trait EventPropModifiers[F[_]](using F: Async[F]):
-    import EventProp.*
-    inline given forPipeEventProp[T <: fs2.dom.Node[F], E]: Modifier[F, T, PipeModifier[F, E]] =
-      _forPipeEventProp.asInstanceOf[Modifier[F, T, PipeModifier[F, E]]]
-    private val _forPipeEventProp: Modifier[F, dom.EventTarget, PipeModifier[F, Any]] =
-      (m, t) => fs2.dom.events(t, m.key).through(m.sink).compile.drain.cedeBackground.void
+trait EventPropModifiers[F[_]](using F: Async[F]):
+  import EventProp.*
+  inline given forPipeEventProp[T <: fs2.dom.Node[F], E]: Modifier[F, T, PipeModifier[F, E]] =
+    _forPipeEventProp.asInstanceOf[Modifier[F, T, PipeModifier[F, E]]]
+  private val _forPipeEventProp: Modifier[F, dom.EventTarget, PipeModifier[F, Any]] =
+    (m, t) => fs2.dom.events(t, m.key).through(m.sink).compile.drain.cedeBackground.void
 
-  final class ClassProp[F[_]] private[calico]
-      extends HtmlProp[F, List[String], String](
-        "className",
-        Codec.whitespaceSeparatedStringsCodec
-      ):
-    import ClassProp.*
+final class ClassProp[F[_]] private[calico]
+    extends HtmlProp[F, List[String], String](
+      "className",
+      Codec.whitespaceSeparatedStringsCodec
+    ):
+  import ClassProp.*
 
-    inline def :=(cls: String): SingleConstantModifier =
-      SingleConstantModifier(cls)
+  inline def :=(cls: String): SingleConstantModifier =
+    SingleConstantModifier(cls)
 
-  object ClassProp:
-    final class SingleConstantModifier(val cls: String)
+object ClassProp:
+  final class SingleConstantModifier(val cls: String)
 
-  trait ClassPropModifiers[F[_]](using F: Async[F]):
-    import ClassProp.*
-    inline given forConstantClassProp[N]: Modifier[F, N, SingleConstantModifier] =
-      _forConstantClassProp.asInstanceOf[Modifier[F, N, SingleConstantModifier]]
-    private val _forConstantClassProp: Modifier[F, Any, SingleConstantModifier] =
-      (m, n) =>
-        Resource.eval(F.delay(n.asInstanceOf[js.Dictionary[String]]("className") = m.cls))
+trait ClassPropModifiers[F[_]](using F: Async[F]):
+  import ClassProp.*
+  inline given forConstantClassProp[N]: Modifier[F, N, SingleConstantModifier] =
+    _forConstantClassProp.asInstanceOf[Modifier[F, N, SingleConstantModifier]]
+  private val _forConstantClassProp: Modifier[F, Any, SingleConstantModifier] =
+    (m, n) =>
+      Resource.eval(F.delay(n.asInstanceOf[js.Dictionary[String]]("className") = m.cls))
 
 final class Children[F[_]] private[calico]:
   import Children.*
