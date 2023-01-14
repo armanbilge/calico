@@ -228,7 +228,7 @@ object DomDefsGenerator {
     // -- HTML props --
 
     val htmlProps = {
-      val traitName = "HtmlProps"
+      val traitName = "Props"
       val traitNameWithParams = s"$traitName[F[_]]"
 
       val fileContent = generator.generatePropsTrait(
@@ -239,7 +239,7 @@ object DomDefsGenerator {
         printDefGroupComments = true,
         traitCommentLines = Nil,
         traitName = traitNameWithParams,
-        keyKind = "HtmlProp",
+        keyKind = "Prop",
         implNameSuffix = "Prop",
         baseImplDefComments = List(
           "Create custom HTML element property",
@@ -250,7 +250,7 @@ object DomDefsGenerator {
           "@tparam V    - value type for this prop in Scala",
           "@tparam DomV - value type for this prop in the underlying JS DOM."
         ),
-        baseImplName = "htmlProp",
+        baseImplName = "prop",
         defType = LazyVal
       )
 
