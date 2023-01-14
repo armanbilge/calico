@@ -19,13 +19,13 @@ package html
 
 import calico.html.codecs.AsIsCodec
 import calico.html.codecs.Codec
-import calico.html.defs.attrs.AriaAttrs
-import calico.html.defs.attrs.HtmlAttrs
-import calico.html.defs.eventProps.DocumentEventProps
-import calico.html.defs.eventProps.GlobalEventProps
-import calico.html.defs.eventProps.WindowEventProps
-import calico.html.defs.props.Props
-import calico.html.defs.tags.HtmlTags
+import calico.html.AriaAttrs
+import calico.html.HtmlAttrs
+import calico.html.DocumentEventProps
+import calico.html.GlobalEventProps
+import calico.html.WindowEventProps
+import calico.html.Props
+import calico.html.HtmlTags
 import calico.html.Modifier
 import calico.syntax.*
 import calico.util.DomHotswap

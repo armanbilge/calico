@@ -35,7 +35,7 @@ import java.nio.file.Paths
 
 private[codegen] class CalicoGenerator(srcManaged: File)
     extends CanonicalGenerator(
-      baseOutputDirectoryPath = srcManaged.getPath + "/calico/html",
+      baseOutputDirectoryPath = srcManaged.getPath,
       basePackagePath = "calico.html",
       standardTraitCommentLines = List(
         "#NOTE: GENERATED CODE",
@@ -47,6 +47,18 @@ private[codegen] class CalicoGenerator(srcManaged: File)
     ) {
 
   override val baseScalaJsHtmlElementType: String = "HtmlElement[F]"
+
+  override def defsPackagePath: String = basePackagePath
+
+  override def tagDefsPackagePath: String = defsPackagePath
+
+  override def attrDefsPackagePath: String = defsPackagePath
+
+  override def propDefsPackagePath: String = defsPackagePath
+
+  override def eventPropDefsPackagePath: String = defsPackagePath
+
+  override def stylePropDefsPackagePath: String = defsPackagePath
 
   override def keysPackagePath: String = basePackagePath
 
