@@ -45,7 +45,6 @@ import fs2.Stream
 import fs2.concurrent.Channel
 import fs2.concurrent.Signal
 import org.scalajs.dom
-import org.scalajs.dom.Attr
 import shapeless3.deriving.K0
 
 import scala.collection.mutable
