@@ -17,14 +17,6 @@
 package calico
 package html
 
-import calico.html.AriaAttrs
-import calico.html.DocumentEventProps
-import calico.html.GlobalEventProps
-import calico.html.HtmlAttrs
-import calico.html.HtmlTags
-import calico.html.Modifier
-import calico.html.Props
-import calico.html.WindowEventProps
 import calico.html.codecs.AsIsCodec
 import calico.html.codecs.Codec
 import calico.syntax.*
