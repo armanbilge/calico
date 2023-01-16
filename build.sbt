@@ -21,7 +21,7 @@ ThisBuild / tlJdkRelease := Some(8)
 ThisBuild / resolvers ++= Resolver.sonatypeOssRepos("snapshots")
 
 val CatsVersion = "2.9.0"
-val CatsEffectVersion = "3.4.4"
+val CatsEffectVersion = "3.4.5"
 val Fs2Version = "3.4.0"
 val Fs2DomVersion = "0.2-20afaf8-SNAPSHOT"
 val MonocleVersion = "3.2.0"
