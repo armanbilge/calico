@@ -15,7 +15,7 @@
  */
 
 package calico
-package util
+package html
 
 import cats.effect.kernel.Async
 import cats.effect.kernel.Resource
