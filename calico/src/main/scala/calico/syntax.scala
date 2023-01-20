@@ -69,10 +69,7 @@ extension [F[_], A](signal: Signal[F, A])
       .discrete
       .pull
       .uncons1
-      .flatMap {
-        case Some(headTail) => Pull.output1(headTail)
-        case None => Pull.done
-      }
+      .flatMap(Pull.outputOption1(_))
       .streamNoScope
       .compile
       .resource
