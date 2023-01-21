@@ -64,7 +64,7 @@ object DomDefsGenerator {
         traitCommentLines = Nil,
         traitModifiers = List("private"),
         traitName = traitNameWithParams,
-        keyKind = "HtmlTagT[F]",
+        keyKind = "HtmlTag[F, _]",
         baseImplDefComments = List(
           "Create HTML tag",
           "",
