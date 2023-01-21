@@ -89,10 +89,10 @@ private object Codec:
 
   val doubleAsString: Codec[Double, String] = new:
     def decode(domValue: String): Double =
-      domValue.toDouble // @TODO this can throw exception. How do we handle this?
+      domValue.toDoubleOption.getOrElse(null.asInstanceOf[Double])
     def encode(scalaValue: Double): String = scalaValue.toString
 
   val intAsString: Codec[Int, String] = new:
     def decode(domValue: String): Int =
-      domValue.toInt // @TODO this can throw exception. How do we handle this?
+      domValue.toIntOption.getOrElse(null.asInstanceOf[Int])
     def encode(scalaValue: Int): String = scalaValue.toString
