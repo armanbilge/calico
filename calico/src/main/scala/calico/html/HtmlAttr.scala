@@ -53,7 +53,7 @@ object HtmlAttr:
       val values: Signal[F, Option[V]]
   )
 
-trait HtmlAttrModifiers[F[_]](using F: Async[F]):
+private trait HtmlAttrModifiers[F[_]](using F: Async[F]):
   import HtmlAttr.*
 
   inline given forConstantHtmlAttr[E <: fs2.dom.Element[F], V]

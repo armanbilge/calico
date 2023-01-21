@@ -48,7 +48,7 @@ object Children:
   final class ListResourceSignalModifier[F[_]](
       val children: Signal[F, Resource[F, List[fs2.dom.Node[F]]]])
 
-trait ChildrenModifiers[F[_]](using F: Async[F]):
+private trait ChildrenModifiers[F[_]](using F: Async[F]):
   import Children.*
 
   inline given forListResourceSignalChildren[N <: fs2.dom.Node[F]]
@@ -117,7 +117,7 @@ object KeyedChildren:
       val keys: Signal[F, List[K]]
   )
 
-trait KeyedChildrenModifiers[F[_]](using F: Async[F]):
+private trait KeyedChildrenModifiers[F[_]](using F: Async[F]):
   import KeyedChildren.*
 
   private def traverse_[A, U](it: Iterable[A])(f: A => F[U]): F[Unit] =

@@ -59,7 +59,7 @@ object Prop:
       val values: Signal[F, Option[V]]
   )
 
-trait PropModifiers[F[_]](using F: Async[F]):
+private trait PropModifiers[F[_]](using F: Async[F]):
   import Prop.*
 
   private inline def setProp[N, V, J](node: N, value: V, name: String, codec: Codec[V, J]) =
@@ -98,7 +98,7 @@ final class EventProp[F[_], E] private[calico] (key: String):
 object EventProp:
   final class PipeModifier[F[_], E](val key: String, val sink: Pipe[F, E, Nothing])
 
-trait EventPropModifiers[F[_]](using F: Async[F]):
+private trait EventPropModifiers[F[_]](using F: Async[F]):
   import EventProp.*
   inline given forPipeEventProp[T <: fs2.dom.Node[F], E]: Modifier[F, T, PipeModifier[F, E]] =
     _forPipeEventProp.asInstanceOf[Modifier[F, T, PipeModifier[F, E]]]
@@ -118,7 +118,7 @@ final class ClassProp[F[_]] private[calico]
 object ClassProp:
   final class SingleConstantModifier(val cls: String)
 
-trait ClassPropModifiers[F[_]](using F: Async[F]):
+private trait ClassPropModifiers[F[_]](using F: Async[F]):
   import ClassProp.*
   inline given forConstantClassProp[N]: Modifier[F, N, SingleConstantModifier] =
     _forConstantClassProp.asInstanceOf[Modifier[F, N, SingleConstantModifier]]
