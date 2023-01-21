@@ -65,8 +65,15 @@ extension [F[_], A](fa: F[A])
 
 extension [F[_], A](signal: Signal[F, A])
   private[calico] def getAndUpdates(using Concurrent[F]): Resource[F, (A, Stream[F, A])] =
-    // this hack makes me sad
-    Resource.eval(signal.get.tupleRight(signal.discrete.drop(1)))
+    signal
+      .discrete
+      .pull
+      .uncons1
+      .flatMap(Pull.outputOption1(_))
+      .streamNoScope
+      .compile
+      .resource
+      .onlyOrError
 
   def changes(using Eq[A]): Signal[F, A] =
     new:
