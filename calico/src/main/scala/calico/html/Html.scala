@@ -28,7 +28,7 @@ object io extends Html[IO]
 object Html:
   def apply[F[_]: Async]: Html[F] = new Html[F] {}
 
-trait Html[F[_]](using F: Async[F])
+sealed trait Html[F[_]](using F: Async[F])
     extends HtmlTags[F],
       Props[F],
       GlobalEventProps[F],
@@ -42,9 +42,6 @@ trait Html[F[_]](using F: Async[F])
       ChildrenModifiers[F],
       KeyedChildrenModifiers[F],
       HtmlAttrModifiers[F]:
-
-  protected def htmlTag[E <: fs2.dom.HtmlElement[F]](tagName: String, void: Boolean) =
-    HtmlTag(tagName, void)
 
   def aria: Aria[F] = Aria[F]
 

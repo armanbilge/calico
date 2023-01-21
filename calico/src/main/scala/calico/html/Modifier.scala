@@ -43,7 +43,7 @@ private object Modifier:
         tail.foreach(modify(_)).compile.drain.cedeBackground.void
     }
 
-trait Modifiers[F[_]](using F: Async[F]):
+private trait Modifiers[F[_]](using F: Async[F]):
   inline given forUnit[E]: Modifier[F, E, Unit] =
     _forUnit.asInstanceOf[Modifier[F, E, Unit]]
 

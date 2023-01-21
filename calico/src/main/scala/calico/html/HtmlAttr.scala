@@ -25,35 +25,35 @@ import org.scalajs.dom
 sealed class HtmlAttr[F[_], V] private[calico] (key: String, codec: Codec[V, String]):
   import HtmlAttr.*
 
-  inline def :=(v: V): ConstantModifier[V] =
+  @inline def :=(v: V): ConstantModifier[V] =
     ConstantModifier(key, codec, v)
 
-  inline def <--(vs: Signal[F, V]): SignalModifier[F, V] =
+  @inline def <--(vs: Signal[F, V]): SignalModifier[F, V] =
     SignalModifier(key, codec, vs)
 
-  inline def <--(vs: Signal[F, Option[V]]): OptionSignalModifier[F, V] =
+  @inline def <--(vs: Signal[F, Option[V]]): OptionSignalModifier[F, V] =
     OptionSignalModifier(key, codec, vs)
 
 object HtmlAttr:
-  final class ConstantModifier[V](
-      val key: String,
-      val codec: Codec[V, String],
-      val value: V
+  final class ConstantModifier[V] private[calico] (
+      private[calico] val key: String,
+      private[calico] val codec: Codec[V, String],
+      private[calico] val value: V
   )
 
-  final class SignalModifier[F[_], V](
-      val key: String,
-      val codec: Codec[V, String],
-      val values: Signal[F, V]
+  final class SignalModifier[F[_], V] private[calico] (
+      private[calico] val key: String,
+      private[calico] val codec: Codec[V, String],
+      private[calico] val values: Signal[F, V]
   )
 
-  final class OptionSignalModifier[F[_], V](
-      val key: String,
-      val codec: Codec[V, String],
-      val values: Signal[F, Option[V]]
+  final class OptionSignalModifier[F[_], V] private[calico] (
+      private[calico] val key: String,
+      private[calico] val codec: Codec[V, String],
+      private[calico] val values: Signal[F, Option[V]]
   )
 
-trait HtmlAttrModifiers[F[_]](using F: Async[F]):
+private trait HtmlAttrModifiers[F[_]](using F: Async[F]):
   import HtmlAttr.*
 
   inline given forConstantHtmlAttr[E <: fs2.dom.Element[F], V]

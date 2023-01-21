@@ -34,21 +34,21 @@ import scala.scalajs.js
 final class Children[F[_]] private[calico]:
   import Children.*
 
-  inline def <--(
+  @inline def <--(
       cs: Signal[F, List[Resource[F, fs2.dom.Node[F]]]]): ResourceListSignalModifier[F] =
     ResourceListSignalModifier(cs)
 
-  inline def <--(
+  @inline def <--(
       cs: Signal[F, Resource[F, List[fs2.dom.Node[F]]]]): ListResourceSignalModifier[F] =
     ListResourceSignalModifier(cs)
 
 object Children:
-  final class ResourceListSignalModifier[F[_]](
-      val children: Signal[F, List[Resource[F, fs2.dom.Node[F]]]])
-  final class ListResourceSignalModifier[F[_]](
-      val children: Signal[F, Resource[F, List[fs2.dom.Node[F]]]])
+  final class ResourceListSignalModifier[F[_]] private[calico] (
+      private[calico] val children: Signal[F, List[Resource[F, fs2.dom.Node[F]]]])
+  final class ListResourceSignalModifier[F[_]] private[calico] (
+      private[calico] val children: Signal[F, Resource[F, List[fs2.dom.Node[F]]]])
 
-trait ChildrenModifiers[F[_]](using F: Async[F]):
+private trait ChildrenModifiers[F[_]](using F: Async[F]):
   import Children.*
 
   inline given forListResourceSignalChildren[N <: fs2.dom.Node[F]]
@@ -109,15 +109,15 @@ trait ChildrenModifiers[F[_]](using F: Async[F]):
 
 final class KeyedChildren[F[_], K] private[calico] (f: K => Resource[F, fs2.dom.Node[F]]):
   import KeyedChildren.*
-  inline def <--(ks: Signal[F, List[K]]): ListSignalModifier[F, K] = ListSignalModifier(f, ks)
+  @inline def <--(ks: Signal[F, List[K]]): ListSignalModifier[F, K] = ListSignalModifier(f, ks)
 
 object KeyedChildren:
-  final class ListSignalModifier[F[_], K](
-      val build: K => Resource[F, fs2.dom.Node[F]],
-      val keys: Signal[F, List[K]]
+  final class ListSignalModifier[F[_], K] private[calico] (
+      private[calico] val build: K => Resource[F, fs2.dom.Node[F]],
+      private[calico] val keys: Signal[F, List[K]]
   )
 
-trait KeyedChildrenModifiers[F[_]](using F: Async[F]):
+private trait KeyedChildrenModifiers[F[_]](using F: Async[F]):
   import KeyedChildren.*
 
   private def traverse_[A, U](it: Iterable[A])(f: A => F[U]): F[Unit] =

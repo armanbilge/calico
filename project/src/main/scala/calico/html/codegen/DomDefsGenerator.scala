@@ -55,7 +55,7 @@ object DomDefsGenerator {
 
     val htmlTags = {
       val traitName = "HtmlTags"
-      val traitNameWithParams = s"$traitName[F[_]]"
+      val traitNameWithParams = s"$traitName[F[_]](using Async[F])"
 
       val fileContent = generator.generateTagsTrait(
         tagType = HtmlTagType,
