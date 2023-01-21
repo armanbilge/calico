@@ -86,7 +86,7 @@ private[codegen] class CalicoGenerator(srcManaged: File)
 
     val baseImplDef = if (tagType == HtmlTagType) {
       List(
-        s"@inline private[calico] def ${keyImplName}[$scalaJsElementTypeParam <: $baseScalaJsHtmlElementType](key: String, void: Boolean = false): ${keyKind}[$scalaJsElementTypeParam] = ${keyKindConstructor(keyKind)}(key, void)"
+        s"@inline private[calico] def ${keyImplName}[$scalaJsElementTypeParam <: $baseScalaJsHtmlElementType](key: String, void: Boolean = false): HtmlTag[F, $scalaJsElementTypeParam] = HtmlTag[F, $scalaJsElementTypeParam](key, void)"
       )
     } else {
       List(
@@ -97,7 +97,6 @@ private[codegen] class CalicoGenerator(srcManaged: File)
     val headerLines = List(
       s"package $tagDefsPackagePath",
       "",
-      "import calico.html.HtmlTagT",
       "import cats.effect.kernel.Async",
       "import fs2.dom.*",
       ""
@@ -113,7 +112,7 @@ private[codegen] class CalicoGenerator(srcManaged: File)
       traitExtends = Nil,
       traitThisType = None,
       defType = _ => defType,
-      keyType = tag => keyKind + "[" + TagDefMapper.extractFs2DomElementType(tag) + "]",
+      keyType = tag => "HtmlTag[F, " + TagDefMapper.extractFs2DomElementType(tag) + "]",
       keyImplName = _ => keyImplName,
       baseImplDefComments = baseImplDefComments,
       baseImplDef = baseImplDef,
