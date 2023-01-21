@@ -43,9 +43,6 @@ sealed trait Html[F[_]](using F: Async[F])
       KeyedChildrenModifiers[F],
       HtmlAttrModifiers[F]:
 
-  protected def htmlTag[E <: fs2.dom.HtmlElement[F]](tagName: String, void: Boolean) =
-    HtmlTag(tagName, void)
-
   def aria: Aria[F] = Aria[F]
 
   def cls: ClassProp[F] = ClassProp[F]

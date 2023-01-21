@@ -86,11 +86,11 @@ private[codegen] class CalicoGenerator(srcManaged: File)
 
     val baseImplDef = if (tagType == HtmlTagType) {
       List(
-        s"protected def ${keyImplName}[$scalaJsElementTypeParam <: $baseScalaJsHtmlElementType](key: String, void: Boolean = false): ${keyKind}[$scalaJsElementTypeParam]"
+        s"@inline private[calico] def ${keyImplName}[$scalaJsElementTypeParam <: $baseScalaJsHtmlElementType](key: String, void: Boolean = false): ${keyKind}[$scalaJsElementTypeParam] = ${keyKindConstructor(keyKind)}(key, void)"
       )
     } else {
       List(
-        s"def ${keyImplName}[$scalaJsElementTypeParam <: $baseScalaJsSvgElementType](key: String): ${keyKind}[$scalaJsElementTypeParam] = ${keyKindConstructor(keyKind)}(key)"
+        s"@inline private[calico] def ${keyImplName}[$scalaJsElementTypeParam <: $baseScalaJsSvgElementType](key: String): ${keyKind}[$scalaJsElementTypeParam] = ${keyKindConstructor(keyKind)}(key)"
       )
     }
 
@@ -98,6 +98,7 @@ private[codegen] class CalicoGenerator(srcManaged: File)
       s"package $tagDefsPackagePath",
       "",
       "import calico.html.HtmlTagT",
+      "import cats.effect.kernel.Async",
       "import fs2.dom.*",
       ""
     ) ++ standardTraitCommentLines.map("// " + _)
@@ -146,11 +147,11 @@ private[codegen] class CalicoGenerator(srcManaged: File)
 
     val baseImplDef = if (tagType == SvgTagType) {
       List(
-        s"def ${baseImplName}[V](key: String, codec: Codec[V, String], namespace: Option[String]): ${keyKind}[V] = ${keyKindConstructor(keyKind)}(key, codec, namespace)"
+        s"@inline private[calico] def ${baseImplName}[V](key: String, codec: Codec[V, String], namespace: Option[String]): ${keyKind}[V] = ${keyKindConstructor(keyKind)}(key, codec, namespace)"
       )
     } else {
       List(
-        s"protected def ${baseImplName}[V](key: String, codec: Codec[V, String]): ${keyKind}[F, V] = ${keyKindConstructor(keyKind)}(key, codec)"
+        s"@inline private[calico] def ${baseImplName}[V](key: String, codec: Codec[V, String]): ${keyKind}[F, V] = ${keyKindConstructor(keyKind)}(key, codec)"
       )
     }
 
@@ -198,7 +199,7 @@ private[codegen] class CalicoGenerator(srcManaged: File)
     val (defs, defGroupComments) = defsAndGroupComments(defGroups, printDefGroupComments)
 
     val baseImplDef = List(
-      s"def ${baseImplName}[V, DomV](key: String, codec: Codec[V, DomV]): ${keyKind}[F, V, DomV] = ${keyKindConstructor(keyKind)}(key, codec)"
+      s"@inline private[calico] def ${baseImplName}[V, DomV](key: String, codec: Codec[V, DomV]): ${keyKind}[F, V, DomV] = ${keyKindConstructor(keyKind)}(key, codec)"
     )
 
     val headerLines = List(
@@ -245,13 +246,14 @@ private[codegen] class CalicoGenerator(srcManaged: File)
       defType: DefType): String = {
     val (defs, defGroupComments) = defsAndGroupComments(defSources, printDefGroupComments)
 
-    val baseImplDef = if (outputBaseImpl)
-      List(
-        s"def ${keyImplName}[Ev <: ${baseScalaJsEventType}](key: String): ${keyKind}[F, Ev] = ${keyKindConstructor(keyKind)}(key)"
-      )
-    else {
-      Nil
-    }
+    val baseImplDef =
+      if (outputBaseImpl)
+        List(
+          s"@inline private[calico] def ${keyImplName}[Ev <: ${baseScalaJsEventType}](key: String): ${keyKind}[F, Ev] = ${keyKindConstructor(keyKind)}(key)"
+        )
+      else {
+        Nil
+      }
 
     val headerLines = List(
       s"package $eventPropDefsPackagePath",
