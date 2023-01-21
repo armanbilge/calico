@@ -36,21 +36,21 @@ sealed class HtmlAttr[F[_], V] private[calico] (key: String, codec: Codec[V, Str
 
 object HtmlAttr:
   final class ConstantModifier[V](
-      val key: String,
-      val codec: Codec[V, String],
-      val value: V
+      private[calico] val key: String,
+      private[calico] val codec: Codec[V, String],
+      private[calico] val value: V
   )
 
   final class SignalModifier[F[_], V](
-      val key: String,
-      val codec: Codec[V, String],
-      val values: Signal[F, V]
+      private[calico] val key: String,
+      private[calico] val codec: Codec[V, String],
+      private[calico] val values: Signal[F, V]
   )
 
   final class OptionSignalModifier[F[_], V](
-      val key: String,
-      val codec: Codec[V, String],
-      val values: Signal[F, Option[V]]
+      private[calico] val key: String,
+      private[calico] val codec: Codec[V, String],
+      private[calico] val values: Signal[F, Option[V]]
   )
 
 private trait HtmlAttrModifiers[F[_]](using F: Async[F]):

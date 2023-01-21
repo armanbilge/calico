@@ -44,9 +44,9 @@ final class Children[F[_]] private[calico]:
 
 object Children:
   final class ResourceListSignalModifier[F[_]](
-      val children: Signal[F, List[Resource[F, fs2.dom.Node[F]]]])
+      private[calico] val children: Signal[F, List[Resource[F, fs2.dom.Node[F]]]])
   final class ListResourceSignalModifier[F[_]](
-      val children: Signal[F, Resource[F, List[fs2.dom.Node[F]]]])
+      private[calico] val children: Signal[F, Resource[F, List[fs2.dom.Node[F]]]])
 
 private trait ChildrenModifiers[F[_]](using F: Async[F]):
   import Children.*
@@ -113,8 +113,8 @@ final class KeyedChildren[F[_], K] private[calico] (f: K => Resource[F, fs2.dom.
 
 object KeyedChildren:
   final class ListSignalModifier[F[_], K](
-      val build: K => Resource[F, fs2.dom.Node[F]],
-      val keys: Signal[F, List[K]]
+      private[calico] val build: K => Resource[F, fs2.dom.Node[F]],
+      private[calico] val keys: Signal[F, List[K]]
   )
 
 private trait KeyedChildrenModifiers[F[_]](using F: Async[F]):

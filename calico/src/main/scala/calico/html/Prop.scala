@@ -42,21 +42,21 @@ sealed class Prop[F[_], V, J] private[calico] (name: String, codec: Codec[V, J])
 
 object Prop:
   final class ConstantModifier[V, J](
-      val name: String,
-      val codec: Codec[V, J],
-      val value: V
+      private[calico] val name: String,
+      private[calico] val codec: Codec[V, J],
+      private[calico] val value: V
   )
 
   final class SignalModifier[F[_], V, J](
-      val name: String,
-      val codec: Codec[V, J],
-      val values: Signal[F, V]
+      private[calico] val name: String,
+      private[calico] val codec: Codec[V, J],
+      private[calico] val values: Signal[F, V]
   )
 
   final class OptionSignalModifier[F[_], V, J](
-      val name: String,
-      val codec: Codec[V, J],
-      val values: Signal[F, Option[V]]
+      private[calico] val name: String,
+      private[calico] val codec: Codec[V, J],
+      private[calico] val values: Signal[F, Option[V]]
   )
 
 private trait PropModifiers[F[_]](using F: Async[F]):
@@ -96,7 +96,9 @@ final class EventProp[F[_], E] private[calico] (key: String):
   inline def -->(sink: Pipe[F, E, Nothing]): PipeModifier[F, E] = PipeModifier(key, sink)
 
 object EventProp:
-  final class PipeModifier[F[_], E](val key: String, val sink: Pipe[F, E, Nothing])
+  final class PipeModifier[F[_], E](
+      private[calico] val key: String,
+      private[calico] val sink: Pipe[F, E, Nothing])
 
 private trait EventPropModifiers[F[_]](using F: Async[F]):
   import EventProp.*
@@ -116,7 +118,7 @@ final class ClassProp[F[_]] private[calico]
     SingleConstantModifier(cls)
 
 object ClassProp:
-  final class SingleConstantModifier(val cls: String)
+  final class SingleConstantModifier(private[calico] val cls: String)
 
 private trait ClassPropModifiers[F[_]](using F: Async[F]):
   import ClassProp.*
