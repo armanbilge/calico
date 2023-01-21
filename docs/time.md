@@ -64,7 +64,7 @@ app.renderInto(node.asInstanceOf[fs2.dom.Node[IO]]).allocated.unsafeRunAndForget
 
 ## Debounce
 
-```scala
+```scala mdoc:js
 import calico.*
 import calico.html.io.{*, given}
 import calico.syntax.*
@@ -89,7 +89,7 @@ val app = Channel.unbounded[IO, String].toResource.flatMap { emailCh =>
     div(
       span(
         label("Your email: "),
-        input { self =>
+        input { (self: fs2.dom.HtmlInputElement[IO]) => // FIXME compiler bug
           onInput --> (_.evalMap(_ => self.value.get).through(emailCh.sendAll))
         }
       ),
