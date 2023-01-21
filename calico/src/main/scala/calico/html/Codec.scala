@@ -91,14 +91,14 @@ private object Codec:
 
   inline def doubleAsString: Codec[Double, String] =
     doubleAsStringImpl.asInstanceOf[Codec[Double, String]]
-  val doubleAsStringImpl: Codec[Any, String] = new:
+  private val doubleAsStringImpl: Codec[Any, String] = new:
     def decode(domValue: String): Any =
       domValue.toDoubleOption.getOrElse(null)
     def encode(scalaValue: Any): String = scalaValue.toString
 
   inline def intAsString: Codec[Int, String] =
     intAsStringImpl.asInstanceOf[Codec[Int, String]]
-  val intAsStringImpl: Codec[Any, String] = new:
+  private val intAsStringImpl: Codec[Any, String] = new:
     def decode(domValue: String): Any =
       domValue.toIntOption.getOrElse(null)
     def encode(scalaValue: Any): String = scalaValue.toString
