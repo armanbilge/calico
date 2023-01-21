@@ -24,8 +24,6 @@ import cats.syntax.all.*
 import org.scalajs.dom
 import shapeless3.deriving.K0
 
-type HtmlTagT[F[_]] = [E] =>> HtmlTag[F, E]
-
 final class HtmlTag[F[_], E] private[calico] (name: String, void: Boolean)(using F: Async[F]):
 
   def apply[M](modifier: M)(using M: Modifier[F, E, M]): Resource[F, E] =
