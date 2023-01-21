@@ -64,12 +64,12 @@ private[codegen] class CalicoGenerator(srcManaged: File)
 
   override def tagKeysPackagePath: String = basePackagePath
 
-  override val codecsImport: String =
-    List(
-      s"import ${basePackagePath}.codecs.Codec.*",
-      s"import ${basePackagePath}.codecs.AsIsCodec.*",
-      s"import ${basePackagePath}.codecs.*"
-    ).mkString("\n")
+  override val codecsImport: String = ""
+
+  private def transformCodecName(codec: String) = codec match {
+    case c if c.endsWith("AsIs") => s"Codec.identity[${c.dropRight(4)}]"
+    case c => s"Codec.${c(0).toLower}${c.substring(1)}"
+  }
 
   override def generateTagsTrait(
       tagType: TagType,
@@ -176,7 +176,7 @@ private[codegen] class CalicoGenerator(srcManaged: File)
       baseImplDefComments = baseImplDefComments,
       baseImplName = baseImplName,
       baseImplDef = baseImplDef,
-      transformCodecName = _ + "Codec",
+      transformCodecName = transformCodecName,
       namespaceImpl = namespaceImpl,
       outputImplDefs = true,
       format = format
@@ -224,7 +224,7 @@ private[codegen] class CalicoGenerator(srcManaged: File)
       baseImplDefComments = baseImplDefComments,
       baseImplName = baseImplName,
       baseImplDef = baseImplDef,
-      transformCodecName = _ + "Codec",
+      transformCodecName = transformCodecName,
       outputImplDefs = true,
       format = format
     ).printTrait().getOutput()
