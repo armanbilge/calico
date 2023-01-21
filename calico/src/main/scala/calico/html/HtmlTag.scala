@@ -31,7 +31,7 @@ final class HtmlTag[F[_], E] private[calico] (name: String, void: Boolean)(using
   def apply[M](modifier: M)(using M: Modifier[F, E, M]): Resource[F, E] =
     build.toResource.flatTap(M.modify(modifier, _))
 
-  def apply[M](mkModifier: E => M)(using M: Modifier[F, E, M]): Resource[F, E] =
+  def withSelf[M](mkModifier: E => M)(using M: Modifier[F, E, M]): Resource[F, E] =
     build.toResource.flatTap(e => M.modify(mkModifier(e), e))
 
   def apply[M <: Tuple](modifiers: M)(
@@ -40,7 +40,7 @@ final class HtmlTag[F[_], E] private[calico] (name: String, void: Boolean)(using
       [a] => (r: Resource[F, E], m: Modifier[F, E, a], a: a) => r.flatTap(m.modify(a, _))
     }
 
-  def apply[M <: Tuple](mkModifiers: E => M)(
+  def withSelf[M <: Tuple](mkModifiers: E => M)(
       using inst: K0.ProductInstances[Modifier[F, E, _], M]): Resource[F, E] =
     build.toResource.flatTap { e =>
       inst.foldLeft(mkModifiers(e))(Resource.pure(e)) {

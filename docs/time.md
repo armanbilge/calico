@@ -89,7 +89,7 @@ val app = Channel.unbounded[IO, String].toResource.flatMap { emailCh =>
     div(
       span(
         label("Your email: "),
-        input { (self: fs2.dom.HtmlInputElement[IO]) => // FIXME compiler bug
+        input.withSelf { self =>
           onInput --> (_.evalMap(_ => self.value.get).through(emailCh.sendAll))
         }
       ),

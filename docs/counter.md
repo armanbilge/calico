@@ -20,7 +20,7 @@ def Counter(label: String, initialStep: Int) =
       div(
         p(
           "Step: ",
-          select { self =>
+          select.withSelf { self =>
             (
               allowedSteps.map(step => option(value := step.toString, step.toString)),
               value <-- step.map(_.toString),
