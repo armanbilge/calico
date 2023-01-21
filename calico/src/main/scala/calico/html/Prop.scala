@@ -31,29 +31,29 @@ import scala.scalajs.js
 sealed class Prop[F[_], V, J] private[calico] (name: String, codec: Codec[V, J]):
   import Prop.*
 
-  inline def :=(v: V): ConstantModifier[V, J] =
+  @inline def :=(v: V): ConstantModifier[V, J] =
     ConstantModifier(name, codec, v)
 
-  inline def <--(vs: Signal[F, V]): SignalModifier[F, V, J] =
+  @inline def <--(vs: Signal[F, V]): SignalModifier[F, V, J] =
     SignalModifier(name, codec, vs)
 
-  inline def <--(vs: Signal[F, Option[V]]): OptionSignalModifier[F, V, J] =
+  @inline def <--(vs: Signal[F, Option[V]]): OptionSignalModifier[F, V, J] =
     OptionSignalModifier(name, codec, vs)
 
 object Prop:
-  final class ConstantModifier[V, J](
+  final class ConstantModifier[V, J] private[calico] (
       private[calico] val name: String,
       private[calico] val codec: Codec[V, J],
       private[calico] val value: V
   )
 
-  final class SignalModifier[F[_], V, J](
+  final class SignalModifier[F[_], V, J] private[calico] (
       private[calico] val name: String,
       private[calico] val codec: Codec[V, J],
       private[calico] val values: Signal[F, V]
   )
 
-  final class OptionSignalModifier[F[_], V, J](
+  final class OptionSignalModifier[F[_], V, J] private[calico] (
       private[calico] val name: String,
       private[calico] val codec: Codec[V, J],
       private[calico] val values: Signal[F, Option[V]]
