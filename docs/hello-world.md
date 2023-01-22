@@ -13,7 +13,7 @@ import fs2.concurrent.*
 val app = SignallingRef[IO].of("world").toResource.flatMap { name =>
   div(
     label("Your name: "),
-    input { self =>
+    input.withSelf { self =>
       (
         placeholder := "Enter your name here",
         // here, input events are run through the given Pipe

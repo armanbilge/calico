@@ -70,7 +70,7 @@ object TodoMvc extends IOWebApp:
   }
 
   def TodoInput(store: TodoStore) =
-    input { self =>
+    input.withSelf { self =>
       (
         cls := "new-todo",
         placeholder := "What needs to be done?",
@@ -96,7 +96,7 @@ object TodoMvc extends IOWebApp:
         children <-- editing.map {
           case true =>
             List(
-              input { self =>
+              input.withSelf { self =>
                 val endEdit = self.value.get.flatMap { text =>
                   todo.update(_.map(_.copy(text = text))) *> editing.set(false)
                 }
@@ -113,7 +113,7 @@ object TodoMvc extends IOWebApp:
             )
           case false =>
             List(
-              input { self =>
+              input.withSelf { self =>
                 (
                   cls := "toggle",
                   typ := "checkbox",
