@@ -89,7 +89,7 @@ class SignalSuite extends DisciplineSuite, TestInstances:
           .drain
           .timeoutTo(Long.MaxValue.nanos, IO.unit),
         seed = Some(testControlSeed)
-      ) *> ref.get.map(_.distinctBy(_._2))
+      ) *> ref.get.map(_.distinctBy(_._2)).debug()
     }
   }
 
@@ -97,10 +97,5 @@ class SignalSuite extends DisciplineSuite, TestInstances:
 
   // it is stack-safe, but expensive to test
   MonadTests[Signal[IO, _]].stackUnsafeMonad[Int, Int, Int].all.properties.foreach {
-    case (id, prop) =>
-      // TODO investigate failures #101
-      if !Set(
-          "monad (stack-unsafe).flatMap associativity",
-          "monad (stack-unsafe).semigroupal associativity").contains(id)
-      then property(id)(prop)
+    case (id, prop) => property(id)(prop)
   }
