@@ -43,6 +43,16 @@ private object Modifier:
         tail.foreach(modify(_)).compile.drain.cedeBackground.void
     }
 
+  def forSignalResource[F[_]: Async, E, M, V](signal: M => Resource[F, Signal[F, V]])(
+      mkModify: (M, E) => V => F[Unit]): Modifier[F, E, M] = (m, e) =>
+    signal(m).flatMap { sig =>
+      sig.getAndUpdates.flatMap { (head, tail) =>
+        val modify = mkModify(m, e)
+        Resource.eval(modify(head)) *>
+          tail.foreach(modify(_)).compile.drain.cedeBackground.void
+      }
+    }
+
 private trait Modifiers[F[_]](using F: Async[F]):
   inline given forUnit[E]: Modifier[F, E, Unit] =
     _forUnit.asInstanceOf[Modifier[F, E, Unit]]

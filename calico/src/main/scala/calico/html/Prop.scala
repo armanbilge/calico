@@ -37,8 +37,15 @@ sealed class Prop[F[_], V, J] private[calico] (name: String, codec: Codec[V, J])
   @inline def <--(vs: Signal[F, V]): SignalModifier[F, V, J] =
     SignalModifier(name, codec, vs)
 
+  @inline def <--(vs: Resource[F, Signal[F, V]]): SignalResourceModifier[F, V, J] =
+    SignalResourceModifier(name, codec, vs)
+
   @inline def <--(vs: Signal[F, Option[V]]): OptionSignalModifier[F, V, J] =
     OptionSignalModifier(name, codec, vs)
+
+  @inline def <--(
+      vs: Resource[F, Signal[F, Option[V]]]): OptionSignalResourceModifier[F, V, J] =
+    OptionSignalResourceModifier(name, codec, vs)
 
 object Prop:
   final class ConstantModifier[V, J] private[calico] (
@@ -53,30 +60,62 @@ object Prop:
       private[calico] val values: Signal[F, V]
   )
 
+  final class SignalResourceModifier[F[_], V, J] private[calico] (
+      private[calico] val name: String,
+      private[calico] val codec: Codec[V, J],
+      private[calico] val values: Resource[F, Signal[F, V]]
+  )
+
   final class OptionSignalModifier[F[_], V, J] private[calico] (
       private[calico] val name: String,
       private[calico] val codec: Codec[V, J],
       private[calico] val values: Signal[F, Option[V]]
   )
 
+  final class OptionSignalResourceModifier[F[_], V, J] private[calico] (
+      private[calico] val name: String,
+      private[calico] val codec: Codec[V, J],
+      private[calico] val values: Resource[F, Signal[F, Option[V]]]
+  )
+
 private trait PropModifiers[F[_]](using F: Async[F]):
   import Prop.*
 
-  private inline def setProp[N, V, J](node: N, value: V, name: String, codec: Codec[V, J]) =
-    F.delay(node.asInstanceOf[js.Dictionary[J]](name) = codec.encode(value))
+  private inline def setProp[N, V, J](node: N, name: String, codec: Codec[V, J]) =
+    (value: V) =>
+      F.delay {
+        node.asInstanceOf[js.Dictionary[J]](name) = codec.encode(value)
+        ()
+      }
+
+  private inline def setPropOption[N, V, J](node: N, name: String, codec: Codec[V, J]) =
+    (value: Option[V]) =>
+      F.delay {
+        val dict = node.asInstanceOf[js.Dictionary[Any]]
+        value.fold(dict -= name)(v => dict(name) = codec.encode(v))
+        ()
+      }
 
   inline given forConstantProp[N, V, J]: Modifier[F, N, ConstantModifier[V, J]] =
     _forConstantProp.asInstanceOf[Modifier[F, N, ConstantModifier[V, J]]]
 
   private val _forConstantProp: Modifier[F, Any, ConstantModifier[Any, Any]] =
-    (m, n) => Resource.eval(setProp(n, m.value, m.name, m.codec))
+    (m, n) => Resource.eval(setProp(n, m.name, m.codec).apply(m.value))
 
   inline given forSignalProp[N, V, J]: Modifier[F, N, SignalModifier[F, V, J]] =
     _forSignalProp.asInstanceOf[Modifier[F, N, SignalModifier[F, V, J]]]
 
   private val _forSignalProp =
-    Modifier.forSignal[F, Any, SignalModifier[F, Any, Any], Any](_.values) { (m, n) => v =>
-      setProp(n, v, m.name, m.codec)
+    Modifier.forSignal[F, Any, SignalModifier[F, Any, Any], Any](_.values) { (m, n) =>
+      setProp(n, m.name, m.codec)
+    }
+
+  inline given forSignalResourceProp[N, V, J]: Modifier[F, N, SignalResourceModifier[F, V, J]] =
+    _forSignalResourceProp.asInstanceOf[Modifier[F, N, SignalResourceModifier[F, V, J]]]
+
+  private val _forSignalResourceProp =
+    Modifier.forSignalResource[F, Any, SignalResourceModifier[F, Any, Any], Any](_.values) {
+      (m, n) => setProp(n, m.name, m.codec)
     }
 
   inline given forOptionSignalProp[N, V, J]: Modifier[F, N, OptionSignalModifier[F, V, J]] =
@@ -84,12 +123,16 @@ private trait PropModifiers[F[_]](using F: Async[F]):
 
   private val _forOptionSignalProp =
     Modifier.forSignal[F, Any, OptionSignalModifier[F, Any, Any], Option[Any]](_.values) {
-      (m, n) => v =>
-        F.delay {
-          val dict = n.asInstanceOf[js.Dictionary[Any]]
-          v.fold(dict -= m.name)(v => dict(m.name) = m.codec.encode(v))
-        }
+      (m, n) => setPropOption(n, m.name, m.codec)
     }
+
+  inline given forOptionSignalResourceProp[N, V, J]
+      : Modifier[F, N, OptionSignalResourceModifier[F, V, J]] =
+    _forOptionSignalProp.asInstanceOf[Modifier[F, N, OptionSignalResourceModifier[F, V, J]]]
+
+  private val _forOptionSignalResourceProp =
+    Modifier.forSignalResource[F, Any, OptionSignalResourceModifier[F, Any, Any], Option[Any]](
+      _.values) { (m, n) => setPropOption(n, m.name, m.codec) }
 
 final class EventProp[F[_], E] private[calico] (key: String):
   import EventProp.*
