@@ -87,18 +87,12 @@ private object Codec:
     def decode(domValue: String): Boolean = domValue == "on"
     def encode(scalaValue: Boolean): String = if scalaValue then "on" else "off"
 
-  // hackery: Scala.js will transform `null` to `0` unless we erase the type
-
   inline def doubleAsString: Codec[Double, String] =
-    doubleAsStringImpl.asInstanceOf[Codec[Double, String]]
-  private val doubleAsStringImpl: Codec[Any, String] = new:
-    def decode(domValue: String): Any =
-      domValue.toDoubleOption.getOrElse(null)
-    def encode(scalaValue: Any): String = scalaValue.toString
+    def decode(domValue: String): Double =
+      domValue.toDouble
+    def encode(scalaValue: Double): String = scalaValue.toString
 
   inline def intAsString: Codec[Int, String] =
-    intAsStringImpl.asInstanceOf[Codec[Int, String]]
-  private val intAsStringImpl: Codec[Any, String] = new:
-    def decode(domValue: String): Any =
-      domValue.toIntOption.getOrElse(null)
-    def encode(scalaValue: Any): String = scalaValue.toString
+    def decode(domValue: String): Int =
+      domValue.toInt
+    def encode(scalaValue: Int): String = scalaValue.toString
