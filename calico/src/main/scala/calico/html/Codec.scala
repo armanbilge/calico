@@ -87,12 +87,10 @@ private object Codec:
     def decode(domValue: String): Boolean = domValue == "on"
     def encode(scalaValue: Boolean): String = if scalaValue then "on" else "off"
 
-  inline def doubleAsString: Codec[Double, String] =
-    def decode(domValue: String): Double =
-      domValue.toDouble
+  inline def doubleAsString: Codec[Double, String] = new:
+    def decode(domValue: String): Double = domValue.toDouble
     def encode(scalaValue: Double): String = scalaValue.toString
 
-  inline def intAsString: Codec[Int, String] =
-    def decode(domValue: String): Int =
-      domValue.toInt
+  inline def intAsString: Codec[Int, String] = new:
+    def decode(domValue: String): Int = domValue.toInt
     def encode(scalaValue: Int): String = scalaValue.toString
