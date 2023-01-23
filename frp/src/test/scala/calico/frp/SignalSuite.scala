@@ -89,7 +89,7 @@ class SignalSuite extends DisciplineSuite, TestInstances:
           .drain
           .timeoutTo(Long.MaxValue.nanos, IO.unit),
         seed = Some(testControlSeed)
-      ) *> ref.get.map(_.distinctBy(_._2)).debug()
+      ) *> ref.get.debug("DEBUG RAW").map(_.distinctBy(_._2)).debug()
     }
   }
 
