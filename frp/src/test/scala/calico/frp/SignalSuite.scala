@@ -79,18 +79,16 @@ class SignalSuite extends DisciplineSuite, TestInstances:
     )
 
   given [A: Eq](using Eq[IO[List[(A, FiniteDuration)]]]): Eq[Signal[IO, A]] = Eq.by { sig =>
-    IO.ref(List.empty[(A, FiniteDuration)]).flatMap { ref =>
-      TestControl.executeEmbed(
-        sig
-          .discrete
-          .evalMap(IO.realTime.tupleLeft(_))
-          .evalMap(x => ref.update(x :: _))
-          .compile
-          .drain
-          .timeoutTo(Long.MaxValue.nanos, IO.unit),
-        seed = Some(testControlSeed)
-      ) *> ref.get.map(_.distinctBy(_._2))
-    }
+    TestControl.executeEmbed(
+      sig
+        .discrete
+        .evalMap(IO.realTime.tupleLeft(_))
+        .interruptAfter(Long.MaxValue.nanos)
+        .compile
+        .to(List)
+        .map(_.reverse.distinctBy(_._2)), // reverse so latest wins in `distinctBy`
+      seed = Some(testControlSeed)
+    )
   }
 
   given Ticker = Ticker()
