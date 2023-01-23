@@ -17,8 +17,6 @@
 package calico
 package html
 
-import calico.html.codecs.AsIsCodec
-import calico.html.codecs.Codec
 import cats.effect.IO
 import cats.effect.kernel.Async
 import cats.effect.kernel.Resource
@@ -47,10 +45,10 @@ sealed trait Html[F[_]](using F: Async[F])
 
   def cls: ClassProp[F] = ClassProp[F]
 
-  def role: HtmlAttr[F, List[String]] = HtmlAttr("role", Codec.whitespaceSeparatedStringsCodec)
+  def role: HtmlAttr[F, List[String]] = HtmlAttr("role", Codec.whitespaceSeparatedStrings)
 
   def dataAttr(suffix: String): HtmlAttr[F, String] =
-    HtmlAttr("data-" + suffix, AsIsCodec.StringAsIsCodec)
+    HtmlAttr("data-" + suffix, Codec.identity)
 
   def children: Children[F] = Children[F]
 
@@ -58,4 +56,4 @@ sealed trait Html[F[_]](using F: Async[F])
     KeyedChildren[F, K](f)
 
   def styleAttr: HtmlAttr[F, String] =
-    HtmlAttr("style", AsIsCodec.StringAsIsCodec)
+    HtmlAttr("style", Codec.identity)

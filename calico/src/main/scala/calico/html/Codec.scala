@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
-package calico.html.codecs
+package calico.html
+
+import scala.scalajs.js
 
 /**
  * This trait represents a way to encode and decode HTML attribute or DOM property values.
@@ -27,7 +29,7 @@ package calico.html.codecs
  * Scala DOM Types hides all this mess from you using codecs. All those pseudo-boolean
  * attributes would be simply `Attr[Boolean](name, codec)` in your code.
  */
-trait Codec[ScalaType, DomType] {
+private sealed abstract class Codec[ScalaType, DomType]:
 
   /**
    * Convert the result of a `dom.Node.getAttribute` call to appropriate Scala type.
@@ -48,10 +50,15 @@ trait Codec[ScalaType, DomType] {
    * under the hood.
    */
   def encode(scalaValue: ScalaType): DomType
-}
 
-object Codec {
-  private[calico] val whitespaceSeparatedStringsCodec: Codec[List[String], String] = new:
+private object Codec:
+
+  inline def identity[A]: Codec[A, A] = identityInstance.asInstanceOf[Codec[A, A]]
+  private val identityInstance: Codec[Any, Any] = new:
+    def decode(domValue: Any): Any = domValue
+    def encode(scalaValue: Any): Any = scalaValue
+
+  val whitespaceSeparatedStrings: Codec[List[String], String] = new:
     def decode(domValue: String) = domValue.split(" ").toList
 
     def encode(scalaValue: List[String]) =
@@ -64,48 +71,26 @@ object Codec {
           tail = tail.tail
         acc
 
-  object BooleanAsAttrPresenceCodec extends Codec[Boolean, String] {
-    override def decode(domValue: String): Boolean = domValue != null
-    override def encode(scalaValue: Boolean): String = if scalaValue then "" else null
-  }
+  val booleanAsAttrPresence: Codec[Boolean, String] = new:
+    def decode(domValue: String): Boolean = domValue ne null
+    def encode(scalaValue: Boolean): String = if scalaValue then "" else null
 
-  object BooleanAsTrueFalseStringCodec extends Codec[Boolean, String] {
-    override def decode(domValue: String): Boolean = domValue == "true"
-    override def encode(scalaValue: Boolean): String = if scalaValue then "true" else "false"
-  }
+  val booleanAsTrueFalseString: Codec[Boolean, String] = new:
+    def decode(domValue: String): Boolean = domValue == "true"
+    def encode(scalaValue: Boolean): String = if scalaValue then "true" else "false"
 
-  object BooleanAsYesNoStringCodec extends Codec[Boolean, String] {
-    override def decode(domValue: String): Boolean = domValue == "yes"
-    override def encode(scalaValue: Boolean): String = if scalaValue then "yes" else "no"
-  }
+  val booleanAsYesNoString: Codec[Boolean, String] = new:
+    def decode(domValue: String): Boolean = domValue == "yes"
+    def encode(scalaValue: Boolean): String = if scalaValue then "yes" else "no"
 
-  object BooleanAsOnOffStringCodec extends Codec[Boolean, String] {
-    override def decode(domValue: String): Boolean = domValue == "on"
-    override def encode(scalaValue: Boolean): String = if scalaValue then "on" else "off"
-  }
+  val booleanAsOnOffString: Codec[Boolean, String] = new:
+    def decode(domValue: String): Boolean = domValue == "on"
+    def encode(scalaValue: Boolean): String = if scalaValue then "on" else "off"
 
-  object IterableAsSpaceSeparatedStringCodec extends Codec[Iterable[String], String] { // use for e.g. className
-    override def decode(domValue: String): Iterable[String] =
-      if domValue == "" then Nil else domValue.split(' ')
-    override def encode(scalaValue: Iterable[String]): String = scalaValue.mkString(" ")
-  }
+  inline def doubleAsString: Codec[Double, String] = new:
+    def decode(domValue: String): Double = domValue.toDouble
+    def encode(scalaValue: Double): String = scalaValue.toString
 
-  object IterableAsCommaSeparatedStringCodec extends Codec[Iterable[String], String] { // use for lists of IDs
-    override def decode(domValue: String): Iterable[String] =
-      if domValue == "" then Nil else domValue.split(',')
-    override def encode(scalaValue: Iterable[String]): String = scalaValue.mkString(",")
-  }
-
-  object DoubleAsStringCodec extends Codec[Double, String] {
-    override def decode(domValue: String): Double =
-      domValue.toDouble // @TODO this can throw exception. How do we handle this?
-    override def encode(scalaValue: Double): String = scalaValue.toString
-  }
-
-  object IntAsStringCodec extends Codec[Int, String] {
-    override def decode(domValue: String): Int =
-      domValue.toInt // @TODO this can throw exception. How do we handle this?
-    override def encode(scalaValue: Int): String = scalaValue.toString
-  }
-
-}
+  inline def intAsString: Codec[Int, String] = new:
+    def decode(domValue: String): Int = domValue.toInt
+    def encode(scalaValue: Int): String = scalaValue.toString

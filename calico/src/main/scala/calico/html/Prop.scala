@@ -17,7 +17,6 @@
 package calico
 package html
 
-import calico.html.codecs.Codec
 import calico.syntax.*
 import cats.effect.kernel.Async
 import cats.effect.kernel.Resource
@@ -110,7 +109,7 @@ private trait EventPropModifiers[F[_]](using F: Async[F]):
 final class ClassProp[F[_]] private[calico]
     extends Prop[F, List[String], String](
       "className",
-      Codec.whitespaceSeparatedStringsCodec
+      Codec.whitespaceSeparatedStrings
     ):
   import ClassProp.*
 

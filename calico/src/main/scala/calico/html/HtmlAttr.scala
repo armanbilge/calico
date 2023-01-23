@@ -16,7 +16,6 @@
 
 package calico.html
 
-import calico.html.codecs.Codec
 import cats.effect.kernel.Async
 import cats.effect.kernel.Resource
 import fs2.concurrent.Signal
