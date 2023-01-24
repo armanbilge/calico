@@ -53,7 +53,7 @@ object Routes:
 
   /**
    * Create a [[Routes]] for one "template". The `matcher` [[PartialFunction]] may extract some
-   * state `A` from the [[Uri]] that is communicated to the [[HTMLElement]] via a [[Signal]].
+   * state `A` from the [[Uri]] that is communicated to the [[HtmlElement]] via a [[Signal]].
    * This enables the component to be re-used when the [[Uri]] changes but the same [[Route]]
    * matches although the extracted state may differ.
    */
