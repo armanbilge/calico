@@ -18,10 +18,10 @@ package calico
 package html
 
 import calico.syntax.*
-import cats.Foldable
 import cats.effect.kernel.Async
 import cats.effect.kernel.Resource
 import cats.effect.syntax.all.*
+import cats.Foldable
 import cats.syntax.all.*
 import fs2.concurrent.Signal
 import org.scalajs.dom
@@ -36,12 +36,8 @@ trait Modifier[F[_], E, A]:
 
 private object Modifier:
   def forSignal[F[_]: Async, E, M, V](signal: M => Signal[F, V])(
-      mkModify: (M, E) => V => F[Unit]): Modifier[F, E, M] = (m, e) =>
-    signal(m).getAndUpdates.flatMap { (head, tail) =>
-      val modify = mkModify(m, e)
-      Resource.eval(modify(head)) *>
-        tail.foreach(modify(_)).compile.drain.cedeBackground.void
-    }
+      mkModify: (M, E) => V => F[Unit]): Modifier[F, E, M] =
+    forSignalResource(signal.andThen(_.pure))(mkModify)
 
   def forSignalResource[F[_]: Async, E, M, V](signal: M => Resource[F, Signal[F, V]])(
       mkModify: (M, E) => V => F[Unit]): Modifier[F, E, M] = (m, e) =>
