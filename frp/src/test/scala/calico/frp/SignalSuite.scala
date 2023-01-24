@@ -79,28 +79,19 @@ class SignalSuite extends DisciplineSuite, TestInstances:
     )
 
   given [A: Eq](using Eq[IO[List[(A, FiniteDuration)]]]): Eq[Signal[IO, A]] = Eq.by { sig =>
-    IO.ref(List.empty[(A, FiniteDuration)]).flatMap { ref =>
-      TestControl.executeEmbed(
-        sig
-          .discrete
-          .evalMap(IO.realTime.tupleLeft(_))
-          .evalMap(x => ref.update(x :: _))
-          .compile
-          .drain
-          .timeoutTo(Long.MaxValue.nanos, IO.unit),
-        seed = Some(testControlSeed)
-      ) *> ref.get.map(_.distinctBy(_._2))
-    }
+    TestControl.executeEmbed(
+      sig
+        .discrete
+        .evalMap(IO.realTime.tupleLeft(_))
+        .interruptAfter(Long.MaxValue.nanos)
+        .compile
+        .to(List)
+        .map(_.reverse.distinctBy(_._2)), // reverse so latest wins in `distinctBy`
+      seed = Some(testControlSeed)
+    )
   }
 
   given Ticker = Ticker()
 
   // it is stack-safe, but expensive to test
-  MonadTests[Signal[IO, _]].stackUnsafeMonad[Int, Int, Int].all.properties.foreach {
-    case (id, prop) =>
-      // TODO investigate failures #101
-      if !Set(
-          "monad (stack-unsafe).flatMap associativity",
-          "monad (stack-unsafe).semigroupal associativity").contains(id)
-      then property(id)(prop)
-  }
+  checkAll("Signal", MonadTests[Signal[IO, _]].stackUnsafeMonad[Int, Int, Int])
