@@ -30,8 +30,14 @@ sealed class HtmlAttr[F[_], V] private[calico] (key: String, codec: Codec[V, Str
   @inline def <--(vs: Signal[F, V]): SignalModifier[F, V] =
     SignalModifier(key, codec, vs)
 
+  @inline def <--(vs: Resource[F, Signal[F, V]]): SignalResourceModifier[F, V] =
+    SignalResourceModifier(key, codec, vs)
+
   @inline def <--(vs: Signal[F, Option[V]]): OptionSignalModifier[F, V] =
     OptionSignalModifier(key, codec, vs)
+
+  @inline def <--(vs: Resource[F, Signal[F, Option[V]]]): OptionSignalResourceModifier[F, V] =
+    OptionSignalResourceModifier(key, codec, vs)
 
 object HtmlAttr:
   final class ConstantModifier[V] private[calico] (
@@ -46,10 +52,22 @@ object HtmlAttr:
       private[calico] val values: Signal[F, V]
   )
 
+  final class SignalResourceModifier[F[_], V] private[calico] (
+      private[calico] val key: String,
+      private[calico] val codec: Codec[V, String],
+      private[calico] val values: Resource[F, Signal[F, V]]
+  )
+
   final class OptionSignalModifier[F[_], V] private[calico] (
       private[calico] val key: String,
       private[calico] val codec: Codec[V, String],
       private[calico] val values: Signal[F, Option[V]]
+  )
+
+  final class OptionSignalResourceModifier[F[_], V] private[calico] (
+      private[calico] val key: String,
+      private[calico] val codec: Codec[V, String],
+      private[calico] val values: Resource[F, Signal[F, Option[V]]]
   )
 
 private trait HtmlAttrModifiers[F[_]](using F: Async[F]):
@@ -71,6 +89,15 @@ private trait HtmlAttrModifiers[F[_]](using F: Async[F]):
       F.delay(e.setAttribute(m.key, m.codec.encode(v)))
     }
 
+  inline given forSignalResourceHtmlAttr[E <: fs2.dom.Element[F], V]
+      : Modifier[F, E, SignalResourceModifier[F, V]] =
+    _forSignalHtmlAttr.asInstanceOf[Modifier[F, E, SignalResourceModifier[F, V]]]
+
+  private val _forSignalResourceHtmlAttr =
+    Modifier.forSignalResource[F, dom.Element, SignalResourceModifier[F, Any], Any](_.values) {
+      (m, e) => v => F.delay(e.setAttribute(m.key, m.codec.encode(v)))
+    }
+
   inline given forOptionSignalHtmlAttr[E <: fs2.dom.Element[F], V]
       : Modifier[F, E, OptionSignalModifier[F, V]] =
     _forOptionSignalHtmlAttr.asInstanceOf[Modifier[F, E, OptionSignalModifier[F, V]]]
@@ -80,6 +107,17 @@ private trait HtmlAttrModifiers[F[_]](using F: Async[F]):
       (m, e) => v =>
         F.delay(v.fold(e.removeAttribute(m.key))(v => e.setAttribute(m.key, m.codec.encode(v))))
     }
+
+  inline given forOptionSignalResourceHtmlAttr[E <: fs2.dom.Element[F], V]
+      : Modifier[F, E, OptionSignalResourceModifier[F, V]] =
+    _forOptionSignalHtmlAttr.asInstanceOf[Modifier[F, E, OptionSignalResourceModifier[F, V]]]
+
+  private val _forOptionSignalResourceHtmlAttr =
+    Modifier
+      .forSignalResource[F, dom.Element, OptionSignalResourceModifier[F, Any], Option[Any]](
+        _.values) { (m, e) => v =>
+        F.delay(v.fold(e.removeAttribute(m.key))(v => e.setAttribute(m.key, m.codec.encode(v))))
+      }
 
 final class Aria[F[_]] private extends AriaAttrs[F]
 
