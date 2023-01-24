@@ -18,12 +18,10 @@ ThisBuild / scalafixDependencies += "com.github.liancheng" %% "organize-imports"
 ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17"))
 ThisBuild / tlJdkRelease := Some(8)
 
-ThisBuild / resolvers ++= Resolver.sonatypeOssRepos("snapshots")
-
 val CatsVersion = "2.9.0"
 val CatsEffectVersion = "3.4.5"
 val Fs2Version = "3.5.0"
-val Fs2DomVersion = "0.2-20afaf8-SNAPSHOT"
+val Fs2DomVersion = "0.2.0-M1"
 val MonocleVersion = "3.2.0"
 
 lazy val root =
