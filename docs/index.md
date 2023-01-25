@@ -15,7 +15,7 @@ I am very grateful to [@SystemFw](https://github.com/SystemFw/) who gave me a tu
 With special thanks to [@yurique](https://github.com/yurique/), you can now try **Calico** right in your browser at [scribble.ninja](https://scribble.ninja/)!
 
 ```scala
-libraryDependencies += "com.armanbilge" %%% "calico" % "@VERSION@"
+libraryDependencies += "com.armanbilge" %%% "calico" % "@PRERELEASE_VERSION@"
 ```
 
 Please open issues (and PRs!) for anything and everything :)
@@ -38,7 +38,7 @@ import fs2.dom.*
 val component: Resource[IO, HtmlElement[IO]] = ???
 
 // or more generally:
-def component[F[_]: Dom]: Resource[F, HTMLElement[F]] = ???
+def component[F[_]: Dom]: Resource[F, HtmlElement[F]] = ???
 ```
 
 This `Resource` completely manages the lifecycle of that element and its children. When the `Resource` is allocated, it will create an instance of the `HtmlElement` and any supporting resources, such as background `Fiber`s or WebSocket connections. In kind, when the `Resource` is closed, these `Fiber`s and connections are canceled and released.

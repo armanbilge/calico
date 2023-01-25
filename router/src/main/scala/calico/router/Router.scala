@@ -75,7 +75,7 @@ abstract class Router[F[_]] private ():
   def dispatch(routes: Routes[F]): Resource[F, fs2.dom.HtmlElement[F]]
 
   /**
-   * Compile [[Routes]] into a renderable [[dom.HTMLElement]]
+   * Compile [[Routes]] into a renderable [[fs2.dom.HtmlElement]]
    */
   def dispatch(routes: F[Routes[F]]): Resource[F, fs2.dom.HtmlElement[F]] =
     Resource.eval(routes).flatMap(dispatch)
