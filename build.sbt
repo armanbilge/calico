@@ -8,7 +8,7 @@ ThisBuild / developers := List(
 )
 
 ThisBuild / tlCiReleaseBranches ++= Seq("series/0.1")
-ThisBuild / tlSitePublishBranch := Some("series/0.1")
+ThisBuild / tlSitePublishBranch := Some("main")
 ThisBuild / tlSonatypeUseLegacyHost := false
 
 ThisBuild / crossScalaVersions := Seq("3.2.1")
