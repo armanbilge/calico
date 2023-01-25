@@ -82,24 +82,5 @@ extension [F[_], A](signal: Signal[F, A])
       def get = signal.get
 
 extension [F[_], A](sigRef: SignallingRef[F, A])
-  def zoom[B <: AnyRef](lens: Lens[A, B])(using Sync[F]): SignallingRef[F, B] =
-    val ref = Ref.lens[F, A, B](sigRef)(lens.get(_), a => b => lens.replace(b)(a))
-    new:
-      def access = ref.access
-      def modify[C](f: B => (B, C)) = ref.modify(f)
-      def modifyState[C](state: State[B, C]) = ref.modifyState(state)
-      def tryModify[C](f: B => (B, C)) = ref.tryModify(f)
-      def tryModifyState[C](state: State[B, C]) = ref.tryModifyState(state)
-      def tryUpdate(f: B => B) = ref.tryUpdate(f)
-      def update(f: B => B) = ref.update(f)
-      def set(b: B) = ref.set(b)
-      def get = ref.get
-      def continuous = sigRef.map(lens.get).continuous
-      def discrete = sigRef.map(lens.get).discrete
-
-extension [F[_], A, B](pipe: Pipe[F, A, B])
-  def channel(using F: Concurrent[F]): Resource[F, Channel[F, A]] =
-    for
-      ch <- Channel.unbounded[F, A].toResource
-      _ <- ch.stream.through(pipe).compile.drain.background
-    yield ch
+  def zoom[B](lens: Lens[A, B])(using Functor[F]): SignallingRef[F, B] =
+    SignallingRef.lens[F, A, B](sigRef)(lens.get(_), a => b => lens.replace(b)(a))
