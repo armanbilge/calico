@@ -18,6 +18,7 @@ package calico
 package html
 
 import calico.syntax.*
+import cats.Functor
 import cats.effect.kernel.Async
 import cats.effect.kernel.Resource
 import cats.syntax.all.*
@@ -133,14 +134,22 @@ private trait PropModifiers[F[_]](using F: Async[F]):
     Modifier.forSignalResource[F, Any, OptionSignalResourceModifier[F, Any, Any], Option[Any]](
       _.values) { (m, n) => setPropOption(n, m.name, m.codec) }
 
-final class EventProp[F[_], E] private[calico] (key: String):
+sealed abstract class EventProp[F[_], E, A] private[calico]:
   import EventProp.*
-  inline def -->(sink: Pipe[F, E, Nothing]): PipeModifier[F, E] = PipeModifier(key, sink)
+  def -->(sink: Pipe[F, A, Nothing]): PipeModifier[F, E]
 
 object EventProp:
+  def apply[F[_], E](key: String): EventProp[F, E, E] = new:
+    def -->(sink: Pipe[F, E, Nothing]) = PipeModifier(key, sink)
+
   final class PipeModifier[F[_], E](
       private[calico] val key: String,
       private[calico] val sink: Pipe[F, E, Nothing])
+
+  given [F[_], E]: Functor[EventProp[F, E, _]] = new:
+    def map[A, B](fa: EventProp[F, E, A])(f: A => B): EventProp[F, E, B] = new:
+      def -->(sink: Pipe[F, B, Nothing]) =
+        fa --> (_.map(f).through(sink))
 
 private trait EventPropModifiers[F[_]](using F: Async[F]):
   import EventProp.*
