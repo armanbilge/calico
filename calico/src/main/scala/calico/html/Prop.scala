@@ -148,20 +148,17 @@ object EventProp:
       private[calico] val key: String,
       private[calico] val sink: Pipe[F, E, Nothing])
 
-  inline given [F[_], E]: Functor[EventProp[F, E, _]] =
-    _functor.asInstanceOf[Functor[EventProp[F, E, _]]]
-  private val _functor: Functor[EventProp[Id, Any, _]] = new:
-    def map[A, B](fa: EventProp[Id, Any, A])(f: A => B) = new:
-      def -->(sink: Pipe[Id, B, Nothing]) =
-        fa --> (_.map(f).through(sink))
-
-  inline given [F[_], E]: FunctorFilter[EventProp[F, E, _]] =
-    _functorFilter.asInstanceOf[FunctorFilter[EventProp[F, E, _]]]
-  private val _functorFilter: FunctorFilter[EventProp[Id, Any, _]] = new:
-    def functor = _functor
-    def mapFilter[A, B](fa: EventProp[Id, Any, A])(f: A => Option[B]) = new:
-      def -->(sink: Pipe[Id, B, Nothing]) =
-        fa --> (_.mapFilter(f).through(sink))
+  inline given [F[_], E]: (Functor[EventProp[F, E, _]] & FunctorFilter[EventProp[F, E, _]]) =
+    _functor.asInstanceOf[Functor[EventProp[F, E, _]] & FunctorFilter[EventProp[F, E, _]]]
+  private val _functor: Functor[EventProp[Id, Any, _]] & FunctorFilter[EventProp[Id, Any, _]] =
+    new Functor[EventProp[Id, Any, _]] with FunctorFilter[EventProp[Id, Any, _]]:
+      def map[A, B](fa: EventProp[Id, Any, A])(f: A => B) = new:
+        def -->(sink: Pipe[Id, B, Nothing]) =
+          fa --> (_.map(f).through(sink))
+      def functor = this
+      def mapFilter[A, B](fa: EventProp[Id, Any, A])(f: A => Option[B]) = new:
+        def -->(sink: Pipe[Id, B, Nothing]) =
+          fa --> (_.mapFilter(f).through(sink))
 
 private trait EventPropModifiers[F[_]](using F: Async[F]):
   import EventProp.*
