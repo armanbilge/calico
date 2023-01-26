@@ -142,14 +142,14 @@ final class EventProp[F[_], E, A] private[calico] (key: String, pipe: Pipe[F, E,
   @inline def -->(sink: Pipe[F, A, Nothing]): PipeModifier[F, E] =
     PipeModifier(key, pipe.andThen(sink))
 
-  private def through[B](pipe: Pipe[F, A, B]): EventProp[F, E, B] =
+  @inline private def through[B](pipe: Pipe[F, A, B]): EventProp[F, E, B] =
     new EventProp(key, this.pipe.andThen(pipe))
 
 object EventProp:
   def apply[F[_], E](key: String): EventProp[F, E, E] =
     new EventProp(key, identity(_))
 
-  final class PipeModifier[F[_], E](
+  final class PipeModifier[F[_], E] private[calico] (
       private[calico] val key: String,
       private[calico] val sink: Pipe[F, E, Nothing])
 
