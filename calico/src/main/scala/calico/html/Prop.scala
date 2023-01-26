@@ -136,13 +136,18 @@ private trait PropModifiers[F[_]](using F: Async[F]):
     Modifier.forSignalResource[F, Any, OptionSignalResourceModifier[F, Any, Any], Option[Any]](
       _.values) { (m, n) => setPropOption(n, m.name, m.codec) }
 
-sealed abstract class EventProp[F[_], E, A] private[calico]:
+final class EventProp[F[_], E, A] private[calico] (key: String, pipe: Pipe[F, E, A]):
   import EventProp.*
-  def -->(sink: Pipe[F, A, Nothing]): PipeModifier[F, E]
+
+  @inline def -->(sink: Pipe[F, A, Nothing]): PipeModifier[F, E] =
+    PipeModifier(key, pipe.andThen(sink))
+
+  private def through[B](pipe: Pipe[F, A, B]): EventProp[F, E, B] =
+    new EventProp(key, this.pipe.andThen(pipe))
 
 object EventProp:
-  def apply[F[_], E](key: String): EventProp[F, E, E] = new:
-    def -->(sink: Pipe[F, E, Nothing]) = PipeModifier(key, sink)
+  def apply[F[_], E](key: String): EventProp[F, E, E] =
+    new EventProp(key, identity(_))
 
   final class PipeModifier[F[_], E](
       private[calico] val key: String,
@@ -152,13 +157,10 @@ object EventProp:
     _functor.asInstanceOf[Functor[EventProp[F, E, _]] & FunctorFilter[EventProp[F, E, _]]]
   private val _functor: Functor[EventProp[Id, Any, _]] & FunctorFilter[EventProp[Id, Any, _]] =
     new Functor[EventProp[Id, Any, _]] with FunctorFilter[EventProp[Id, Any, _]]:
-      def map[A, B](fa: EventProp[Id, Any, A])(f: A => B) = new:
-        def -->(sink: Pipe[Id, B, Nothing]) =
-          fa --> (_.map(f).through(sink))
+      def map[A, B](fa: EventProp[Id, Any, A])(f: A => B) = fa.through(_.map(f))
       def functor = this
-      def mapFilter[A, B](fa: EventProp[Id, Any, A])(f: A => Option[B]) = new:
-        def -->(sink: Pipe[Id, B, Nothing]) =
-          fa --> (_.mapFilter(f).through(sink))
+      def mapFilter[A, B](fa: EventProp[Id, Any, A])(f: A => Option[B]) =
+        fa.through(_.mapFilter(f))
 
 private trait EventPropModifiers[F[_]](using F: Async[F]):
   import EventProp.*
