@@ -19,6 +19,7 @@ package html
 
 import calico.syntax.*
 import cats.Functor
+import cats.FunctorFilter
 import cats.effect.kernel.Async
 import cats.effect.kernel.Resource
 import cats.syntax.all.*
@@ -150,6 +151,12 @@ object EventProp:
     def map[A, B](fa: EventProp[F, E, A])(f: A => B): EventProp[F, E, B] = new:
       def -->(sink: Pipe[F, B, Nothing]) =
         fa --> (_.map(f).through(sink))
+
+  given [F[_], E]: FunctorFilter[EventProp[F, E, _]] = new:
+    def functor = summon
+    def mapFilter[A, B](fa: EventProp[F, E, A])(f: A => Option[B]): EventProp[F, E, B] = new:
+      def -->(sink: Pipe[F, B, Nothing]) =
+        fa --> (_.mapFilter(f).through(sink))
 
 private trait EventPropModifiers[F[_]](using F: Async[F]):
   import EventProp.*
