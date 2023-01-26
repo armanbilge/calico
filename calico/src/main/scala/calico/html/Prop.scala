@@ -20,6 +20,7 @@ package html
 import calico.syntax.*
 import cats.Functor
 import cats.FunctorFilter
+import cats.Id
 import cats.effect.kernel.Async
 import cats.effect.kernel.Resource
 import cats.syntax.all.*
@@ -147,15 +148,19 @@ object EventProp:
       private[calico] val key: String,
       private[calico] val sink: Pipe[F, E, Nothing])
 
-  given [F[_], E]: Functor[EventProp[F, E, _]] = new:
-    def map[A, B](fa: EventProp[F, E, A])(f: A => B): EventProp[F, E, B] = new:
-      def -->(sink: Pipe[F, B, Nothing]) =
+  inline given [F[_], E]: Functor[EventProp[F, E, _]] =
+    _functor.asInstanceOf[Functor[EventProp[F, E, _]]]
+  private val _functor: Functor[EventProp[Id, Any, _]] = new:
+    def map[A, B](fa: EventProp[Id, Any, A])(f: A => B) = new:
+      def -->(sink: Pipe[Id, B, Nothing]) =
         fa --> (_.map(f).through(sink))
 
-  given [F[_], E]: FunctorFilter[EventProp[F, E, _]] = new:
-    def functor = summon
-    def mapFilter[A, B](fa: EventProp[F, E, A])(f: A => Option[B]): EventProp[F, E, B] = new:
-      def -->(sink: Pipe[F, B, Nothing]) =
+  inline given [F[_], E]: FunctorFilter[EventProp[F, E, _]] =
+    _functorFilter.asInstanceOf[FunctorFilter[EventProp[F, E, _]]]
+  private val _functorFilter: FunctorFilter[EventProp[Id, Any, _]] = new:
+    def functor = _functor
+    def mapFilter[A, B](fa: EventProp[Id, Any, A])(f: A => Option[B]) = new:
+      def -->(sink: Pipe[Id, B, Nothing]) =
         fa --> (_.mapFilter(f).through(sink))
 
 private trait EventPropModifiers[F[_]](using F: Async[F]):
