@@ -18,6 +18,7 @@ package calico
 package html
 
 import calico.syntax.*
+import cats.Contravariant
 import cats.Functor
 import cats.FunctorFilter
 import cats.Id
@@ -30,71 +31,80 @@ import org.scalajs.dom
 
 import scala.scalajs.js
 
-sealed class Prop[F[_], V, J] private[calico] (name: String, codec: Codec[V, J]):
+sealed class Prop[F[_], V, J] private[calico] (name: String, encode: V => J):
   import Prop.*
 
   @inline def :=(v: V): ConstantModifier[V, J] =
-    ConstantModifier(name, codec, v)
+    ConstantModifier(name, encode, v)
 
   @inline def <--(vs: Signal[F, V]): SignalModifier[F, V, J] =
-    SignalModifier(name, codec, vs)
+    SignalModifier(name, encode, vs)
 
   @inline def <--(vs: Resource[F, Signal[F, V]]): SignalResourceModifier[F, V, J] =
-    SignalResourceModifier(name, codec, vs)
+    SignalResourceModifier(name, encode, vs)
 
   @inline def <--(vs: Signal[F, Option[V]]): OptionSignalModifier[F, V, J] =
-    OptionSignalModifier(name, codec, vs)
+    OptionSignalModifier(name, encode, vs)
 
   @inline def <--(
       vs: Resource[F, Signal[F, Option[V]]]): OptionSignalResourceModifier[F, V, J] =
-    OptionSignalResourceModifier(name, codec, vs)
+    OptionSignalResourceModifier(name, encode, vs)
+
+  @inline def contramap[U](f: U => V): Prop[F, U, J] =
+    new Prop(name, f.andThen(encode))
 
 object Prop:
+  inline given [F[_], J]: Contravariant[Prop[F, _, J]] =
+    _contravariant.asInstanceOf[Contravariant[Prop[F, _, J]]]
+  private val _contravariant: Contravariant[Prop[Id, _, Any]] = new:
+    def contramap[A, B](fa: Prop[Id, A, Any])(f: B => A): Prop[Id, B, Any] =
+      fa.contramap(f)
+
   final class ConstantModifier[V, J] private[calico] (
       private[calico] val name: String,
-      private[calico] val codec: Codec[V, J],
+      private[calico] val encode: V => J,
       private[calico] val value: V
   )
 
   final class SignalModifier[F[_], V, J] private[calico] (
       private[calico] val name: String,
-      private[calico] val codec: Codec[V, J],
+      private[calico] val encode: V => J,
       private[calico] val values: Signal[F, V]
   )
 
   final class SignalResourceModifier[F[_], V, J] private[calico] (
       private[calico] val name: String,
-      private[calico] val codec: Codec[V, J],
+      private[calico] val encode: V => J,
       private[calico] val values: Resource[F, Signal[F, V]]
   )
 
   final class OptionSignalModifier[F[_], V, J] private[calico] (
       private[calico] val name: String,
-      private[calico] val codec: Codec[V, J],
+      private[calico] val encode: V => J,
       private[calico] val values: Signal[F, Option[V]]
   )
 
   final class OptionSignalResourceModifier[F[_], V, J] private[calico] (
       private[calico] val name: String,
-      private[calico] val codec: Codec[V, J],
+      private[calico] val encode: V => J,
       private[calico] val values: Resource[F, Signal[F, Option[V]]]
   )
 
 private trait PropModifiers[F[_]](using F: Async[F]):
   import Prop.*
 
-  private inline def setProp[N, V, J](node: N, name: String, codec: Codec[V, J]) =
+  private inline def setProp[N, V, J](node: N, name: String, encode: V => J) =
     (value: V) =>
       F.delay {
-        node.asInstanceOf[js.Dictionary[J]](name) = codec.encode(value)
+        node.asInstanceOf[js.Dictionary[J]](name) = encode(value)
         ()
       }
 
-  private inline def setPropOption[N, V, J](node: N, name: String, codec: Codec[V, J]) =
+  private inline def setPropOption[N, V, J](node: N, name: String, encode: V => J) =
     (value: Option[V]) =>
       F.delay {
         val dict = node.asInstanceOf[js.Dictionary[Any]]
-        value.fold(dict -= name)(v => dict(name) = codec.encode(v))
+        value.fold(dict -= name)(v => dict(name) = encode(v))
         ()
       }
 
@@ -102,14 +112,14 @@ private trait PropModifiers[F[_]](using F: Async[F]):
     _forConstantProp.asInstanceOf[Modifier[F, N, ConstantModifier[V, J]]]
 
   private val _forConstantProp: Modifier[F, Any, ConstantModifier[Any, Any]] =
-    (m, n) => Resource.eval(setProp(n, m.name, m.codec).apply(m.value))
+    (m, n) => Resource.eval(setProp(n, m.name, m.encode).apply(m.value))
 
   inline given forSignalProp[N, V, J]: Modifier[F, N, SignalModifier[F, V, J]] =
     _forSignalProp.asInstanceOf[Modifier[F, N, SignalModifier[F, V, J]]]
 
   private val _forSignalProp =
     Modifier.forSignal[F, Any, SignalModifier[F, Any, Any], Any](_.values) { (m, n) =>
-      setProp(n, m.name, m.codec)
+      setProp(n, m.name, m.encode)
     }
 
   inline given forSignalResourceProp[N, V, J]: Modifier[F, N, SignalResourceModifier[F, V, J]] =
@@ -117,7 +127,7 @@ private trait PropModifiers[F[_]](using F: Async[F]):
 
   private val _forSignalResourceProp =
     Modifier.forSignalResource[F, Any, SignalResourceModifier[F, Any, Any], Any](_.values) {
-      (m, n) => setProp(n, m.name, m.codec)
+      (m, n) => setProp(n, m.name, m.encode)
     }
 
   inline given forOptionSignalProp[N, V, J]: Modifier[F, N, OptionSignalModifier[F, V, J]] =
@@ -125,7 +135,7 @@ private trait PropModifiers[F[_]](using F: Async[F]):
 
   private val _forOptionSignalProp =
     Modifier.forSignal[F, Any, OptionSignalModifier[F, Any, Any], Option[Any]](_.values) {
-      (m, n) => setPropOption(n, m.name, m.codec)
+      (m, n) => setPropOption(n, m.name, m.encode)
     }
 
   inline given forOptionSignalResourceProp[N, V, J]
@@ -134,7 +144,7 @@ private trait PropModifiers[F[_]](using F: Async[F]):
 
   private val _forOptionSignalResourceProp =
     Modifier.forSignalResource[F, Any, OptionSignalResourceModifier[F, Any, Any], Option[Any]](
-      _.values) { (m, n) => setPropOption(n, m.name, m.codec) }
+      _.values) { (m, n) => setPropOption(n, m.name, m.encode) }
 
 final class EventProp[F[_], E, A] private[calico] (key: String, pipe: Pipe[F, E, A]):
   import EventProp.*
@@ -172,7 +182,7 @@ private trait EventPropModifiers[F[_]](using F: Async[F]):
 final class ClassProp[F[_]] private[calico]
     extends Prop[F, List[String], String](
       "className",
-      Codec.whitespaceSeparatedStrings
+      encoders.whitespaceSeparatedStrings
     ):
   import ClassProp.*
 

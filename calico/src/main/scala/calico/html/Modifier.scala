@@ -18,7 +18,9 @@ package calico
 package html
 
 import calico.syntax.*
+import cats.Contravariant
 import cats.Foldable
+import cats.Id
 import cats.effect.kernel.Async
 import cats.effect.kernel.Resource
 import cats.effect.syntax.all.*
@@ -34,8 +36,14 @@ trait Modifier[F[_], E, A]:
   inline final def contramap[B](inline f: B => A): Modifier[F, E, B] =
     (b: B, e: E) => outer.modify(f(b), e)
 
-private object Modifier:
-  def forSignal[F[_]: Async, E, M, V](signal: M => Signal[F, V])(
+object Modifier:
+  inline given [F[_], E]: Contravariant[Modifier[F, E, _]] =
+    _contravariant.asInstanceOf[Contravariant[Modifier[F, E, _]]]
+  private val _contravariant: Contravariant[Modifier[Id, Any, _]] = new:
+    def contramap[A, B](fa: Modifier[Id, Any, A])(f: B => A) =
+      fa.contramap(f)
+
+  private[html] def forSignal[F[_]: Async, E, M, V](signal: M => Signal[F, V])(
       mkModify: (M, E) => V => F[Unit]): Modifier[F, E, M] = (m, e) =>
     signal(m).getAndUpdates.flatMap { (head, tail) =>
       val modify = mkModify(m, e)
@@ -43,7 +51,8 @@ private object Modifier:
         tail.foreach(modify(_)).compile.drain.cedeBackground.void
     }
 
-  def forSignalResource[F[_]: Async, E, M, V](signal: M => Resource[F, Signal[F, V]])(
+  private[html] def forSignalResource[F[_]: Async, E, M, V](
+      signal: M => Resource[F, Signal[F, V]])(
       mkModify: (M, E) => V => F[Unit]): Modifier[F, E, M] = (m, e) =>
     signal(m).flatMap { sig =>
       sig.getAndUpdates.flatMap { (head, tail) =>

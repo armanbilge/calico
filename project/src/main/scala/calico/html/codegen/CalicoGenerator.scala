@@ -67,8 +67,8 @@ private[codegen] class CalicoGenerator(srcManaged: File)
   override val codecsImport: String = ""
 
   private def transformCodecName(codec: String) = codec match {
-    case c if c.endsWith("AsIs") => s"Codec.identity[${c.dropRight(4)}]"
-    case c => s"Codec.${c(0).toLower}${c.substring(1)}"
+    case c if c.endsWith("AsIs") => s"encoders.identity[${c.dropRight(4)}]"
+    case c => s"encoders.${c(0).toLower}${c.substring(1)}"
   }
 
   override def generateTagsTrait(
@@ -146,11 +146,11 @@ private[codegen] class CalicoGenerator(srcManaged: File)
 
     val baseImplDef = if (tagType == SvgTagType) {
       List(
-        s"@inline private[calico] def ${baseImplName}[V](key: String, codec: Codec[V, String], namespace: Option[String]): ${keyKind}[V] = ${keyKindConstructor(keyKind)}(key, codec, namespace)"
+        s"@inline private[calico] def ${baseImplName}[V](key: String, encode: V => String, namespace: Option[String]): ${keyKind}[V] = ${keyKindConstructor(keyKind)}(key, encode, namespace)"
       )
     } else {
       List(
-        s"@inline private[calico] def ${baseImplName}[V](key: String, codec: Codec[V, String]): ${keyKind}[F, V] = ${keyKindConstructor(keyKind)}(key, codec)"
+        s"@inline private[calico] def ${baseImplName}[V](key: String, encode: V => String): ${keyKind}[F, V] = ${keyKindConstructor(keyKind)}(key, encode)"
       )
     }
 
@@ -198,7 +198,7 @@ private[codegen] class CalicoGenerator(srcManaged: File)
     val (defs, defGroupComments) = defsAndGroupComments(defGroups, printDefGroupComments)
 
     val baseImplDef = List(
-      s"@inline private[calico] def ${baseImplName}[V, DomV](key: String, codec: Codec[V, DomV]): ${keyKind}[F, V, DomV] = ${keyKindConstructor(keyKind)}(key, codec)"
+      s"@inline private[calico] def ${baseImplName}[V, DomV](key: String, encode: V => DomV): ${keyKind}[F, V, DomV] = ${keyKindConstructor(keyKind)}(key, encode)"
     )
 
     val headerLines = List(

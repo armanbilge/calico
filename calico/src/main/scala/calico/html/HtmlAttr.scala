@@ -16,57 +16,68 @@
 
 package calico.html
 
+import cats.Contravariant
+import cats.Id
 import cats.effect.kernel.Async
 import cats.effect.kernel.Resource
 import fs2.concurrent.Signal
 import org.scalajs.dom
 
-sealed class HtmlAttr[F[_], V] private[calico] (key: String, codec: Codec[V, String]):
+sealed class HtmlAttr[F[_], V] private[calico] (key: String, encode: V => String):
   import HtmlAttr.*
 
   @inline def :=(v: V): ConstantModifier[V] =
-    ConstantModifier(key, codec, v)
+    ConstantModifier(key, encode, v)
 
   @inline def <--(vs: Signal[F, V]): SignalModifier[F, V] =
-    SignalModifier(key, codec, vs)
+    SignalModifier(key, encode, vs)
 
   @inline def <--(vs: Resource[F, Signal[F, V]]): SignalResourceModifier[F, V] =
-    SignalResourceModifier(key, codec, vs)
+    SignalResourceModifier(key, encode, vs)
 
   @inline def <--(vs: Signal[F, Option[V]]): OptionSignalModifier[F, V] =
-    OptionSignalModifier(key, codec, vs)
+    OptionSignalModifier(key, encode, vs)
 
   @inline def <--(vs: Resource[F, Signal[F, Option[V]]]): OptionSignalResourceModifier[F, V] =
-    OptionSignalResourceModifier(key, codec, vs)
+    OptionSignalResourceModifier(key, encode, vs)
+
+  @inline def contramap[U](f: U => V): HtmlAttr[F, U] =
+    new HtmlAttr(key, f.andThen(encode))
 
 object HtmlAttr:
+  inline given [F[_]]: Contravariant[HtmlAttr[F, _]] =
+    _contravariant.asInstanceOf[Contravariant[HtmlAttr[F, _]]]
+  private val _contravariant: Contravariant[HtmlAttr[Id, _]] = new:
+    def contramap[A, B](fa: HtmlAttr[Id, A])(f: B => A): HtmlAttr[Id, B] =
+      fa.contramap(f)
+
   final class ConstantModifier[V] private[calico] (
       private[calico] val key: String,
-      private[calico] val codec: Codec[V, String],
+      private[calico] val encode: V => String,
       private[calico] val value: V
   )
 
   final class SignalModifier[F[_], V] private[calico] (
       private[calico] val key: String,
-      private[calico] val codec: Codec[V, String],
+      private[calico] val encode: V => String,
       private[calico] val values: Signal[F, V]
   )
 
   final class SignalResourceModifier[F[_], V] private[calico] (
       private[calico] val key: String,
-      private[calico] val codec: Codec[V, String],
+      private[calico] val encode: V => String,
       private[calico] val values: Resource[F, Signal[F, V]]
   )
 
   final class OptionSignalModifier[F[_], V] private[calico] (
       private[calico] val key: String,
-      private[calico] val codec: Codec[V, String],
+      private[calico] val encode: V => String,
       private[calico] val values: Signal[F, Option[V]]
   )
 
   final class OptionSignalResourceModifier[F[_], V] private[calico] (
       private[calico] val key: String,
-      private[calico] val codec: Codec[V, String],
+      private[calico] val encode: V => String,
       private[calico] val values: Resource[F, Signal[F, Option[V]]]
   )
 
@@ -78,7 +89,7 @@ private trait HtmlAttrModifiers[F[_]](using F: Async[F]):
     _forConstantHtmlAttr.asInstanceOf[Modifier[F, E, ConstantModifier[V]]]
 
   private val _forConstantHtmlAttr: Modifier[F, dom.Element, ConstantModifier[Any]] =
-    (m, e) => Resource.eval(F.delay(e.setAttribute(m.key, m.codec.encode(m.value))))
+    (m, e) => Resource.eval(F.delay(e.setAttribute(m.key, m.encode(m.value))))
 
   inline given forSignalHtmlAttr[E <: fs2.dom.Element[F], V]
       : Modifier[F, E, SignalModifier[F, V]] =
@@ -86,7 +97,7 @@ private trait HtmlAttrModifiers[F[_]](using F: Async[F]):
 
   private val _forSignalHtmlAttr =
     Modifier.forSignal[F, dom.Element, SignalModifier[F, Any], Any](_.values) { (m, e) => v =>
-      F.delay(e.setAttribute(m.key, m.codec.encode(v)))
+      F.delay(e.setAttribute(m.key, m.encode(v)))
     }
 
   inline given forSignalResourceHtmlAttr[E <: fs2.dom.Element[F], V]
@@ -95,7 +106,7 @@ private trait HtmlAttrModifiers[F[_]](using F: Async[F]):
 
   private val _forSignalResourceHtmlAttr =
     Modifier.forSignalResource[F, dom.Element, SignalResourceModifier[F, Any], Any](_.values) {
-      (m, e) => v => F.delay(e.setAttribute(m.key, m.codec.encode(v)))
+      (m, e) => v => F.delay(e.setAttribute(m.key, m.encode(v)))
     }
 
   inline given forOptionSignalHtmlAttr[E <: fs2.dom.Element[F], V]
@@ -105,7 +116,7 @@ private trait HtmlAttrModifiers[F[_]](using F: Async[F]):
   private val _forOptionSignalHtmlAttr =
     Modifier.forSignal[F, dom.Element, OptionSignalModifier[F, Any], Option[Any]](_.values) {
       (m, e) => v =>
-        F.delay(v.fold(e.removeAttribute(m.key))(v => e.setAttribute(m.key, m.codec.encode(v))))
+        F.delay(v.fold(e.removeAttribute(m.key))(v => e.setAttribute(m.key, m.encode(v))))
     }
 
   inline given forOptionSignalResourceHtmlAttr[E <: fs2.dom.Element[F], V]
@@ -116,7 +127,7 @@ private trait HtmlAttrModifiers[F[_]](using F: Async[F]):
     Modifier
       .forSignalResource[F, dom.Element, OptionSignalResourceModifier[F, Any], Option[Any]](
         _.values) { (m, e) => v =>
-        F.delay(v.fold(e.removeAttribute(m.key))(v => e.setAttribute(m.key, m.codec.encode(v))))
+        F.delay(v.fold(e.removeAttribute(m.key))(v => e.setAttribute(m.key, m.encode(v))))
       }
 
 final class Aria[F[_]] private extends AriaAttrs[F]
@@ -125,5 +136,5 @@ private object Aria:
   inline def apply[F[_]]: Aria[F] = instance.asInstanceOf[Aria[F]]
   private val instance: Aria[cats.Id] = new Aria[cats.Id]
 
-final class AriaAttr[F[_], V] private[calico] (suffix: String, codec: Codec[V, String])
-    extends HtmlAttr[F, V]("aria-" + suffix, codec)
+final class AriaAttr[F[_], V] private[calico] (suffix: String, encode: V => String)
+    extends HtmlAttr[F, V]("aria-" + suffix, encode)

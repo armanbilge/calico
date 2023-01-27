@@ -45,10 +45,10 @@ sealed trait Html[F[_]](using F: Async[F])
 
   def cls: ClassProp[F] = ClassProp[F]
 
-  def role: HtmlAttr[F, List[String]] = HtmlAttr("role", Codec.whitespaceSeparatedStrings)
+  def role: HtmlAttr[F, List[String]] = HtmlAttr("role", encoders.whitespaceSeparatedStrings)
 
   def dataAttr(suffix: String): HtmlAttr[F, String] =
-    HtmlAttr("data-" + suffix, Codec.identity)
+    HtmlAttr("data-" + suffix, encoders.identity)
 
   def children: Children[F] = Children[F]
 
@@ -56,4 +56,4 @@ sealed trait Html[F[_]](using F: Async[F])
     KeyedChildren[F, K](f)
 
   def styleAttr: HtmlAttr[F, String] =
-    HtmlAttr("style", Codec.identity)
+    HtmlAttr("style", encoders.identity)
