@@ -19,6 +19,8 @@ package html
 
 import calico.syntax.*
 import cats.Contravariant
+import cats.Functor
+import cats.FunctorFilter
 import cats.Id
 import cats.effect.kernel.Async
 import cats.effect.kernel.Resource
@@ -144,14 +146,31 @@ private trait PropModifiers[F[_]](using F: Async[F]):
     Modifier.forSignalResource[F, Any, OptionSignalResourceModifier[F, Any, Any], Option[Any]](
       _.values) { (m, n) => setPropOption(n, m.name, m.encode) }
 
-final class EventProp[F[_], E] private[calico] (key: String):
+final class EventProp[F[_], E, A] private[calico] (key: String, pipe: Pipe[F, E, A]):
   import EventProp.*
-  inline def -->(sink: Pipe[F, E, Nothing]): PipeModifier[F, E] = PipeModifier(key, sink)
+
+  @inline def -->(sink: Pipe[F, A, Nothing]): PipeModifier[F, E] =
+    PipeModifier(key, pipe.andThen(sink))
+
+  @inline private def through[B](pipe: Pipe[F, A, B]): EventProp[F, E, B] =
+    new EventProp(key, this.pipe.andThen(pipe))
 
 object EventProp:
-  final class PipeModifier[F[_], E](
+  def apply[F[_], E](key: String): EventProp[F, E, E] =
+    new EventProp(key, identity(_))
+
+  final class PipeModifier[F[_], E] private[calico] (
       private[calico] val key: String,
       private[calico] val sink: Pipe[F, E, Nothing])
+
+  inline given [F[_], E]: (Functor[EventProp[F, E, _]] & FunctorFilter[EventProp[F, E, _]]) =
+    _functor.asInstanceOf[Functor[EventProp[F, E, _]] & FunctorFilter[EventProp[F, E, _]]]
+  private val _functor: Functor[EventProp[Id, Any, _]] & FunctorFilter[EventProp[Id, Any, _]] =
+    new Functor[EventProp[Id, Any, _]] with FunctorFilter[EventProp[Id, Any, _]]:
+      def map[A, B](fa: EventProp[Id, Any, A])(f: A => B) = fa.through(_.map(f))
+      def functor = this
+      def mapFilter[A, B](fa: EventProp[Id, Any, A])(f: A => Option[B]) =
+        fa.through(_.mapFilter(f))
 
 private trait EventPropModifiers[F[_]](using F: Async[F]):
   import EventProp.*
