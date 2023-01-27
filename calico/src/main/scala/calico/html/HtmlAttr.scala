@@ -17,6 +17,7 @@
 package calico.html
 
 import cats.Contravariant
+import cats.Id
 import cats.effect.kernel.Async
 import cats.effect.kernel.Resource
 import fs2.concurrent.Signal
@@ -40,7 +41,16 @@ sealed class HtmlAttr[F[_], V] private[calico] (key: String, encode: V => String
   @inline def <--(vs: Resource[F, Signal[F, Option[V]]]): OptionSignalResourceModifier[F, V] =
     OptionSignalResourceModifier(key, encode, vs)
 
+  @inline def contramap[U](f: U => V): HtmlAttr[F, U] =
+    new HtmlAttr(key, f.andThen(encode))
+
 object HtmlAttr:
+  inline given [F[_]]: Contravariant[HtmlAttr[F, _]] =
+    _contravariant.asInstanceOf[Contravariant[HtmlAttr[F, _]]]
+  private val _contravariant: Contravariant[HtmlAttr[Id, _]] = new:
+    def contramap[A, B](fa: HtmlAttr[Id, A])(f: B => A): HtmlAttr[Id, B] =
+      fa.contramap(f)
+
   final class ConstantModifier[V] private[calico] (
       private[calico] val key: String,
       private[calico] val encode: V => String,

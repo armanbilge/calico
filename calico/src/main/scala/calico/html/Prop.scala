@@ -18,6 +18,8 @@ package calico
 package html
 
 import calico.syntax.*
+import cats.Contravariant
+import cats.Id
 import cats.effect.kernel.Async
 import cats.effect.kernel.Resource
 import cats.syntax.all.*
@@ -46,7 +48,16 @@ sealed class Prop[F[_], V, J] private[calico] (name: String, encode: V => J):
       vs: Resource[F, Signal[F, Option[V]]]): OptionSignalResourceModifier[F, V, J] =
     OptionSignalResourceModifier(name, encode, vs)
 
+  @inline def contramap[U](f: U => V): Prop[F, U, J] =
+    new Prop(name, f.andThen(encode))
+
 object Prop:
+  inline given [F[_], J]: Contravariant[Prop[F, _, J]] =
+    _contravariant.asInstanceOf[Contravariant[Prop[F, _, J]]]
+  private val _contravariant: Contravariant[Prop[Id, _, Any]] = new:
+    def contramap[A, B](fa: Prop[Id, A, Any])(f: B => A): Prop[Id, B, Any] =
+      fa.contramap(f)
+
   final class ConstantModifier[V, J] private[calico] (
       private[calico] val name: String,
       private[calico] val encode: V => J,
