@@ -157,8 +157,8 @@ final class EventProp[F[_], A] private[calico] (key: String, pipe: Pipe[F, Any, 
     new EventProp(key, this.pipe.andThen(pipe))
 
 object EventProp:
-  private[html] def apply[F[_], E](key: String): EventProp[F, E] =
-    new EventProp(key, _.asInstanceOf[Stream[F, E]])
+  @inline private[html] def apply[F[_], E](key: String, f: Any => E): EventProp[F, E] =
+    new EventProp(key, _.map(f))
 
   final class PipeModifier[F[_]] private[calico] (
       private[calico] val key: String,

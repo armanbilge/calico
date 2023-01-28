@@ -245,19 +245,11 @@ private[codegen] class CalicoGenerator(srcManaged: File)
       defType: DefType): String = {
     val (defs, defGroupComments) = defsAndGroupComments(defSources, printDefGroupComments)
 
-    val baseImplDef =
-      if (outputBaseImpl)
-        List(
-          s"@inline private[calico] def ${keyImplName}[Ev <: fs2.${baseScalaJsEventType}[F]](key: String): ${keyKind}[F, Ev] = ${keyKind}(key)"
-        )
-      else {
-        Nil
-      }
-
     val headerLines = List(
       s"package $eventPropDefsPackagePath",
       "",
       keyTypeImport(keyKind),
+      scalaJsDomImport,
       ""
     ) ++ standardTraitCommentLines.map("// " + _)
 
@@ -267,17 +259,29 @@ private[codegen] class CalicoGenerator(srcManaged: File)
       headerLines = headerLines,
       traitCommentLines = traitCommentLines,
       traitModifiers = traitModifiers,
-      traitName = traitName,
+      traitName = s"${traitName}(using cats.effect.kernel.Async[F])",
       traitExtends = traitExtends,
       traitThisType = traitThisType,
       defType = _ => defType,
       keyKind = keyKind,
       keyImplName = _ => keyImplName,
-      baseImplDefComments = baseImplDefComments,
-      baseImplDef = baseImplDef,
+      baseImplDefComments = Nil,
+      baseImplDef = Nil,
       outputImplDefs = true,
       format = format
-    ).printTrait().getOutput()
+    ) {
+
+      override def impl(keyDef: EventPropDef): String = {
+        List[String](
+          "EventProp(",
+          repr(keyDef.domName),
+          ", ",
+          s"e => fs2.dom.${keyDef.javascriptEventType}(e.asInstanceOf[dom.${keyDef.javascriptEventType}])",
+          ")"
+        ).mkString
+      }
+
+    }.printTrait().getOutput()
   }
 
 }
