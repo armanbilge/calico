@@ -248,7 +248,7 @@ private[codegen] class CalicoGenerator(srcManaged: File)
     val baseImplDef =
       if (outputBaseImpl)
         List(
-          s"@inline private[calico] def ${keyImplName}[Ev <: ${baseScalaJsEventType}](key: String): ${keyKind}[F, Ev] = ${keyKind}(key)"
+          s"@inline private[calico] def ${keyImplName}[Ev <: fs2.${baseScalaJsEventType}[F]](key: String): ${keyKind}[F, Ev] = ${keyKind}(key)"
         )
       else {
         Nil
@@ -258,7 +258,6 @@ private[codegen] class CalicoGenerator(srcManaged: File)
       s"package $eventPropDefsPackagePath",
       "",
       keyTypeImport(keyKind),
-      scalaJsDomImport,
       ""
     ) ++ standardTraitCommentLines.map("// " + _)
 

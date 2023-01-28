@@ -278,7 +278,8 @@ object DomDefsGenerator {
             case (key, vals) =>
               (
                 key,
-                vals.map(attr => attr.copy(scalaJsEventType = s"F, ${attr.scalaJsEventType}")))
+                vals.map(attr =>
+                  attr.copy(scalaJsEventType = s"F, fs2.${attr.scalaJsEventType}[F]")))
           },
           printDefGroupComments = true,
           traitCommentLines = Nil,
@@ -311,7 +312,7 @@ object DomDefsGenerator {
                   (
                     key,
                     vals.map(attr =>
-                      attr.copy(scalaJsEventType = s"F, ${attr.scalaJsEventType}")))
+                      attr.copy(scalaJsEventType = s"F, fs2.${attr.scalaJsEventType}[F]")))
               },
               printDefGroupComments = true,
               traitCommentLines = List(eventPropsDefGroups.head._1),
