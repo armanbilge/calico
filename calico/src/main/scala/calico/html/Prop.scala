@@ -26,6 +26,7 @@ import cats.effect.kernel.Async
 import cats.effect.kernel.Resource
 import cats.syntax.all.*
 import fs2.Pipe
+import fs2.Stream
 import fs2.concurrent.Signal
 import org.scalajs.dom
 
@@ -146,37 +147,37 @@ private trait PropModifiers[F[_]](using F: Async[F]):
     Modifier.forSignalResource[F, Any, OptionSignalResourceModifier[F, Any, Any], Option[Any]](
       _.values) { (m, n) => setPropOption(n, m.name, m.encode) }
 
-final class EventProp[F[_], E, A] private[calico] (key: String, pipe: Pipe[F, E, A]):
+final class EventProp[F[_], A] private[calico] (key: String, pipe: Pipe[F, Any, A]):
   import EventProp.*
 
-  @inline def -->(sink: Pipe[F, A, Nothing]): PipeModifier[F, E] =
+  @inline def -->(sink: Pipe[F, A, Nothing]): PipeModifier[F] =
     PipeModifier(key, pipe.andThen(sink))
 
-  @inline private def through[B](pipe: Pipe[F, A, B]): EventProp[F, E, B] =
+  @inline private def through[B](pipe: Pipe[F, A, B]): EventProp[F, B] =
     new EventProp(key, this.pipe.andThen(pipe))
 
 object EventProp:
-  def apply[F[_], E](key: String): EventProp[F, E, E] =
-    new EventProp(key, identity(_))
+  @inline private[html] def apply[F[_], E](key: String, f: Any => E): EventProp[F, E] =
+    new EventProp(key, _.map(f))
 
-  final class PipeModifier[F[_], E] private[calico] (
+  final class PipeModifier[F[_]] private[calico] (
       private[calico] val key: String,
-      private[calico] val sink: Pipe[F, E, Nothing])
+      private[calico] val sink: Pipe[F, Any, Nothing])
 
-  inline given [F[_], E]: (Functor[EventProp[F, E, _]] & FunctorFilter[EventProp[F, E, _]]) =
-    _functor.asInstanceOf[Functor[EventProp[F, E, _]] & FunctorFilter[EventProp[F, E, _]]]
-  private val _functor: Functor[EventProp[Id, Any, _]] & FunctorFilter[EventProp[Id, Any, _]] =
-    new Functor[EventProp[Id, Any, _]] with FunctorFilter[EventProp[Id, Any, _]]:
-      def map[A, B](fa: EventProp[Id, Any, A])(f: A => B) = fa.through(_.map(f))
+  inline given [F[_]]: (Functor[EventProp[F, _]] & FunctorFilter[EventProp[F, _]]) =
+    _functor.asInstanceOf[Functor[EventProp[F, _]] & FunctorFilter[EventProp[F, _]]]
+  private val _functor: Functor[EventProp[Id, _]] & FunctorFilter[EventProp[Id, _]] =
+    new Functor[EventProp[Id, _]] with FunctorFilter[EventProp[Id, _]]:
+      def map[A, B](fa: EventProp[Id, A])(f: A => B) = fa.through(_.map(f))
       def functor = this
-      def mapFilter[A, B](fa: EventProp[Id, Any, A])(f: A => Option[B]) =
+      def mapFilter[A, B](fa: EventProp[Id, A])(f: A => Option[B]) =
         fa.through(_.mapFilter(f))
 
 private trait EventPropModifiers[F[_]](using F: Async[F]):
   import EventProp.*
-  inline given forPipeEventProp[T <: fs2.dom.Node[F], E]: Modifier[F, T, PipeModifier[F, E]] =
-    _forPipeEventProp.asInstanceOf[Modifier[F, T, PipeModifier[F, E]]]
-  private val _forPipeEventProp: Modifier[F, dom.EventTarget, PipeModifier[F, Any]] =
+  inline given forPipeEventProp[T <: fs2.dom.Node[F]]: Modifier[F, T, PipeModifier[F]] =
+    _forPipeEventProp.asInstanceOf[Modifier[F, T, PipeModifier[F]]]
+  private val _forPipeEventProp: Modifier[F, dom.EventTarget, PipeModifier[F]] =
     (m, t) => fs2.dom.events(t, m.key).through(m.sink).compile.drain.cedeBackground.void
 
 final class ClassProp[F[_]] private[calico]

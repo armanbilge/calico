@@ -34,7 +34,7 @@ import io.circe.Codec
 import io.circe.jawn
 import io.circe.syntax.*
 import org.http4s.*
-import org.scalajs.dom.KeyCode
+import org.scalajs.dom.KeyValue
 
 import scala.collection.immutable.SortedMap
 
@@ -76,7 +76,7 @@ object TodoMvc extends IOWebApp:
         placeholder := "What needs to be done?",
         autoFocus := true,
         onKeyDown --> {
-          _.filter(_.keyCode == KeyCode.Enter)
+          _.filter(_.key == KeyValue.Enter)
             .evalMap(_ => self.value.get)
             .filterNot(_.isEmpty)
             .foreach(store.create(_) *> self.value.set(""))
@@ -105,7 +105,7 @@ object TodoMvc extends IOWebApp:
                   cls := "edit",
                   defaultValue <-- todo.map(_.foldMap(_.text)),
                   onKeyDown --> {
-                    _.filter(_.keyCode == KeyCode.Enter).foreach(_ => endEdit)
+                    _.filter(_.key == KeyValue.Enter).foreach(_ => endEdit)
                   },
                   onBlur --> (_.foreach(_ => endEdit))
                 )
