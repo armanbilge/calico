@@ -6,7 +6,7 @@
 libraryDependencies += "com.armanbilge" %%% "calico-router" % "@VERSION@"
 ```
 
-`calico-router` is built only with Cats Effect, FS2, http4s, and scala-js-dom, and has no dependency on `calico` core, such that it is framework-agnostic. Integration with **Calico** is seamless.
+`calico-router` is built only with Cats Effect, FS2-DOM, and http4s, and has no dependency on `calico` core, such that it is framework-agnostic. Integration with **Calico** is seamless.
 
 Special thanks to [@jberggg](https://github.com/jberggg) whose [fs2-spa-router](https://github.com/jberggg/fs2-spa-router) inspired this project.
 
@@ -40,7 +40,7 @@ import fs2.dom.*
 import org.http4s.*
 import org.http4s.syntax.all.*
 
-val app = Resource.eval(Router(Location[IO], History[IO, Unit])).flatMap { router =>
+val app = Resource.eval(Router(Window[IO])).flatMap { router =>
   (SignallingRef[IO].of(0), SignallingRef[IO].of(0)).tupled.toResource.flatMap {
     (helloCounter, countCounter) =>
 

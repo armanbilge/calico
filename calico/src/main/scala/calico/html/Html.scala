@@ -20,6 +20,7 @@ package html
 import cats.effect.IO
 import cats.effect.kernel.Async
 import cats.effect.kernel.Resource
+import fs2.dom.Dom
 
 object io extends Html[IO]
 
@@ -40,6 +41,8 @@ sealed trait Html[F[_]](using F: Async[F])
       ChildrenModifiers[F],
       KeyedChildrenModifiers[F],
       HtmlAttrModifiers[F]:
+
+  given Dom[F] = Dom.forAsync
 
   def aria: Aria[F] = Aria[F]
 
