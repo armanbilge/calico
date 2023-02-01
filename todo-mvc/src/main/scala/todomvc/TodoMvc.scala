@@ -40,7 +40,7 @@ import scala.collection.immutable.SortedMap
 
 object TodoMvc extends IOWebApp:
 
-  def render = (TodoStore.make, Router(Location[IO], History[IO, Unit]).toResource).flatMapN {
+  def render(window: Window[IO]) = (TodoStore(window), Router(window).toResource).flatMapN {
     (store, router) =>
       router.dispatch {
         Routes.one[IO] {
@@ -176,21 +176,21 @@ class TodoStore(entries: SignallingSortedMapRef[IO, Long, Todo], nextId: IO[Long
 
 object TodoStore:
 
-  def make: Resource[IO, TodoStore] =
+  def apply(window: Window[IO]): Resource[IO, TodoStore] =
     val key = "todos-calico"
 
     for
       mapRef <- SignallingSortedMapRef[IO, Long, Todo].toResource
 
       _ <- Resource.eval {
-        OptionT(Storage.local[IO].getItem(key))
+        OptionT(window.localStorage.getItem(key))
           .subflatMap(jawn.decode[SortedMap[Long, Todo]](_).toOption)
           .foreachF(mapRef.set(_))
       }
 
-      _ <- Storage
-        .local[IO]
-        .events
+      _ <- window
+        .localStorage
+        .events(window)
         .foreach {
           case Storage.Event.Updated(`key`, _, value, _) =>
             jawn.decode[SortedMap[Long, Todo]](value).foldMapM(mapRef.set(_))
@@ -202,11 +202,11 @@ object TodoStore:
 
       _ <- mapRef
         .discrete
-        .foreach(todos => Storage.local[IO].setItem(key, todos.asJson.noSpaces))
+        .foreach(todos => window.localStorage.setItem(key, todos.asJson.noSpaces))
         .compile
         .drain
         .backgroundOn(calico.unsafe.MacrotaskExecutor)
-    yield TodoStore(mapRef, IO.realTime.map(_.toMillis))
+    yield new TodoStore(mapRef, IO.realTime.map(_.toMillis))
 
 case class Todo(text: String, completed: Boolean) derives Codec.AsObject
 
