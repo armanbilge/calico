@@ -24,9 +24,9 @@ import cats.effect.kernel.Resource
 object io extends Html[IO]
 
 object Html:
-  def apply[F[_]: Async]: Html[F] = new Html[F] {}
+  def apply[F[_]: Async]: Html[F] = new Html[F]
 
-sealed trait Html[F[_]](using F: Async[F])
+sealed class Html[F[_]](using F: Async[F])
     extends HtmlTags[F],
       Props[F],
       GlobalEventProps[F],
