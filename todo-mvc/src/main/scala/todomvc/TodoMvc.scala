@@ -40,33 +40,32 @@ import scala.collection.immutable.SortedMap
 
 object TodoMvc extends IOWebApp:
 
-  def render = (TodoStore(window), Router(window).toResource).flatMapN {
-    (store, router) =>
-      router.dispatch {
-        Routes.one[IO] {
-          case uri if uri.fragment == Some("/active") => Filter.Active
-          case uri if uri.fragment == Some("/completed") => Filter.Completed
-          case _ => Filter.All
-        } { filter =>
+  def render = (TodoStore(window), Router(window).toResource).flatMapN { (store, router) =>
+    router.dispatch {
+      Routes.one[IO] {
+        case uri if uri.fragment == Some("/active") => Filter.Active
+        case uri if uri.fragment == Some("/completed") => Filter.Completed
+        case _ => Filter.All
+      } { filter =>
+        div(
+          cls := "todoapp",
+          div(cls := "header", h1("todos"), TodoInput(store)),
           div(
-            cls := "todoapp",
-            div(cls := "header", h1("todos"), TodoInput(store)),
-            div(
-              cls := "main",
-              ul(
-                cls := "todo-list",
-                children[Long](id => TodoItem(store.entry(id))) <-- filter.flatMap(store.ids(_))
-              )
-            ),
-            store
-              .size
-              .map(_ > 0)
-              .changes
-              .map(if _ then StatusBar(store.activeCount, filter, router).some else None)
-          )
-        }
-
+            cls := "main",
+            ul(
+              cls := "todo-list",
+              children[Long](id => TodoItem(store.entry(id))) <-- filter.flatMap(store.ids(_))
+            )
+          ),
+          store
+            .size
+            .map(_ > 0)
+            .changes
+            .map(if _ then StatusBar(store.activeCount, filter, router).some else None)
+        )
       }
+
+    }
   }
 
   def TodoInput(store: TodoStore) =
