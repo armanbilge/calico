@@ -26,9 +26,10 @@ trait IOWebApp:
 
   def rootElementId: String = "app"
 
-  def render(window: Window[IO]): Resource[IO, fs2.dom.HtmlElement[IO]]
+  val window: Window[IO] = Window[IO]
+
+  def render: Resource[IO, fs2.dom.HtmlElement[IO]]
 
   def main(args: Array[String]): Unit =
-    val window = Window[IO]
     val rootElement = window.document.getElementById(rootElementId).map(_.get)
-    rootElement.flatMap(render(window).renderInto(_).useForever).unsafeRunAndForget()
+    rootElement.flatMap(render.renderInto(_).useForever).unsafeRunAndForget()

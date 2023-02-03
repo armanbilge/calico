@@ -40,7 +40,7 @@ import scala.collection.immutable.SortedMap
 
 object TodoMvc extends IOWebApp:
 
-  def render(window: Window[IO]) = (TodoStore(window), Router(window).toResource).flatMapN {
+  def render = (TodoStore(window), Router(window).toResource).flatMapN {
     (store, router) =>
       router.dispatch {
         Routes.one[IO] {
