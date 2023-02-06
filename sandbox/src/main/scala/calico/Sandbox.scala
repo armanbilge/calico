@@ -30,4 +30,4 @@ import org.http4s.syntax.all.*
 
 object Sandbox extends IOWebApp:
 
-  def render(window: Window[IO]) = Resource.never
+  def render = Resource.never
