@@ -26,8 +26,7 @@ import fs2.Stream
 import fs2.concurrent.Signal
 import fs2.concurrent.Topic
 import fs2.dom.Dom
-import fs2.dom.History
-import fs2.dom.Location
+import fs2.dom.Window
 import org.http4s.Uri
 import org.scalajs.dom
 import org.scalajs.macrotaskexecutor.MacrotaskExecutor
@@ -81,10 +80,9 @@ abstract class Router[F[_]] private ():
     Resource.eval(routes).flatMap(dispatch)
 
 object Router:
-  def apply[F[_]: Dom](location: Location[F], history: History[F, Unit])(
-      using F: Async[F]): F[Router[F]] =
+  def apply[F[_]: Dom](window: Window[F])(using F: Async[F]): F[Router[F]] =
     Topic[F, Uri].map { gps =>
-      val _location = location
+      val history = window.history[Unit]
       new:
         export history.{back, forward, go, length}
 
@@ -101,15 +99,15 @@ object Router:
         yield ()
 
         private def mkAbsolute(uri: Uri): F[Uri] =
-          _location.href.get.flatMap(Uri.fromString(_).liftTo).map(_.resolve(uri))
+          window.location.href.get.flatMap(Uri.fromString(_).liftTo).map(_.resolve(uri))
 
         def location = new:
-          def get = _location.href.get.flatMap(Uri.fromString(_).liftTo[F])
+          def get = window.location.href.get.flatMap(Uri.fromString(_).liftTo[F])
           def continuous = Stream.repeatEval(get)
           def discrete = history.state.discrete.evalMap(_ => get).merge(gps.subscribe(0))
 
         def dispatch(routes: Routes[F]) = for
-          container <- fs2.dom.Document[F].createElement("div").toResource
+          container <- window.document.createElement("div").toResource
           currentRoute <- Resource.make(
             F.ref(Option.empty[(Unique.Token, fs2.dom.Node[F], RefSink[F, Uri], F[Unit])]))(
             _.get.flatMap(_.foldMapA(_._4)))

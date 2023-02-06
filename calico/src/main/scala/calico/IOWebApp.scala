@@ -20,15 +20,16 @@ import calico.syntax.*
 import calico.unsafe.given
 import cats.effect.IO
 import cats.effect.Resource
-import org.scalajs.dom
+import fs2.dom.Window
 
 trait IOWebApp:
 
   def rootElementId: String = "app"
 
+  val window: Window[IO] = Window[IO]
+
   def render: Resource[IO, fs2.dom.HtmlElement[IO]]
 
   def main(args: Array[String]): Unit =
-    val document = fs2.dom.Document[IO]
-    val rootElement = document.getElementById(rootElementId).map(_.get)
+    val rootElement = window.document.getElementById(rootElementId).map(_.get)
     rootElement.flatMap(render.renderInto(_).useForever).unsafeRunAndForget()
