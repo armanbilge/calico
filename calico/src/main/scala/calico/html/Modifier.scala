@@ -80,8 +80,9 @@ private trait Modifiers[F[_]](using F: Async[F]):
       }
     }
 
-  inline given forStringSignal[E <: fs2.dom.Node[F]]: Modifier[F, E, Signal[F, String]] =
-    _forStringSignal.asInstanceOf[Modifier[F, E, Signal[F, String]]]
+  inline given forStringSignal[E <: fs2.dom.Node[F], S <: Signal[F, String]]
+      : Modifier[F, E, S] =
+    _forStringSignal.asInstanceOf[Modifier[F, E, S]]
 
   private val _forStringSignal: Modifier[F, dom.Node, Signal[F, String]] = (s, e) =>
     s.getAndDiscreteUpdates.flatMap { (head, tail) =>
@@ -93,9 +94,8 @@ private trait Modifiers[F[_]](using F: Async[F]):
         .void
     }
 
-  inline given forStringOptionSignal[E <: fs2.dom.Node[F]]
-      : Modifier[F, E, Signal[F, Option[String]]] =
-    _forStringOptionSignal.asInstanceOf[Modifier[F, E, Signal[F, Option[String]]]]
+  inline given forStringOptionSignal[E <: fs2.dom.Node[F], S <: Signal[F, Option[String]]]
+      : Modifier[F, E, S] = _forStringOptionSignal.asInstanceOf[Modifier[F, E, S]]
 
   private val _forStringOptionSignal: Modifier[F, dom.Node, Signal[F, Option[String]]] =
     _forStringSignal.contramap(_.map(_.getOrElse("")))
@@ -115,9 +115,11 @@ private trait Modifiers[F[_]](using F: Async[F]):
   private val _forNode: Modifier[F, dom.Node, Resource[F, dom.Node]] = (n2, n) =>
     n2.evalMap(n2 => F.delay(n.appendChild(n2)))
 
-  inline given forNodeSignal[N <: fs2.dom.Node[F], N2 <: fs2.dom.Node[F]]
-      : Modifier[F, N, Signal[F, Resource[F, N2]]] =
-    _forNodeSignal.asInstanceOf[Modifier[F, N, Signal[F, Resource[F, N2]]]]
+  inline given forNodeSignal[
+      N <: fs2.dom.Node[F],
+      N2 <: fs2.dom.Node[F],
+      S <: Signal[F, Resource[F, N2]]
+  ]: Modifier[F, N, S] = _forNodeSignal.asInstanceOf[Modifier[F, N, S]]
 
   private val _forNodeSignal: Modifier[F, dom.Node, Signal[F, Resource[F, dom.Node]]] =
     (n2s, n) =>
@@ -132,9 +134,11 @@ private trait Modifiers[F[_]](using F: Async[F]):
         }.void
       }
 
-  inline given forNodeOptionSignal[N <: fs2.dom.Node[F], N2 <: fs2.dom.Node[F]]
-      : Modifier[F, N, Signal[F, Option[Resource[F, N2]]]] =
-    _forNodeOptionSignal.asInstanceOf[Modifier[F, N, Signal[F, Option[Resource[F, N2]]]]]
+  inline given forNodeOptionSignal[
+      N <: fs2.dom.Node[F],
+      N2 <: fs2.dom.Node[F],
+      S <: Signal[F, Option[Resource[F, N2]]]
+  ]: Modifier[F, N, S] = _forNodeOptionSignal.asInstanceOf[Modifier[F, N, S]]
 
   private val _forNodeOptionSignal
       : Modifier[F, dom.Node, Signal[F, Option[Resource[F, dom.Node]]]] = (n2s, n) =>
