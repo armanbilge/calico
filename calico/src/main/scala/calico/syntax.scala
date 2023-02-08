@@ -63,24 +63,6 @@ extension [F[_], A](fa: F[A])
         .map(_.get.flatMap(_.join))
     }
 
-extension [F[_], A](signal: Signal[F, A])
-  private[calico] def getAndUpdates(using Concurrent[F]): Resource[F, (A, Stream[F, A])] =
-    signal
-      .discrete
-      .pull
-      .uncons1
-      .flatMap(Pull.outputOption1(_))
-      .streamNoScope
-      .compile
-      .resource
-      .onlyOrError
-
-  def changes(using Eq[A]): Signal[F, A] =
-    new:
-      def continuous = signal.continuous
-      def discrete = signal.discrete.changes
-      def get = signal.get
-
 extension [F[_], A](sigRef: SignallingRef[F, A])
   def zoom[B](lens: Lens[A, B])(using Functor[F]): SignallingRef[F, B] =
     SignallingRef.lens[F, A, B](sigRef)(lens.get(_), a => b => lens.replace(b)(a))

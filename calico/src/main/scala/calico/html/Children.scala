@@ -85,7 +85,7 @@ private trait ChildrenModifiers[F[_]](using F: Async[F]):
 
   private def impl(n: dom.Node, children: Signal[F, Resource[F, List[dom.Node]]]) =
     for
-      (head, tail) <- children.getAndUpdates
+      (head, tail) <- children.getAndDiscreteUpdates
       (hs, generation0) <- DomHotswap(head)
       sentinel <- Resource.eval {
         F.delay {
@@ -128,7 +128,7 @@ private trait KeyedChildrenModifiers[F[_]](using F: Async[F]):
     val n = _n.asInstanceOf[dom.Node]
     inline def build(k: K) = m.build(k).asInstanceOf[Resource[F, dom.Node]]
     for
-      (head, tail) <- m.keys.getAndUpdates
+      (head, tail) <- m.keys.getAndDiscreteUpdates
       active <- Resource.makeFull[F, Ref[F, mutable.Map[K, (dom.Node, F[Unit])]]] { poll =>
         def go(keys: List[K], active: mutable.Map[K, (dom.Node, F[Unit])]): F[Unit] =
           if keys.isEmpty then F.unit

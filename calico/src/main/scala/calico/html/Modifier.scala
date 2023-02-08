@@ -45,7 +45,7 @@ object Modifier:
 
   private[html] def forSignal[F[_]: Async, E, M, V](signal: M => Signal[F, V])(
       mkModify: (M, E) => V => F[Unit]): Modifier[F, E, M] = (m, e) =>
-    signal(m).getAndUpdates.flatMap { (head, tail) =>
+    signal(m).getAndDiscreteUpdates.flatMap { (head, tail) =>
       val modify = mkModify(m, e)
       Resource.eval(modify(head)) *>
         tail.foreach(modify(_)).compile.drain.cedeBackground.void
@@ -55,7 +55,7 @@ object Modifier:
       signal: M => Resource[F, Signal[F, V]])(
       mkModify: (M, E) => V => F[Unit]): Modifier[F, E, M] = (m, e) =>
     signal(m).flatMap { sig =>
-      sig.getAndUpdates.flatMap { (head, tail) =>
+      sig.getAndDiscreteUpdates.flatMap { (head, tail) =>
         val modify = mkModify(m, e)
         Resource.eval(modify(head)) *>
           tail.foreach(modify(_)).compile.drain.cedeBackground.void
@@ -84,7 +84,7 @@ private trait Modifiers[F[_]](using F: Async[F]):
     _forStringSignal.asInstanceOf[Modifier[F, E, Signal[F, String]]]
 
   private val _forStringSignal: Modifier[F, dom.Node, Signal[F, String]] = (s, e) =>
-    s.getAndUpdates.flatMap { (head, tail) =>
+    s.getAndDiscreteUpdates.flatMap { (head, tail) =>
       Resource
         .eval(F.delay(e.appendChild(dom.document.createTextNode(head))))
         .flatMap { n =>
@@ -121,7 +121,7 @@ private trait Modifiers[F[_]](using F: Async[F]):
 
   private val _forNodeSignal: Modifier[F, dom.Node, Signal[F, Resource[F, dom.Node]]] =
     (n2s, n) =>
-      n2s.getAndUpdates.flatMap { (head, tail) =>
+      n2s.getAndDiscreteUpdates.flatMap { (head, tail) =>
         DomHotswap(head).flatMap { (hs, n2) =>
           F.delay(n.appendChild(n2)).toResource *>
             tail
