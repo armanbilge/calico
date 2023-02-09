@@ -109,7 +109,7 @@ lazy val todoMvc = project
         .withModuleSplitStyle(ModuleSplitStyle.SmallModulesFor(List("todomvc")))
     },
     libraryDependencies ++= Seq(
-      "io.circe" %%% "circe-jawn" % "0.14.3"
+      "io.circe" %%% "circe-jawn" % "0.14.4"
     ),
     bundleMonCheckRun := true,
     bundleMonCommitStatus := false,
