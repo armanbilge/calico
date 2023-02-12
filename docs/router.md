@@ -104,5 +104,5 @@ val app = Resource.eval(Router(Window[IO])).flatMap { router =>
   }
 }
 
-app.renderInto(node.asInstanceOf[fs2.dom.Node[IO]]).allocated.unsafeRunAndForget()
+app.renderInto(node.asInstanceOf[fs2.dom.Node[IO]]).useForever.unsafeRunAndForget()
 ```

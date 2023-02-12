@@ -92,7 +92,7 @@ val component: Resource[IO, HtmlDivElement[IO]] =
 
 ```scala mdoc:js:invisible
 import calico.unsafe.given
-component.renderInto(node.asInstanceOf[fs2.dom.Node[IO]]).allocated.unsafeRunAndForget()
+component.renderInto(node.asInstanceOf[fs2.dom.Node[IO]]).useForever.unsafeRunAndForget()
 ```
 
 The ideas are very much the same as the prior example.

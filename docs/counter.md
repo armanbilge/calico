@@ -53,5 +53,5 @@ val app = div(
   Counter("Sheep", initialStep = 3)
 )
 
-app.renderInto(node.asInstanceOf[fs2.dom.Node[IO]]).allocated.unsafeRunAndForget()
+app.renderInto(node.asInstanceOf[fs2.dom.Node[IO]]).useForever.unsafeRunAndForget()
 ```

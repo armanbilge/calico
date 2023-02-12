@@ -31,7 +31,7 @@ val app = Stream.fixedRate[IO](1.second).as(1).scanMonoid.holdOptionResource
     )
   }
 
-app.renderInto(node.asInstanceOf[fs2.dom.Node[IO]]).allocated.unsafeRunAndForget()
+app.renderInto(node.asInstanceOf[fs2.dom.Node[IO]]).useForever.unsafeRunAndForget()
 ```
 
 ## Delay
@@ -59,7 +59,7 @@ val app = Channel.unbounded[IO, Unit].toResource.flatMap { clickCh =>
   )
 }
 
-app.renderInto(node.asInstanceOf[fs2.dom.Node[IO]]).allocated.unsafeRunAndForget()
+app.renderInto(node.asInstanceOf[fs2.dom.Node[IO]]).useForever.unsafeRunAndForget()
 ```
 
 ## Debounce
@@ -107,5 +107,5 @@ val app = Channel.unbounded[IO, String].toResource.flatMap { emailCh =>
   }
 }
 
-app.renderInto(node.asInstanceOf[fs2.dom.Node[IO]]).allocated.unsafeRunAndForget()
+app.renderInto(node.asInstanceOf[fs2.dom.Node[IO]]).useForever.unsafeRunAndForget()
 ```
