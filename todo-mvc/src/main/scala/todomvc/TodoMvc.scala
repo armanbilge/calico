@@ -64,11 +64,10 @@ object TodoMvc extends IOWebApp:
             .map(if _ then StatusBar(store.activeCount, filter, router).some else None)
         )
       }
-
     }
   }
 
-  def TodoInput(store: TodoStore) =
+  def TodoInput(store: TodoStore): Resource[IO, HtmlInputElement[IO]] =
     input.withSelf { self =>
       (
         cls := "new-todo",
@@ -83,7 +82,7 @@ object TodoMvc extends IOWebApp:
       )
     }
 
-  def TodoItem(todo: SignallingRef[IO, Option[Todo]]) =
+  def TodoItem(todo: SignallingRef[IO, Option[Todo]]): Resource[IO, HtmlLiElement[IO]] =
     SignallingRef[IO].of(false).toResource.flatMap { editing =>
       li(
         cls <-- (todo: Signal[IO, Option[Todo]], editing: Signal[IO, Boolean]).mapN { (t, e) =>
@@ -133,7 +132,11 @@ object TodoMvc extends IOWebApp:
       )
     }
 
-  def StatusBar(activeCount: Signal[IO, Int], filter: Signal[IO, Filter], router: Router[IO]) =
+  def StatusBar(
+      activeCount: Signal[IO, Int],
+      filter: Signal[IO, Filter],
+      router: Router[IO]
+  ): Resource[IO, HtmlElement[IO]] =
     footerTag(
       cls := "footer",
       span(
