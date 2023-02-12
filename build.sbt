@@ -44,6 +44,12 @@ lazy val frp = crossProject(JVMPlatform, JSPlatform)
     )
   )
 
+lazy val gen = project
+  .in(file("gen"))
+  .settings(
+    name := "calico-gen"
+  )
+
 lazy val generateDomDefs = taskKey[Seq[File]]("Generate SDT sources")
 
 lazy val calico = project
