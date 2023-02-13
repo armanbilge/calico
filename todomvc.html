@@ -160,11 +160,10 @@
             .</span><span class="identifier">map</span><span>(</span><span class="keyword">if</span><span> </span><span class="identifier">_</span><span> </span><span class="keyword">then</span><span> </span><span class="type-name">StatusBar</span><span>(</span><span class="identifier">store</span><span>.</span><span class="identifier">activeCount</span><span>, </span><span class="identifier">filter</span><span>, </span><span class="identifier">router</span><span>).</span><span class="identifier">some</span><span> </span><span class="keyword">else</span><span> </span><span class="type-name">None</span><span>)
         )
       }
-
     }
   }
 
-  </span><span class="keyword">def</span><span> </span><span class="declaration-name">TodoInput</span><span>(</span><span class="identifier">store</span><span>: </span><span class="type-name">TodoStore</span><span>) =
+  </span><span class="keyword">def</span><span> </span><span class="declaration-name">TodoInput</span><span>(</span><span class="identifier">store</span><span>: </span><span class="type-name">TodoStore</span><span>): </span><span class="type-name">Resource</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">HtmlInputElement</span><span>[</span><span class="type-name">IO</span><span>]] =
     </span><span class="identifier">input</span><span>.</span><span class="identifier">withSelf</span><span> { </span><span class="identifier">self</span><span> =&gt;
       (
         </span><span class="identifier">cls</span><span> := </span><span class="string-literal">&quot;new-todo&quot;</span><span>,
@@ -179,7 +178,7 @@
       )
     }
 
-  </span><span class="keyword">def</span><span> </span><span class="declaration-name">TodoItem</span><span>(</span><span class="identifier">todo</span><span>: </span><span class="type-name">SignallingRef</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">Option</span><span>[</span><span class="type-name">Todo</span><span>]]) =
+  </span><span class="keyword">def</span><span> </span><span class="declaration-name">TodoItem</span><span>(</span><span class="identifier">todo</span><span>: </span><span class="type-name">SignallingRef</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">Option</span><span>[</span><span class="type-name">Todo</span><span>]]): </span><span class="type-name">Resource</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">HtmlLiElement</span><span>[</span><span class="type-name">IO</span><span>]] =
     </span><span class="type-name">SignallingRef</span><span>[</span><span class="type-name">IO</span><span>].</span><span class="identifier">of</span><span>(</span><span class="boolean-literal">false</span><span>).</span><span class="identifier">toResource</span><span>.</span><span class="identifier">flatMap</span><span> { </span><span class="identifier">editing</span><span> =&gt;
       </span><span class="identifier">li</span><span>(
         </span><span class="identifier">cls</span><span> &lt;-- (</span><span class="identifier">todo</span><span>: </span><span class="type-name">Signal</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">Option</span><span>[</span><span class="type-name">Todo</span><span>]], </span><span class="identifier">editing</span><span>: </span><span class="type-name">Signal</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">Boolean</span><span>]).</span><span class="identifier">mapN</span><span> { (</span><span class="identifier">t</span><span>, </span><span class="identifier">e</span><span>) =&gt;
@@ -229,7 +228,11 @@
       )
     }
 
-  </span><span class="keyword">def</span><span> </span><span class="declaration-name">StatusBar</span><span>(</span><span class="identifier">activeCount</span><span>: </span><span class="type-name">Signal</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">Int</span><span>], </span><span class="identifier">filter</span><span>: </span><span class="type-name">Signal</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">Filter</span><span>], </span><span class="identifier">router</span><span>: </span><span class="type-name">Router</span><span>[</span><span class="type-name">IO</span><span>]) =
+  </span><span class="keyword">def</span><span> </span><span class="declaration-name">StatusBar</span><span>(
+      </span><span class="identifier">activeCount</span><span>: </span><span class="type-name">Signal</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">Int</span><span>],
+      </span><span class="identifier">filter</span><span>: </span><span class="type-name">Signal</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">Filter</span><span>],
+      </span><span class="identifier">router</span><span>: </span><span class="type-name">Router</span><span>[</span><span class="type-name">IO</span><span>]
+  ): </span><span class="type-name">Resource</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">HtmlElement</span><span>[</span><span class="type-name">IO</span><span>]] =
     </span><span class="identifier">footerTag</span><span>(
       </span><span class="identifier">cls</span><span> := </span><span class="string-literal">&quot;footer&quot;</span><span>,
       </span><span class="identifier">span</span><span>(

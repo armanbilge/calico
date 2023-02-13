@@ -138,71 +138,72 @@
 </span><span class="keyword">import</span><span> </span><span class="identifier">org</span><span>.</span><span class="identifier">http4s</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">org</span><span>.</span><span class="identifier">http4s</span><span>.</span><span class="identifier">syntax</span><span>.</span><span class="identifier">all</span><span>.*
 
-</span><span class="keyword">val</span><span> </span><span class="identifier">app</span><span> = </span><span class="type-name">Resource</span><span>.</span><span class="identifier">eval</span><span>(</span><span class="type-name">Router</span><span>(</span><span class="type-name">Window</span><span>[</span><span class="type-name">IO</span><span>])).</span><span class="identifier">flatMap</span><span> { </span><span class="identifier">router</span><span> =&gt;
-  (</span><span class="type-name">SignallingRef</span><span>[</span><span class="type-name">IO</span><span>].</span><span class="identifier">of</span><span>(</span><span class="number-literal">0</span><span>), </span><span class="type-name">SignallingRef</span><span>[</span><span class="type-name">IO</span><span>].</span><span class="identifier">of</span><span>(</span><span class="number-literal">0</span><span>)).</span><span class="identifier">tupled</span><span>.</span><span class="identifier">toResource</span><span>.</span><span class="identifier">flatMap</span><span> {
-    (</span><span class="identifier">helloCounter</span><span>, </span><span class="identifier">countCounter</span><span>) =&gt;
+</span><span class="keyword">val</span><span> </span><span class="identifier">app</span><span>: </span><span class="type-name">Resource</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">HtmlDivElement</span><span>[</span><span class="type-name">IO</span><span>]] =
+  </span><span class="type-name">Resource</span><span>.</span><span class="identifier">eval</span><span>(</span><span class="type-name">Router</span><span>(</span><span class="type-name">Window</span><span>[</span><span class="type-name">IO</span><span>])).</span><span class="identifier">flatMap</span><span> { </span><span class="identifier">router</span><span> =&gt;
+    (</span><span class="type-name">SignallingRef</span><span>[</span><span class="type-name">IO</span><span>].</span><span class="identifier">of</span><span>(</span><span class="number-literal">0</span><span>), </span><span class="type-name">SignallingRef</span><span>[</span><span class="type-name">IO</span><span>].</span><span class="identifier">of</span><span>(</span><span class="number-literal">0</span><span>)).</span><span class="identifier">tupled</span><span>.</span><span class="identifier">toResource</span><span>.</span><span class="identifier">flatMap</span><span> {
+      (</span><span class="identifier">helloCounter</span><span>, </span><span class="identifier">countCounter</span><span>) =&gt;
 
-      </span><span class="keyword">def</span><span> </span><span class="declaration-name">helloUri</span><span>(</span><span class="identifier">who</span><span>: </span><span class="type-name">String</span><span>) =
-        </span><span class="string-literal">uri&quot;&quot;</span><span> +? (</span><span class="string-literal">&quot;page&quot;</span><span> -&gt; </span><span class="string-literal">&quot;hello&quot;</span><span>) +? (</span><span class="string-literal">&quot;who&quot;</span><span> -&gt; </span><span class="identifier">who</span><span>)
+        </span><span class="keyword">def</span><span> </span><span class="declaration-name">helloUri</span><span>(</span><span class="identifier">who</span><span>: </span><span class="type-name">String</span><span>) =
+          </span><span class="string-literal">uri&quot;&quot;</span><span> +? (</span><span class="string-literal">&quot;page&quot;</span><span> -&gt; </span><span class="string-literal">&quot;hello&quot;</span><span>) +? (</span><span class="string-literal">&quot;who&quot;</span><span> -&gt; </span><span class="identifier">who</span><span>)
 
-      </span><span class="keyword">def</span><span> </span><span class="declaration-name">countUri</span><span>(</span><span class="identifier">n</span><span>: </span><span class="type-name">Int</span><span>) =
-        </span><span class="string-literal">uri&quot;&quot;</span><span> +? (</span><span class="string-literal">&quot;page&quot;</span><span> -&gt; </span><span class="string-literal">&quot;count&quot;</span><span>) +? (</span><span class="string-literal">&quot;n&quot;</span><span> -&gt; </span><span class="identifier">n</span><span>)
+        </span><span class="keyword">def</span><span> </span><span class="declaration-name">countUri</span><span>(</span><span class="identifier">n</span><span>: </span><span class="type-name">Int</span><span>) =
+          </span><span class="string-literal">uri&quot;&quot;</span><span> +? (</span><span class="string-literal">&quot;page&quot;</span><span> -&gt; </span><span class="string-literal">&quot;count&quot;</span><span>) +? (</span><span class="string-literal">&quot;n&quot;</span><span> -&gt; </span><span class="identifier">n</span><span>)
 
-      </span><span class="keyword">val</span><span> </span><span class="identifier">helloRoute</span><span> = </span><span class="type-name">Routes</span><span>.</span><span class="identifier">one</span><span>[</span><span class="type-name">IO</span><span>] {
-        </span><span class="keyword">case</span><span> </span><span class="identifier">uri</span><span> </span><span class="keyword">if</span><span> </span><span class="identifier">uri</span><span>.</span><span class="identifier">query</span><span>.</span><span class="identifier">params</span><span>.</span><span class="identifier">get</span><span>(</span><span class="string-literal">&quot;page&quot;</span><span>).</span><span class="identifier">contains</span><span>(</span><span class="string-literal">&quot;hello&quot;</span><span>) =&gt;
-          </span><span class="identifier">uri</span><span>.</span><span class="identifier">query</span><span>.</span><span class="identifier">params</span><span>.</span><span class="identifier">getOrElse</span><span>(</span><span class="string-literal">&quot;who&quot;</span><span>, </span><span class="string-literal">&quot;world&quot;</span><span>)
-      } { </span><span class="identifier">who</span><span> =&gt; </span><span class="type-name">Resource</span><span>.</span><span class="identifier">eval</span><span>(</span><span class="identifier">helloCounter</span><span>.</span><span class="identifier">update</span><span>(</span><span class="identifier">_</span><span> + </span><span class="number-literal">1</span><span>)) *&gt; </span><span class="identifier">div</span><span>(</span><span class="string-literal">&quot;Hello, &quot;</span><span>, </span><span class="identifier">who</span><span>) }
+        </span><span class="keyword">val</span><span> </span><span class="identifier">helloRoute</span><span> = </span><span class="type-name">Routes</span><span>.</span><span class="identifier">one</span><span>[</span><span class="type-name">IO</span><span>] {
+          </span><span class="keyword">case</span><span> </span><span class="identifier">uri</span><span> </span><span class="keyword">if</span><span> </span><span class="identifier">uri</span><span>.</span><span class="identifier">query</span><span>.</span><span class="identifier">params</span><span>.</span><span class="identifier">get</span><span>(</span><span class="string-literal">&quot;page&quot;</span><span>).</span><span class="identifier">contains</span><span>(</span><span class="string-literal">&quot;hello&quot;</span><span>) =&gt;
+            </span><span class="identifier">uri</span><span>.</span><span class="identifier">query</span><span>.</span><span class="identifier">params</span><span>.</span><span class="identifier">getOrElse</span><span>(</span><span class="string-literal">&quot;who&quot;</span><span>, </span><span class="string-literal">&quot;world&quot;</span><span>)
+        } { </span><span class="identifier">who</span><span> =&gt; </span><span class="type-name">Resource</span><span>.</span><span class="identifier">eval</span><span>(</span><span class="identifier">helloCounter</span><span>.</span><span class="identifier">update</span><span>(</span><span class="identifier">_</span><span> + </span><span class="number-literal">1</span><span>)) *&gt; </span><span class="identifier">div</span><span>(</span><span class="string-literal">&quot;Hello, &quot;</span><span>, </span><span class="identifier">who</span><span>) }
 
-      </span><span class="keyword">val</span><span> </span><span class="identifier">countRoute</span><span> = </span><span class="type-name">Routes</span><span>.</span><span class="identifier">one</span><span>[</span><span class="type-name">IO</span><span>] {
-        </span><span class="keyword">case</span><span> </span><span class="identifier">uri</span><span> </span><span class="keyword">if</span><span> </span><span class="identifier">uri</span><span>.</span><span class="identifier">query</span><span>.</span><span class="identifier">params</span><span>.</span><span class="identifier">get</span><span>(</span><span class="string-literal">&quot;page&quot;</span><span>).</span><span class="identifier">contains</span><span>(</span><span class="string-literal">&quot;count&quot;</span><span>) =&gt;
-          </span><span class="identifier">uri</span><span>.</span><span class="identifier">query</span><span>.</span><span class="identifier">params</span><span>.</span><span class="identifier">get</span><span>(</span><span class="string-literal">&quot;n&quot;</span><span>).</span><span class="identifier">flatMap</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">toIntOption</span><span>).</span><span class="identifier">getOrElse</span><span>(</span><span class="number-literal">0</span><span>)
-      } { </span><span class="identifier">n</span><span> =&gt;
-        </span><span class="type-name">Resource</span><span>.</span><span class="identifier">eval</span><span>(</span><span class="identifier">countCounter</span><span>.</span><span class="identifier">update</span><span>(</span><span class="identifier">_</span><span> + </span><span class="number-literal">1</span><span>)) *&gt;
-          </span><span class="identifier">p</span><span>(
-            </span><span class="string-literal">&quot;Sheep: &quot;</span><span>,
-            </span><span class="identifier">n</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">toString</span><span>),
-            </span><span class="string-literal">&quot; &quot;</span><span>,
-            </span><span class="identifier">button</span><span>(
-              </span><span class="string-literal">&quot;+&quot;</span><span>,
-              </span><span class="identifier">onClick</span><span> --&gt; {
-                </span><span class="identifier">_</span><span>.</span><span class="identifier">foreach</span><span>(</span><span class="identifier">_</span><span> =&gt; </span><span class="identifier">n</span><span>.</span><span class="identifier">get</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">i</span><span> =&gt; </span><span class="identifier">countUri</span><span>(</span><span class="identifier">i</span><span> + </span><span class="number-literal">1</span><span>)).</span><span class="identifier">flatMap</span><span>(</span><span class="identifier">router</span><span>.</span><span class="identifier">navigate</span><span>))
-              }
+        </span><span class="keyword">val</span><span> </span><span class="identifier">countRoute</span><span> = </span><span class="type-name">Routes</span><span>.</span><span class="identifier">one</span><span>[</span><span class="type-name">IO</span><span>] {
+          </span><span class="keyword">case</span><span> </span><span class="identifier">uri</span><span> </span><span class="keyword">if</span><span> </span><span class="identifier">uri</span><span>.</span><span class="identifier">query</span><span>.</span><span class="identifier">params</span><span>.</span><span class="identifier">get</span><span>(</span><span class="string-literal">&quot;page&quot;</span><span>).</span><span class="identifier">contains</span><span>(</span><span class="string-literal">&quot;count&quot;</span><span>) =&gt;
+            </span><span class="identifier">uri</span><span>.</span><span class="identifier">query</span><span>.</span><span class="identifier">params</span><span>.</span><span class="identifier">get</span><span>(</span><span class="string-literal">&quot;n&quot;</span><span>).</span><span class="identifier">flatMap</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">toIntOption</span><span>).</span><span class="identifier">getOrElse</span><span>(</span><span class="number-literal">0</span><span>)
+        } { </span><span class="identifier">n</span><span> =&gt;
+          </span><span class="type-name">Resource</span><span>.</span><span class="identifier">eval</span><span>(</span><span class="identifier">countCounter</span><span>.</span><span class="identifier">update</span><span>(</span><span class="identifier">_</span><span> + </span><span class="number-literal">1</span><span>)) *&gt;
+            </span><span class="identifier">p</span><span>(
+              </span><span class="string-literal">&quot;Sheep: &quot;</span><span>,
+              </span><span class="identifier">n</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">toString</span><span>),
+              </span><span class="string-literal">&quot; &quot;</span><span>,
+              </span><span class="identifier">button</span><span>(
+                </span><span class="string-literal">&quot;+&quot;</span><span>,
+                </span><span class="identifier">onClick</span><span> --&gt; {
+                  </span><span class="identifier">_</span><span>.</span><span class="identifier">foreach</span><span>(</span><span class="identifier">_</span><span> =&gt; </span><span class="identifier">n</span><span>.</span><span class="identifier">get</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">i</span><span> =&gt; </span><span class="identifier">countUri</span><span>(</span><span class="identifier">i</span><span> + </span><span class="number-literal">1</span><span>)).</span><span class="identifier">flatMap</span><span>(</span><span class="identifier">router</span><span>.</span><span class="identifier">navigate</span><span>))
+                }
+              )
             )
-          )
-      }
+        }
 
-      </span><span class="keyword">val</span><span> </span><span class="identifier">content</span><span> = (</span><span class="identifier">helloRoute</span><span> |+| </span><span class="identifier">countRoute</span><span>).</span><span class="identifier">toResource</span><span>.</span><span class="identifier">flatMap</span><span>(</span><span class="identifier">router</span><span>.</span><span class="identifier">dispatch</span><span>)
+        </span><span class="keyword">val</span><span> </span><span class="identifier">content</span><span> = (</span><span class="identifier">helloRoute</span><span> |+| </span><span class="identifier">countRoute</span><span>).</span><span class="identifier">toResource</span><span>.</span><span class="identifier">flatMap</span><span>(</span><span class="identifier">router</span><span>.</span><span class="identifier">dispatch</span><span>)
 
-      </span><span class="identifier">div</span><span>(
-        </span><span class="identifier">p</span><span>(</span><span class="string-literal">&quot;Created hello page &quot;</span><span>, </span><span class="identifier">helloCounter</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">toString</span><span>), </span><span class="string-literal">&quot; times.&quot;</span><span>),
-        </span><span class="identifier">p</span><span>(</span><span class="string-literal">&quot;Created count page &quot;</span><span>, </span><span class="identifier">countCounter</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">toString</span><span>), </span><span class="string-literal">&quot; times.&quot;</span><span>),
-        </span><span class="identifier">h3</span><span>(</span><span class="string-literal">&quot;Navigation&quot;</span><span>),
-        </span><span class="identifier">p</span><span>(</span><span class="string-literal">&quot;Watch the URL change in your browser address bar!&quot;</span><span>),
-        </span><span class="identifier">ul</span><span>(
-          </span><span class="type-name">List</span><span>(</span><span class="string-literal">&quot;Shaun&quot;</span><span>, </span><span class="string-literal">&quot;Shirley&quot;</span><span>, </span><span class="string-literal">&quot;Timmy&quot;</span><span>, </span><span class="string-literal">&quot;Nuts&quot;</span><span>).</span><span class="identifier">map</span><span> { </span><span class="identifier">who</span><span> =&gt;
+        </span><span class="identifier">div</span><span>(
+          </span><span class="identifier">p</span><span>(</span><span class="string-literal">&quot;Created hello page &quot;</span><span>, </span><span class="identifier">helloCounter</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">toString</span><span>), </span><span class="string-literal">&quot; times.&quot;</span><span>),
+          </span><span class="identifier">p</span><span>(</span><span class="string-literal">&quot;Created count page &quot;</span><span>, </span><span class="identifier">countCounter</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">toString</span><span>), </span><span class="string-literal">&quot; times.&quot;</span><span>),
+          </span><span class="identifier">h3</span><span>(</span><span class="string-literal">&quot;Navigation&quot;</span><span>),
+          </span><span class="identifier">p</span><span>(</span><span class="string-literal">&quot;Watch the URL change in your browser address bar!&quot;</span><span>),
+          </span><span class="identifier">ul</span><span>(
+            </span><span class="type-name">List</span><span>(</span><span class="string-literal">&quot;Shaun&quot;</span><span>, </span><span class="string-literal">&quot;Shirley&quot;</span><span>, </span><span class="string-literal">&quot;Timmy&quot;</span><span>, </span><span class="string-literal">&quot;Nuts&quot;</span><span>).</span><span class="identifier">map</span><span> { </span><span class="identifier">who</span><span> =&gt;
+              </span><span class="identifier">li</span><span>(
+                </span><span class="identifier">a</span><span>(
+                  </span><span class="identifier">href</span><span> := </span><span class="string-literal">&quot;#&quot;</span><span>,
+                  </span><span class="identifier">onClick</span><span> --&gt; (</span><span class="identifier">_</span><span>.</span><span class="identifier">foreach</span><span>(</span><span class="identifier">_</span><span> =&gt; </span><span class="identifier">router</span><span>.</span><span class="identifier">navigate</span><span>(</span><span class="identifier">helloUri</span><span>(</span><span class="identifier">who</span><span>)))),
+                  </span><span class="string-literal">s&quot;Hello, </span><span class="substitution">$who</span><span class="string-literal">&quot;</span><span>
+                )
+              )
+            },
             </span><span class="identifier">li</span><span>(
               </span><span class="identifier">a</span><span>(
                 </span><span class="identifier">href</span><span> := </span><span class="string-literal">&quot;#&quot;</span><span>,
-                </span><span class="identifier">onClick</span><span> --&gt; (</span><span class="identifier">_</span><span>.</span><span class="identifier">foreach</span><span>(</span><span class="identifier">_</span><span> =&gt; </span><span class="identifier">router</span><span>.</span><span class="identifier">navigate</span><span>(</span><span class="identifier">helloUri</span><span>(</span><span class="identifier">who</span><span>)))),
-                </span><span class="string-literal">s&quot;Hello, </span><span class="substitution">$who</span><span class="string-literal">&quot;</span><span>
+                </span><span class="identifier">onClick</span><span> --&gt; (</span><span class="identifier">_</span><span>.</span><span class="identifier">foreach</span><span>(</span><span class="identifier">_</span><span> =&gt; </span><span class="identifier">router</span><span>.</span><span class="identifier">navigate</span><span>(</span><span class="identifier">countUri</span><span>(</span><span class="number-literal">0</span><span>)))),
+                </span><span class="string-literal">&quot;Let&#39;s count!&quot;</span><span>
               )
             )
-          },
-          </span><span class="identifier">li</span><span>(
-            </span><span class="identifier">a</span><span>(
-              </span><span class="identifier">href</span><span> := </span><span class="string-literal">&quot;#&quot;</span><span>,
-              </span><span class="identifier">onClick</span><span> --&gt; (</span><span class="identifier">_</span><span>.</span><span class="identifier">foreach</span><span>(</span><span class="identifier">_</span><span> =&gt; </span><span class="identifier">router</span><span>.</span><span class="identifier">navigate</span><span>(</span><span class="identifier">countUri</span><span>(</span><span class="number-literal">0</span><span>)))),
-              </span><span class="string-literal">&quot;Let&#39;s count!&quot;</span><span>
-            )
-          )
-        ),
-        </span><span class="identifier">h3</span><span>(</span><span class="string-literal">&quot;Content&quot;</span><span>),
-        </span><span class="identifier">content</span><span>
-      )
+          ),
+          </span><span class="identifier">h3</span><span>(</span><span class="string-literal">&quot;Content&quot;</span><span>),
+          </span><span class="identifier">content</span><span>
+        )
+    }
   }
-}
 
-</span><span class="identifier">app</span><span>.</span><span class="identifier">renderInto</span><span>(</span><span class="identifier">node</span><span>.</span><span class="identifier">asInstanceOf</span><span>[</span><span class="identifier">fs2</span><span>.</span><span class="identifier">dom</span><span>.</span><span class="type-name">Node</span><span>[</span><span class="type-name">IO</span><span>]]).</span><span class="identifier">allocated</span><span>.</span><span class="identifier">unsafeRunAndForget</span><span>()</span></code></pre>
+</span><span class="identifier">app</span><span>.</span><span class="identifier">renderInto</span><span>(</span><span class="identifier">node</span><span>.</span><span class="identifier">asInstanceOf</span><span>[</span><span class="identifier">fs2</span><span>.</span><span class="identifier">dom</span><span>.</span><span class="type-name">Node</span><span>[</span><span class="type-name">IO</span><span>]]).</span><span class="identifier">useForever</span><span>.</span><span class="identifier">unsafeRunAndForget</span><span>()</span></code></pre>
         <div id="mdoc-html-run0" data-mdoc-js></div>
         <p><script type="text/javascript" src="router.md.js" defer></script>
         <script type="text/javascript" src="mdoc.js" defer></script></p>
