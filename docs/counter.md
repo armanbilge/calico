@@ -10,8 +10,9 @@ import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import fs2.*
 import fs2.concurrent.*
+import fs2.dom.*
 
-def Counter(label: String, initialStep: Int) =
+def Counter(label: String, initialStep: Int): Resource[IO, HtmlDivElement[IO]] =
   SignallingRef[IO].of(initialStep).product(Channel.unbounded[IO, Int])
     .toResource.flatMap { (step, diff) =>
 
@@ -48,7 +49,7 @@ def Counter(label: String, initialStep: Int) =
       )
   }
 
-val app = div(
+val app: Resource[IO, HtmlDivElement[IO]] = div(
   h1("Let's count!"),
   Counter("Sheep", initialStep = 3)
 )

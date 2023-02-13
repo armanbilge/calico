@@ -40,69 +40,70 @@ import fs2.dom.*
 import org.http4s.*
 import org.http4s.syntax.all.*
 
-val app = Resource.eval(Router(Window[IO])).flatMap { router =>
-  (SignallingRef[IO].of(0), SignallingRef[IO].of(0)).tupled.toResource.flatMap {
-    (helloCounter, countCounter) =>
+val app: Resource[IO, HtmlDivElement[IO]] =
+  Resource.eval(Router(Window[IO])).flatMap { router =>
+    (SignallingRef[IO].of(0), SignallingRef[IO].of(0)).tupled.toResource.flatMap {
+      (helloCounter, countCounter) =>
 
-      def helloUri(who: String) =
-        uri"" +? ("page" -> "hello") +? ("who" -> who)
+        def helloUri(who: String) =
+          uri"" +? ("page" -> "hello") +? ("who" -> who)
 
-      def countUri(n: Int) =
-        uri"" +? ("page" -> "count") +? ("n" -> n)
+        def countUri(n: Int) =
+          uri"" +? ("page" -> "count") +? ("n" -> n)
 
-      val helloRoute = Routes.one[IO] {
-        case uri if uri.query.params.get("page").contains("hello") =>
-          uri.query.params.getOrElse("who", "world")
-      } { who => Resource.eval(helloCounter.update(_ + 1)) *> div("Hello, ", who) }
+        val helloRoute = Routes.one[IO] {
+          case uri if uri.query.params.get("page").contains("hello") =>
+            uri.query.params.getOrElse("who", "world")
+        } { who => Resource.eval(helloCounter.update(_ + 1)) *> div("Hello, ", who) }
 
-      val countRoute = Routes.one[IO] {
-        case uri if uri.query.params.get("page").contains("count") =>
-          uri.query.params.get("n").flatMap(_.toIntOption).getOrElse(0)
-      } { n =>
-        Resource.eval(countCounter.update(_ + 1)) *>
-          p(
-            "Sheep: ",
-            n.map(_.toString),
-            " ",
-            button(
-              "+",
-              onClick --> {
-                _.foreach(_ => n.get.map(i => countUri(i + 1)).flatMap(router.navigate))
-              }
+        val countRoute = Routes.one[IO] {
+          case uri if uri.query.params.get("page").contains("count") =>
+            uri.query.params.get("n").flatMap(_.toIntOption).getOrElse(0)
+        } { n =>
+          Resource.eval(countCounter.update(_ + 1)) *>
+            p(
+              "Sheep: ",
+              n.map(_.toString),
+              " ",
+              button(
+                "+",
+                onClick --> {
+                  _.foreach(_ => n.get.map(i => countUri(i + 1)).flatMap(router.navigate))
+                }
+              )
             )
-          )
-      }
+        }
 
-      val content = (helloRoute |+| countRoute).toResource.flatMap(router.dispatch)
+        val content = (helloRoute |+| countRoute).toResource.flatMap(router.dispatch)
 
-      div(
-        p("Created hello page ", helloCounter.map(_.toString), " times."),
-        p("Created count page ", countCounter.map(_.toString), " times."),
-        h3("Navigation"),
-        p("Watch the URL change in your browser address bar!"),
-        ul(
-          List("Shaun", "Shirley", "Timmy", "Nuts").map { who =>
+        div(
+          p("Created hello page ", helloCounter.map(_.toString), " times."),
+          p("Created count page ", countCounter.map(_.toString), " times."),
+          h3("Navigation"),
+          p("Watch the URL change in your browser address bar!"),
+          ul(
+            List("Shaun", "Shirley", "Timmy", "Nuts").map { who =>
+              li(
+                a(
+                  href := "#",
+                  onClick --> (_.foreach(_ => router.navigate(helloUri(who)))),
+                  s"Hello, $who"
+                )
+              )
+            },
             li(
               a(
                 href := "#",
-                onClick --> (_.foreach(_ => router.navigate(helloUri(who)))),
-                s"Hello, $who"
+                onClick --> (_.foreach(_ => router.navigate(countUri(0)))),
+                "Let's count!"
               )
             )
-          },
-          li(
-            a(
-              href := "#",
-              onClick --> (_.foreach(_ => router.navigate(countUri(0)))),
-              "Let's count!"
-            )
-          )
-        ),
-        h3("Content"),
-        content
-      )
+          ),
+          h3("Content"),
+          content
+        )
+    }
   }
-}
 
 app.renderInto(node.asInstanceOf[fs2.dom.Node[IO]]).useForever.unsafeRunAndForget()
 ```
