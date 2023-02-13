@@ -13,25 +13,27 @@ import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import fs2.*
 import fs2.concurrent.*
+import fs2.dom.*
 
 import scala.concurrent.duration.*
 
-val app = Stream.fixedRate[IO](1.second).as(1).scanMonoid.holdOptionResource
-  .flatMap { tick =>
-    div(
-      div("Tick #: ", tick.map(_.toString)),
+val app: Resource[IO, HtmlDivElement[IO]] =
+  Stream.fixedRate[IO](1.second).as(1).scanMonoid.holdOptionResource
+    .flatMap { tick =>
       div(
-        "Random #: ",
-        Random.scalaUtilRandom[IO].toResource.flatMap { random =>
-          tick.discrete
-            .evalMap(_ => random.nextInt.map(i => (i % 100).toString))
-            .holdOptionResource
-        }
+        div("Tick #: ", tick.map(_.toString)),
+        div(
+          "Random #: ",
+          Random.scalaUtilRandom[IO].toResource.flatMap { random =>
+            tick.discrete
+              .evalMap(_ => random.nextInt.map(i => (i % 100).toString))
+              .holdOptionResource
+          }
+        )
       )
-    )
-  }
+    }
 
-app.renderInto(node.asInstanceOf[fs2.dom.Node[IO]]).allocated.unsafeRunAndForget()
+app.renderInto(node.asInstanceOf[fs2.dom.Node[IO]]).useForever.unsafeRunAndForget()
 ```
 
 ## Delay
@@ -46,20 +48,22 @@ import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import fs2.*
 import fs2.concurrent.*
+import fs2.dom.*
 
 import scala.concurrent.duration.*
 
-val app = Channel.unbounded[IO, Unit].toResource.flatMap { clickCh =>
-  val alert = clickCh.stream >>
-    (Stream.emit("Just clicked!") ++ Stream.sleep_[IO](500.millis) ++ Stream.emit(""))
+val app: Resource[IO, HtmlDivElement[IO]] =
+  Channel.unbounded[IO, Unit].toResource.flatMap { clickCh =>
+    val alert = clickCh.stream >>
+      (Stream.emit("Just clicked!") ++ Stream.sleep_[IO](500.millis) ++ Stream.emit(""))
 
-  div(
-    button(onClick --> (_.void.through(clickCh.sendAll)), "Click me"),
-    alert.holdResource("")
-  )
-}
+    div(
+      button(onClick --> (_.void.through(clickCh.sendAll)), "Click me"),
+      alert.holdResource("")
+    )
+  }
 
-app.renderInto(node.asInstanceOf[fs2.dom.Node[IO]]).allocated.unsafeRunAndForget()
+app.renderInto(node.asInstanceOf[fs2.dom.Node[IO]]).useForever.unsafeRunAndForget()
 ```
 
 ## Debounce
@@ -75,6 +79,7 @@ import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import fs2.*
 import fs2.concurrent.*
+import fs2.dom.*
 
 import scala.concurrent.duration.given
 
@@ -83,29 +88,30 @@ def validateEmail(email: String): Either[String, Unit] =
   else if !email.contains('@') then Left("Invalid email!")
   else Right(())
 
-val app = Channel.unbounded[IO, String].toResource.flatMap { emailCh =>
-  val validated = emailCh.stream.debounce(1.second).map(validateEmail)
-  validated.holdOptionResource.flatMap { validatedSig =>
-    div(
-      span(
-        label("Your email: "),
-        input.withSelf { self =>
-          onInput --> (_.evalMap(_ => self.value.get).through(emailCh.sendAll))
-        }
-      ),
-      span(
-        cls <-- Nested(validatedSig).map {
-          case Left(_) => List("-error")
-          case Right(_) => List("-success")
-        }.value,
-        Nested(validatedSig).map {
-          case Left(err) => s"Error: $err"
-          case Right(()) => "Email ok!"
-        }.value
+val app: Resource[IO, HtmlDivElement[IO]] =
+  Channel.unbounded[IO, String].toResource.flatMap { emailCh =>
+    val validated = emailCh.stream.debounce(1.second).map(validateEmail)
+    validated.holdOptionResource.flatMap { validatedSig =>
+      div(
+        span(
+          label("Your email: "),
+          input.withSelf { self =>
+            onInput --> (_.evalMap(_ => self.value.get).through(emailCh.sendAll))
+          }
+        ),
+        span(
+          cls <-- Nested(validatedSig).map {
+            case Left(_) => List("-error")
+            case Right(_) => List("-success")
+          }.value,
+          Nested(validatedSig).map {
+            case Left(err) => s"Error: $err"
+            case Right(()) => "Email ok!"
+          }.value
+        )
       )
-    )
+    }
   }
-}
 
-app.renderInto(node.asInstanceOf[fs2.dom.Node[IO]]).allocated.unsafeRunAndForget()
+app.renderInto(node.asInstanceOf[fs2.dom.Node[IO]]).useForever.unsafeRunAndForget()
 ```
