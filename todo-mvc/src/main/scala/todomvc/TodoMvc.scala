@@ -204,10 +204,10 @@ object TodoStore:
 
       _ <- mapRef
         .discrete
-        .foreach(todos => window.localStorage.setItem(key, todos.asJson.noSpaces))
+        .foreach(todos => IO.cede *> window.localStorage.setItem(key, todos.asJson.noSpaces))
         .compile
         .drain
-        .backgroundOn(calico.unsafe.MacrotaskExecutor)
+        .background
     yield new TodoStore(mapRef, IO.realTime.map(_.toMillis))
 
 case class Todo(text: String, completed: Boolean) derives Codec.AsObject

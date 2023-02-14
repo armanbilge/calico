@@ -43,22 +43,21 @@ object Modifier:
     def contramap[A, B](fa: Modifier[Id, Any, A])(f: B => A) =
       fa.contramap(f)
 
-  private[html] def forSignal[F[_]: Async, E, M, V](signal: M => Signal[F, V])(
-      mkModify: (M, E) => V => F[Unit]): Modifier[F, E, M] = (m, e) =>
+  private[html] def forSignal[F[_], E, M, V](signal: M => Signal[F, V])(
+      mkModify: (M, E) => V => F[Unit])(using F: Async[F]): Modifier[F, E, M] = (m, e) =>
     signal(m).getAndDiscreteUpdates.flatMap { (head, tail) =>
       val modify = mkModify(m, e)
       Resource.eval(modify(head)) *>
-        tail.foreach(modify(_)).compile.drain.cedeBackground.void
+        (F.cede *> tail.foreach(modify(_)).compile.drain).background.void
     }
 
-  private[html] def forSignalResource[F[_]: Async, E, M, V](
-      signal: M => Resource[F, Signal[F, V]])(
-      mkModify: (M, E) => V => F[Unit]): Modifier[F, E, M] = (m, e) =>
+  private[html] def forSignalResource[F[_], E, M, V](signal: M => Resource[F, Signal[F, V]])(
+      mkModify: (M, E) => V => F[Unit])(using F: Async[F]): Modifier[F, E, M] = (m, e) =>
     signal(m).flatMap { sig =>
       sig.getAndDiscreteUpdates.flatMap { (head, tail) =>
         val modify = mkModify(m, e)
         Resource.eval(modify(head)) *>
-          tail.foreach(modify(_)).compile.drain.cedeBackground.void
+          (F.cede *> tail.foreach(modify(_)).compile.drain).background.void
       }
     }
 
@@ -89,7 +88,7 @@ private trait Modifiers[F[_]](using F: Async[F]):
       Resource
         .eval(F.delay(e.appendChild(dom.document.createTextNode(head))))
         .flatMap { n =>
-          tail.foreach(t => F.delay(n.textContent = t)).compile.drain.cedeBackground
+          (F.cede *> tail.foreach(t => F.delay(n.textContent = t)).compile.drain).background
         }
         .void
     }
@@ -126,11 +125,10 @@ private trait Modifiers[F[_]](using F: Async[F]):
       n2s.getAndDiscreteUpdates.flatMap { (head, tail) =>
         DomHotswap(head).flatMap { (hs, n2) =>
           F.delay(n.appendChild(n2)).toResource *>
-            tail
+            (F.cede *> tail
               .foreach(hs.swap(_)((n2, n3) => F.delay(n.replaceChild(n3, n2))))
               .compile
-              .drain
-              .cedeBackground
+              .drain).background
         }.void
       }
 

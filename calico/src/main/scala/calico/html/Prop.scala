@@ -24,6 +24,7 @@ import cats.FunctorFilter
 import cats.Id
 import cats.effect.kernel.Async
 import cats.effect.kernel.Resource
+import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import fs2.Pipe
 import fs2.Stream
@@ -178,7 +179,7 @@ private trait EventPropModifiers[F[_]](using F: Async[F]):
   inline given forPipeEventProp[T <: fs2.dom.Node[F]]: Modifier[F, T, PipeModifier[F]] =
     _forPipeEventProp.asInstanceOf[Modifier[F, T, PipeModifier[F]]]
   private val _forPipeEventProp: Modifier[F, dom.EventTarget, PipeModifier[F]] =
-    (m, t) => fs2.dom.events(t, m.key).through(m.sink).compile.drain.cedeBackground.void
+    (m, t) => (F.cede *> fs2.dom.events(t, m.key).through(m.sink).compile.drain).background.void
 
 final class ClassProp[F[_]] private[calico]
     extends Prop[F, List[String], String](

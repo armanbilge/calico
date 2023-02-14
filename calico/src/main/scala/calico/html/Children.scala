@@ -93,7 +93,7 @@ private trait ChildrenModifiers[F[_]](using F: Async[F]):
           n.appendChild(dom.document.createComment(""))
         }
       }
-      _ <- tail
+      bg = tail
         .foreach { children =>
           hs.swap(children) { (prev, next) =>
             F.delay {
@@ -104,7 +104,7 @@ private trait ChildrenModifiers[F[_]](using F: Async[F]):
         }
         .compile
         .drain
-        .cedeBackground
+      _ <- (F.cede *> bg).background
     yield ()
 
 final class KeyedChildren[F[_], K] private[calico] (f: K => Resource[F, fs2.dom.Node[F]]):
@@ -128,7 +128,7 @@ private trait KeyedChildrenModifiers[F[_]](using F: Async[F]):
     val n = _n.asInstanceOf[dom.Node]
     inline def build(k: K) = m.build(k).asInstanceOf[Resource[F, dom.Node]]
     for
-      (head, tail) <- m.keys.getAndDiscreteUpdates
+      (head, tail) <- m.keys.changes.getAndDiscreteUpdates
       active <- Resource.makeFull[F, Ref[F, mutable.Map[K, (dom.Node, F[Unit])]]] { poll =>
         def go(keys: List[K], active: mutable.Map[K, (dom.Node, F[Unit])]): F[Unit] =
           if keys.isEmpty then F.unit
@@ -143,12 +143,10 @@ private trait KeyedChildrenModifiers[F[_]](using F: Async[F]):
           .flatTap(active => go(head, active).onCancel(traverse_(active.values)(_._2)))
           .flatMap(F.ref(_))
       }(
-        _.get.flatMap(ns => traverse_(ns.values)(_._2)).evalOn(unsafe.MacrotaskExecutor)
+        F.cede *> _.get.flatMap(ns => traverse_(ns.values)(_._2))
       )
       sentinel <- Resource.eval(F.delay(n.appendChild(dom.document.createComment(""))))
-      _ <- tail
-        .dropWhile(_ === head)
-        .changes
+      bg = tail
         .foreach { keys =>
           F.uncancelable { poll =>
             active.get.flatMap { currentNodes =>
@@ -173,7 +171,7 @@ private trait KeyedChildrenModifiers[F[_]](using F: Async[F]):
                 }
 
                 (active.set(nextNodes) *> acquireNewNodes *> renderNextNodes).guarantee(
-                  releaseOldNodes.evalOn(unsafe.MacrotaskExecutor)
+                  F.cede *> releaseOldNodes
                 )
               }.flatten
             }
@@ -181,5 +179,5 @@ private trait KeyedChildrenModifiers[F[_]](using F: Async[F]):
         }
         .compile
         .drain
-        .cedeBackground
+      _ <- (F.cede *> bg).background
     yield ()

@@ -19,9 +19,9 @@ ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17"))
 ThisBuild / tlJdkRelease := Some(8)
 
 val CatsVersion = "2.9.0"
-val CatsEffectVersion = "3.4.6"
+val CatsEffectVersion = "3.5.0-RC1"
 val Fs2Version = "3.6.1"
-val Fs2DomVersion = "0.2.0-M4"
+val Fs2DomVersion = "0.2.0-RC1"
 val MonocleVersion = "3.2.0"
 
 lazy val root =
