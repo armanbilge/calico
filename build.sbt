@@ -128,7 +128,8 @@ lazy val unidocs = project
   .enablePlugins(ScalaJSPlugin, TypelevelUnidocPlugin)
   .settings(
     name := "calico-docs",
-    ScalaUnidoc / unidoc / unidocProjectFilter := inProjects(frp.js, calico, router)
+    ScalaUnidoc / unidoc / unidocProjectFilter := inProjects(frp.js, calico, router),
+    ScalaUnidoc / unidoc / fullClasspath := (todoMvc / Compile / fullClasspath).value
   )
 
 lazy val jsdocs = project.dependsOn(calico, router).enablePlugins(ScalaJSPlugin)
