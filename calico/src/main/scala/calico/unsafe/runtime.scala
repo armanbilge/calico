@@ -18,12 +18,13 @@ package calico.unsafe
 
 import cats.effect.unsafe.IORuntime
 import cats.effect.unsafe.IORuntimeConfig
-import cats.effect.unsafe.Scheduler
 
-given IORuntime = IORuntime(
-  MicrotaskExecutor,
-  MicrotaskExecutor,
-  Scheduler.createDefaultScheduler()._1,
-  () => (),
-  IORuntimeConfig()
-)
+given IORuntime = // never auto-cede, to prevent glitchy rendering
+  val ec = IORuntime.createBatchingMacrotaskExecutor(Int.MaxValue)
+  IORuntime(
+    ec,
+    ec,
+    IORuntime.defaultScheduler,
+    () => (),
+    IORuntimeConfig(1, Int.MaxValue)
+  )

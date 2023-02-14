@@ -16,7 +16,7 @@
 
 package calico.router
 
-import cats.effect.kernel.Async
+import cats.effect.kernel.Concurrent
 import cats.effect.kernel.RefSink
 import cats.effect.kernel.Resource
 import cats.effect.kernel.Unique
@@ -80,7 +80,7 @@ abstract class Router[F[_]] private ():
     Resource.eval(routes).flatMap(dispatch)
 
 object Router:
-  def apply[F[_]: Dom](window: Window[F])(using F: Async[F]): F[Router[F]] =
+  def apply[F[_]: Dom](window: Window[F])(using F: Concurrent[F]): F[Router[F]] =
     Topic[F, Uri].map { gps =>
       val history = window.history[Unit]
       new:
@@ -120,7 +120,8 @@ object Router:
                   F.uncancelable { _ =>
                     container.removeChild(oldChild) *>
                       currentRoute.set(None) *>
-                      finalizer.evalOn(MacrotaskExecutor)
+                      F.cede *>
+                      finalizer
                   }
                 case (None, Some(route)) =>
                   F.uncancelable { poll =>
@@ -138,7 +139,7 @@ object Router:
                         case ((sink, child), newFinalizer) =>
                           container.replaceChild(child, oldChild) *>
                             currentRoute.set(Some((route.key, child, sink, newFinalizer)))
-                      } *> oldFinalizer.evalOn(MacrotaskExecutor)
+                      } *> F.cede *> oldFinalizer
                     }
               }
             }

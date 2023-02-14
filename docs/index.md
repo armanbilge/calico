@@ -118,19 +118,15 @@ A JavaScript webapp typically has a flow like:
 
 Notice that this scheduling strategy guarantees glitch-free rendering. Because all tasks triggered by an event must complete before the view re-renders, the user will never see inconsistent state in the UI.
 
-However, there are certain situations where running a task with high-priority may not be desirable and you would prefer that it runs in the "background" while your application continues to be responsive. This is relevant only if you are doing an expensive calculation or processing task; for example, there is no need to explicitly background I/O tasks since they operate via the event-driven flow described above.
-
-In these cases, you should break that expensive task into smaller steps and schedule it as a so-called _macrotask_:
+However, there are certain situations where you may want the browser to re-render in the middle of a task. In these cases, simply sequence an `IO.cede` operation. This will temporarily yield control flow back to the browser so that it may re-render the UI, before resuming the task.
 
 ```scala
-import calico.unsafe.MacrotaskExecutor
-
-val expensiveTask = IO(smallStep1()) *> IO(smallStep2()) *> IO(smallStep3()) *> ...
-expensiveTask.evalOn(MacrotaskExecutor)
+updateComponentA *> // doesn't render yet
+  updateComponentB *> // still didn't render
+  IO.cede *> // re-render now
+  doOtherStuff *> ... // do non-view-related work
 ```
 
-The [`MacrotaskExecutor`](https://github.com/scala-js/scala-js-macrotask-executor) schedules macrotasks with equal priority to event processing and UI rendering. Conceptually, it is somewhat analogous to using `IO.blocking(...)` on the JVM, in that running these tasks on a separate `ExecutionContext` preserves fairness and enables your application to continue responding to incoming events. Conversely, forgetting to use `.evalOn(MacrotaskExecutor)` or `IO.blocking(...)` could cause your application to become unresponsive.
+Explicitly inserting an `IO.cede` can be a useful strategy to improve your app’s UX, by re-rendering as soon as you are done updating the view, and deferring other work until after the re-render. This will make your UI more responsive.
 
-However, I suspect situations where you need to use the `MacrotaskExecutor` in webapp are rare. If you truly have a long-running, compute-intensive task that you do not want to compromise the responsiveness of your application, you should consider running it in a background thread via a [WebWorker](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API) instead.
-
-To learn more about microtasks and macrotasks I recommend [this article about the JavaScript event loop](https://javascript.info/event-loop).
+To learn more I recommend [this article about the JavaScript event loop](https://javascript.info/event-loop).

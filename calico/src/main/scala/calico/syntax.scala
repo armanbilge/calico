@@ -47,22 +47,6 @@ extension [F[_]](component: Resource[F, fs2.dom.Node[F]])
   def renderInto(root: fs2.dom.Node[F])(using Functor[F], Dom[F]): Resource[F, Unit] =
     component.flatMap { e => Resource.make(root.appendChild(e))(_ => root.removeChild(e)) }
 
-extension [F[_], A](fa: F[A])
-  private[calico] def cedeBackground(
-      using F: Async[F]): Resource[F, F[Outcome[F, Throwable, A]]] =
-    F.executionContext.toResource.flatMap { ec =>
-      Resource
-        .make(F.deferred[Fiber[F, Throwable, A]])(_.get.flatMap(_.cancel))
-        .evalTap { deferred =>
-          fa.start
-            .flatMap(deferred.complete(_))
-            .evalOn(ec)
-            .startOn(unsafe.MacrotaskExecutor)
-            .start
-        }
-        .map(_.get.flatMap(_.join))
-    }
-
 extension [F[_], A](sigRef: SignallingRef[F, A])
   def zoom[B](lens: Lens[A, B])(using Functor[F]): SignallingRef[F, B] =
     SignallingRef.lens[F, A, B](sigRef)(lens.get(_), a => b => lens.replace(b)(a))

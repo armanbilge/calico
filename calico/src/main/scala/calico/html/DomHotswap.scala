@@ -17,17 +17,17 @@
 package calico
 package html
 
-import cats.effect.kernel.Async
+import cats.effect.kernel.Concurrent
 import cats.effect.kernel.Resource
 import cats.effect.syntax.all.*
 import cats.syntax.all.*
 
-private[calico] abstract class DomHotswap[F[_], A]:
+private abstract class DomHotswap[F[_], A]:
   def swap(next: Resource[F, A])(render: (A, A) => F[Unit]): F[Unit]
 
-private[calico] object DomHotswap:
+private object DomHotswap:
   def apply[F[_], A](init: Resource[F, A])(
-      using F: Async[F]
+      using F: Concurrent[F]
   ): Resource[F, (DomHotswap[F, A], A)] =
     Resource.make(init.allocated.flatMap(F.ref(_)))(_.get.flatMap(_._2)).evalMap { active =>
       val hs = new DomHotswap[F, A]:
@@ -36,8 +36,7 @@ private[calico] object DomHotswap:
             nextAllocated <- poll(next.allocated)
             (oldA, oldFinalizer) <- active.getAndSet(nextAllocated)
             newA = nextAllocated._1
-            _ <- render(oldA, newA)
-            _ <- oldFinalizer.evalOn(unsafe.MacrotaskExecutor)
+            _ <- render(oldA, newA) *> F.cede *> oldFinalizer
           yield ()
         }
 
