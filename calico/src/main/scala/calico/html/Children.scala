@@ -93,7 +93,7 @@ private trait ChildrenModifiers[F[_]](using F: Async[F]):
           n.appendChild(dom.document.createComment(""))
         }
       }
-      bg = tail
+      update = tail
         .foreach { children =>
           hs.swap(children) { (prev, next) =>
             F.delay {
@@ -104,7 +104,7 @@ private trait ChildrenModifiers[F[_]](using F: Async[F]):
         }
         .compile
         .drain
-      _ <- (F.cede *> bg).background
+      _ <- (F.cede *> update).background
     yield ()
 
 final class KeyedChildren[F[_], K] private[calico] (f: K => Resource[F, fs2.dom.Node[F]]):
@@ -146,7 +146,7 @@ private trait KeyedChildrenModifiers[F[_]](using F: Async[F]):
         F.cede *> _.get.flatMap(ns => traverse_(ns.values)(_._2))
       )
       sentinel <- Resource.eval(F.delay(n.appendChild(dom.document.createComment(""))))
-      bg = tail
+      update = tail
         .foreach { keys =>
           F.uncancelable { poll =>
             active.get.flatMap { currentNodes =>
@@ -179,5 +179,5 @@ private trait KeyedChildrenModifiers[F[_]](using F: Async[F]):
         }
         .compile
         .drain
-      _ <- (F.cede *> bg).background
+      _ <- (F.cede *> update).background
     yield ()
