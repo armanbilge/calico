@@ -22,10 +22,10 @@ import cats.effect.kernel.Resource
 import cats.effect.syntax.all.*
 import cats.syntax.all.*
 
-private[calico] abstract class DomHotswap[F[_], A]:
+private abstract class DomHotswap[F[_], A]:
   def swap(next: Resource[F, A])(render: (A, A) => F[Unit]): F[Unit]
 
-private[calico] object DomHotswap:
+private object DomHotswap:
   def apply[F[_], A](init: Resource[F, A])(
       using F: Concurrent[F]
   ): Resource[F, (DomHotswap[F, A], A)] =
