@@ -118,7 +118,7 @@ A JavaScript webapp typically has a flow like:
 
 Notice that this scheduling strategy guarantees glitch-free rendering. Because all tasks triggered by an event must complete before the view re-renders, the user will never see inconsistent state in the UI.
 
-However, there are certain situations where you may want the browser to re-render in the middle of a task. In these cases, simply sequence an `IO.cede` operation. This will temporarily yield control flow back to the browser, so that it may re-render the UI, before resuming the task.
+However, there are certain situations where you may want the browser to re-render in the middle of a task. In these cases, simply sequence an `IO.cede` operation. This will temporarily yield control flow back to the browser so that it may re-render the UI, before resuming the task.
 
 ```scala
 updateComponentA *> // doesn't render yet
