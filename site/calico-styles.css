@@ -1,0 +1,28 @@
+.-error {
+  color:red
+ }
+.-success {
+  color:green
+ }
+
+ div[id^=mdoc-html-] {
+  position:relative;
+  margin-top:40px;
+  margin-bottom:30px;
+  padding:30px 15px 15px;
+  border-radius:5px;
+  border:1px solid grey
+ }
+
+ div[id^=mdoc-html-]:before {
+  content:"LIVE DEMO";
+  position:absolute;
+  top:-13px;
+  left:15px;
+  background:#fff;
+  border:1px solid grey;
+  border-radius:3px;
+  padding:2px 6px;
+  letter-spacing:.01em;
+  font-size:13px
+ }
