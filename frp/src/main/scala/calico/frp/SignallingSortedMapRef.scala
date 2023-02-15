@@ -19,6 +19,7 @@ package calico.frp
 import cats.effect.kernel.Concurrent
 import cats.effect.kernel.Deferred
 import cats.effect.kernel.Ref
+import cats.effect.kernel.Resource
 import cats.kernel.Order
 import cats.effect.syntax.all.*
 import cats.syntax.all.*
@@ -171,7 +172,16 @@ object SignallingSortedMapRef:
 
     def continuous: Stream[F, A] = Stream.repeatEval(get)
 
-    def discrete: Stream[F, A] = {
+    def discrete: Stream[F, A] =
+      Stream.resource(getAndDiscreteUpdates).flatMap {
+        case (a, updates) =>
+          Stream.emit(a) ++ updates
+      }
+
+    override def getAndDiscreteUpdates(using Concurrent[F]): Resource[F, (A, Stream[F, A])] =
+      getAndDiscreteUpdatesImpl
+
+    private def getAndDiscreteUpdatesImpl: Resource[F, (A, Stream[F, A])] =
       def go(id: Long, lastSeen: Long): Stream[F, A] =
         def getNext: F[(A, Long)] =
           F.deferred[(A, Long)].flatMap { wait =>
@@ -189,12 +199,11 @@ object SignallingSortedMapRef:
 
       def cleanup(id: Long): F[Unit] = state.update(withoutListener(_, id))
 
-      Stream.bracket(newId)(cleanup).flatMap { id =>
-        Stream.eval(state.get).flatMap { state =>
-          Stream.emit(getValue(state)) ++ go(id, getLastUpdate(state))
+      Resource.eval {
+        state.get.map { state =>
+          (getValue(state), Stream.bracket(newId)(cleanup).flatMap(go(_, getLastUpdate(state))))
         }
       }
-    }
 
     def set(a: A): F[Unit] = update(_ => a)
 
