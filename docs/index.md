@@ -1,5 +1,3 @@
-{% laika.title = Introduction %}
-
 # Calico
 
 **Calico** is a UI library for the [Typelevel.js](https://typelevel.org/) ecosystem. It leverages the abstractions provided by [Cats Effect](https://typelevel.org/cats-effect/) and [FS2](https://fs2.io/) to provide a fluent DSL for building web applications that are composable, reactive, and safe. If you enjoy working with Cats Effect and FS2 then I hope that you will like **Calico** as well.
