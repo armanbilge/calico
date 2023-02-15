@@ -46,7 +46,12 @@ object SignallingSortedMapRef:
         value: SortedMap[K, V],
         lastUpdate: Long,
         listeners: LongMap[Deferred[F, (SortedMap[K, V], Long)]],
-        keyListeners: Map[K, LongMap[Deferred[F, (Option[V], Long)]]]
+        keys: Map[K, KeyState]
+    )
+
+    case class KeyState(
+        lastUpdate: Long,
+        listeners: LongMap[Deferred[F, (Option[V], Long)]]
     )
 
     given Ordering[K] = K.toOrdering
@@ -58,19 +63,25 @@ object SignallingSortedMapRef:
         def traverse_[A, U](it: Iterable[A])(f: A => F[U]): F[Unit] =
           it.foldLeft(F.unit)(_ <* f(_))
 
+        def incrementLastUpdate(lu: Long) =
+          // skip -1 b/c of its special semantic
+          if lu == -2L then 0L else lu + 1
+
         def updateMapAndNotify[O](
             state: State,
             f: SortedMap[K, V] => (SortedMap[K, V], O)): (State, F[O]) =
           val (newValue, result) = f(state.value)
 
-          val lastUpdate = state.lastUpdate + 1
-          val newState = State(newValue, lastUpdate, LongMap.empty, SortedMap.empty)
+          val lastUpdate = incrementLastUpdate(state.lastUpdate)
+          val newKeys = newValue.view.mapValues(_ => KeyState(lastUpdate, LongMap.empty)).toMap
+          val newState = State(newValue, lastUpdate, LongMap.empty, newKeys)
 
           val notifyListeners =
             traverse_(state.listeners.values)(_.complete(newValue -> lastUpdate))
-          val notifyKeyListeners = traverse_(state.keyListeners) { (k, listeners) =>
-            val v = newValue.get(k)
-            traverse_(listeners.values)(_.complete(v -> lastUpdate))
+          val notifyKeyListeners = traverse_(state.keys) {
+            case (k, KeyState(_, listeners)) =>
+              val v = newValue.get(k)
+              traverse_(listeners.values)(_.complete(v -> lastUpdate))
           }
 
           newState -> (notifyListeners *> notifyKeyListeners).as(result)
@@ -80,14 +91,21 @@ object SignallingSortedMapRef:
           val (newValue, result) = f(state.value.get(k))
 
           val newMap = newValue.fold(state.value - k)(v => state.value + (k -> v))
-          val lastUpdate = state.lastUpdate + 1
-          val newKeyListeners = state.keyListeners - k
-          val newState = State(newMap, lastUpdate, LongMap.empty, newKeyListeners)
+
+          val lastUpdate = incrementLastUpdate(state.lastUpdate)
+          val lastKeyUpdate = if newValue.isDefined then lastUpdate else -1L
+
+          val newKeys =
+            if newValue.isDefined then
+              state.keys.updated(k, KeyState(lastKeyUpdate, LongMap.empty))
+            else state.keys - k // prevent memory leak
+          val newState = State(newMap, lastUpdate, LongMap.empty, newKeys)
 
           val notifyListeners =
             traverse_(state.listeners.values)(_.complete(newMap -> lastUpdate))
-          val notifyKeyListeners = state.keyListeners.get(k).fold(F.unit) { listeners =>
-            traverse_(listeners.values)(_.complete(newValue -> lastUpdate))
+          val notifyKeyListeners = state.keys.get(k).fold(F.unit) {
+            case KeyState(_, listeners) =>
+              traverse_(listeners.values)(_.complete(newValue -> lastUpdate))
           }
 
           newState -> (notifyListeners *> notifyKeyListeners).as(result)
@@ -116,16 +134,21 @@ object SignallingSortedMapRef:
 
             def getValue(s: State) = s.value.get(k)
 
-            def getLastUpdate(s: State) = s.lastUpdate
+            def getLastUpdate(s: State) = s.keys.get(k).fold(-1L)(_.lastUpdate)
 
             def withListener(s: State, id: Long, wait: Deferred[F, (Option[V], Long)]) =
-              s.copy(keyListeners = s
-                .keyListeners
-                .updatedWith(k)(_.getOrElse(LongMap.empty).updated(id, wait).some))
+              s.copy(keys = s.keys.updatedWith(k) { ks =>
+                val lastUpdate = ks.fold(-1L)(_.lastUpdate)
+                val listeners = ks.fold(LongMap.empty)(_.listeners).updated(id, wait)
+                Some(KeyState(lastUpdate, listeners))
+              })
 
             def withoutListener(s: State, id: Long) =
-              s.copy(keyListeners =
-                s.keyListeners.updatedWith(k)(_.map(_.removed(id)).filterNot(_.isEmpty)))
+              s.copy(keys = s.keys.updatedWith(k) {
+                _.map(ks => ks.copy(listeners = ks.listeners.removed(id)))
+                  // prevent memory leak
+                  .filterNot(ks => ks.lastUpdate == -1 && ks.listeners.isEmpty)
+              })
 
             def updateAndNotify[O](s: State, f: Option[V] => (Option[V], O)) =
               updateKeyAndNotify(s, k, f)
@@ -158,7 +181,6 @@ object SignallingSortedMapRef:
               val lastUpdate = getLastUpdate(state)
               if lastUpdate != lastSeen then state -> (getValue(state) -> lastUpdate).pure[F]
               else withListener(state, id, wait) -> wait.get
-
             }.flatten
           }
 
