@@ -126,10 +126,7 @@ object SignallingSortedMapRef:
           def updateAndNotify[O](s: State, f: SortedMap[K, V] => (SortedMap[K, V], O)) =
             updateMapAndNotify(s, f)
 
-          def keys = new Signal[F, SortedSet[K]]:
-            def get = outer.get.map(_.keySet)
-            def continuous = outer.continuous.map(_.keySet)
-            def discrete = outer.discrete.map(_.keySet).changes
+          def keys = outer.map(_.keySet).changes
 
           def apply(k: K) = new AbstractSignallingRef[F, State, Option[V]](newId, state):
 
