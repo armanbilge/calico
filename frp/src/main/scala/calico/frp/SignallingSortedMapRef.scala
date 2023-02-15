@@ -20,8 +20,8 @@ import cats.effect.kernel.Concurrent
 import cats.effect.kernel.Deferred
 import cats.effect.kernel.Ref
 import cats.effect.kernel.Resource
-import cats.kernel.Order
 import cats.effect.syntax.all.*
+import cats.kernel.Order
 import cats.syntax.all.*
 import fs2.Stream
 import fs2.concurrent.Signal
