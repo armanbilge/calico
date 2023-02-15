@@ -20,6 +20,7 @@ import cats.effect.kernel.Concurrent
 import cats.effect.kernel.Deferred
 import cats.effect.kernel.Ref
 import cats.kernel.Order
+import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import fs2.Stream
 import fs2.concurrent.Signal
@@ -181,7 +182,7 @@ object SignallingSortedMapRef:
               val lastUpdate = getLastUpdate(state)
               if lastUpdate != lastSeen then state -> (getValue(state) -> lastUpdate).pure[F]
               else withListener(state, id, wait) -> wait.get
-            }.flatten
+            }.flatten // cancelable
           }
 
         Stream.eval(getNext).flatMap {
@@ -203,10 +204,10 @@ object SignallingSortedMapRef:
     def update(f: A => A): F[Unit] = modify(v => (f(v), ()))
 
     def modify[B](f: A => (A, B)): F[B] =
-      state.modify(updateAndNotify(_, f)).flatten
+      state.flatModify(updateAndNotify(_, f))
 
     def tryModify[B](f: A => (A, B)): F[Option[B]] =
-      state.tryModify(updateAndNotify(_, f)).flatMap(_.sequence)
+      state.tryModify(updateAndNotify(_, f)).flatMap(_.sequence).uncancelable
 
     def tryUpdate(f: A => A): F[Boolean] =
       tryModify(a => (f(a), ())).map(_.isDefined)
