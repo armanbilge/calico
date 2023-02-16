@@ -39,8 +39,9 @@ lazy val frp = crossProject(JVMPlatform, JSPlatform)
       "co.fs2" %%% "fs2-core" % Fs2Version,
       "org.typelevel" %%% "cats-laws" % CatsVersion % Test,
       "org.typelevel" %%% "cats-effect-testkit" % CatsEffectVersion % Test,
-      "org.typelevel" %%% "discipline-munit" % "1.0.9" % Test,
-      "org.scalameta" %%% "munit-scalacheck" % "0.7.29" % Test
+      "org.typelevel" %%% "discipline-munit" % "2.0.0-M3" % Test,
+      "org.typelevel" %%% "munit-cats-effect" % "2.0.0-M3" % Test,
+      "org.scalameta" %%% "munit-scalacheck" % "1.0.0-M7" % Test
     )
   )
 
