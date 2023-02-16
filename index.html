@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="Laika 0.18.1 + Helium Theme" />
-    <title>Introduction</title>
+    <title>Calico</title>
     
       <meta name="author" content="Arman Bilge"/>
     
@@ -70,12 +70,15 @@
       </div>
 
       <ul class="nav-list">
-        <li class="level1 active"><a href="#">Introduction</a></li>
-        <li class="level1"><a href="hello-world.html">Hello World</a></li>
-        <li class="level1"><a href="counter.html">Counter</a></li>
-        <li class="level1"><a href="time.html">Time</a></li>
-        <li class="level1"><a href="todomvc.html">TodoMVC</a></li>
+        <li class="level1 active"><a href="#">Calico</a></li>
+        <li class="level1"><a href="concepts.html">Core Concepts</a></li>
+        <li class="level1"><a href="iowebapp.html">IOWebApp</a></li>
         <li class="level1"><a href="router.html">Router</a></li>
+        <li class="level1 nav-header">demos</li>
+        <li class="level2"><a href="demos/hello-world.html">Hello World</a></li>
+        <li class="level2"><a href="demos/counter.html">Counter</a></li>
+        <li class="level2"><a href="demos/time.html">Time</a></li>
+        <li class="level2"><a href="demos/todomvc.html">TodoMVC</a></li>
       </ul>
 
       <ul class="nav-list">
@@ -98,15 +101,12 @@
     <div id="container">
 
       <nav id="page-nav">
-        <p class="header"><a href="#">Introduction</a></p>
+        <p class="header"><a href="#">Calico</a></p>
 
         <ul class="nav-list">
           <li class="level1"><a href="#acknowledgements">Acknowledgements</a></li>
           <li class="level1"><a href="#try-it">Try it!</a></li>
           <li class="level1"><a href="#integrations">Integrations</a></li>
-          <li class="level1"><a href="#core-concepts">Core concepts</a></li>
-          <li class="level2"><a href="#components-and-resource-management">Components and resource management</a></li>
-          <li class="level2"><a href="#task-scheduling-and-glitch-free-rendering">Task scheduling and glitch-free rendering</a></li>
         </ul>
 
         <p class="footer"></p>
@@ -130,92 +130,6 @@
         <ul>
           <li><a href="https://github.com/kubukoz/calico-smithy4s-demo/">calico-smithy4s-demo</a> showcases a fullstack app and integration with <a href="https://github.com/disneystreaming/smithy4s/">smithy4s</a>. Thank you <a href="https://github.com/kubukoz/">@kubukoz</a>!</li>
         </ul>
-        
-        <h2 id="core-concepts" class="section">Core concepts<a class="anchor-link right" href="#core-concepts"><i class="icofont-laika">&#xef71;</i></a></h2>
-        
-        <h3 id="components-and-resource-management" class="section">Components and resource management<a class="anchor-link right" href="#components-and-resource-management"><i class="icofont-laika">&#xef71;</i></a></h3>
-        <p>The most important idea behind <strong>Calico</strong> is that each component of your app (and in fact your app itself) should be expressed as a <code>Resource[IO, HtmlElement[IO]]</code>.</p>
-        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.*
-</span><span class="keyword">import</span><span> </span><span class="identifier">fs2</span><span>.</span><span class="identifier">dom</span><span>.*
-</span><span class="comment">// note: no calico import yet!
-</span><span>
-</span><span class="keyword">val</span><span> </span><span class="identifier">component</span><span>: </span><span class="type-name">Resource</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">HtmlElement</span><span>[</span><span class="type-name">IO</span><span>]] = ???
-
-</span><span class="comment">// or more generally:
-</span><span class="keyword">def</span><span> </span><span class="declaration-name">component</span><span>[</span><span class="type-name">F</span><span>[</span><span class="identifier">_</span><span>]: </span><span class="type-name">Dom</span><span>]: </span><span class="type-name">Resource</span><span>[</span><span class="type-name">F</span><span>, </span><span class="type-name">HtmlElement</span><span>[</span><span class="type-name">F</span><span>]] = ???</span></code></pre>
-        <p>This <code>Resource</code> completely manages the lifecycle of that element and its children. When the <code>Resource</code> is allocated, it will create an instance of the <code>HtmlElement</code> and any supporting resources, such as background <code>Fiber</code>s or WebSocket connections. In kind, when the <code>Resource</code> is closed, these <code>Fiber</code>s and connections are canceled and released.</p>
-        <p>Because <code>Resource[IO, HtmlElement[IO]]</code> is referentially-transparent, it naturally behaves as a &quot;builder&quot;. Your component can be re-used in multiple places in your application as well as un-mounted and re-mounted without worrying about crossed-wires or leaked resources. This makes it easy to compose components.</p>
-        <p>So far, none of this is specific to <strong>Calico</strong>: we get all of this for free from Cats Effect and FS2 DOM. <strong>Calico</strong> provides an idiomatic DSL for describing components with standard HTML tags and attributes.</p>
-        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.</span><span class="identifier">html</span><span>.</span><span class="identifier">io</span><span>.{*, </span><span class="keyword">given</span><span>}
-</span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.*
-</span><span class="keyword">import</span><span> </span><span class="identifier">fs2</span><span>.</span><span class="identifier">dom</span><span>.*
-
-</span><span class="keyword">val</span><span> </span><span class="identifier">component</span><span>: </span><span class="type-name">Resource</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">HtmlElement</span><span>[</span><span class="type-name">IO</span><span>]] = </span><span class="identifier">div</span><span>(</span><span class="identifier">i</span><span>(</span><span class="string-literal">&quot;hello&quot;</span><span>), </span><span class="string-literal">&quot; &quot;</span><span>, </span><span class="identifier">b</span><span>(</span><span class="string-literal">&quot;world&quot;</span><span>))</span></code></pre>
-        <p>Yes, in this very unexciting example <code>i(&quot;hello&quot;)</code> and <code>b(&quot;world&quot;)</code> are both <code>Resource</code>s that monadically compose with <code>div(...)</code> to create yet another <code>Resource</code>! There are no other resources involved in this very simple snippet. Also note that we have not yet <em>created</em> any <code>HtmlElement</code>s, we have merely created a <code>Resource</code> that <em>describes</em> how to make one.</p>
-        <p>A more interesting example is this interactive Hello World demo.</p>
-        <pre><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.*
-</span><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.</span><span class="identifier">html</span><span>.</span><span class="identifier">io</span><span>.{*, </span><span class="keyword">given</span><span>}
-</span><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.</span><span class="identifier">syntax</span><span>.*
-</span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.*
-</span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.</span><span class="identifier">syntax</span><span>.</span><span class="identifier">all</span><span>.*
-</span><span class="keyword">import</span><span> </span><span class="identifier">fs2</span><span>.*
-</span><span class="keyword">import</span><span> </span><span class="identifier">fs2</span><span>.</span><span class="identifier">concurrent</span><span>.*
-</span><span class="keyword">import</span><span> </span><span class="identifier">fs2</span><span>.</span><span class="identifier">dom</span><span>.*
-
-</span><span class="keyword">val</span><span> </span><span class="identifier">component</span><span>: </span><span class="type-name">Resource</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">HtmlDivElement</span><span>[</span><span class="type-name">IO</span><span>]] =
-  </span><span class="type-name">SignallingRef</span><span>[</span><span class="type-name">IO</span><span>].</span><span class="identifier">of</span><span>(</span><span class="string-literal">&quot;world&quot;</span><span>).</span><span class="identifier">toResource</span><span>.</span><span class="identifier">flatMap</span><span> { </span><span class="identifier">name</span><span> =&gt;
-    </span><span class="identifier">div</span><span>(
-      </span><span class="identifier">label</span><span>(</span><span class="string-literal">&quot;Your name: &quot;</span><span>),
-      </span><span class="identifier">input</span><span>.</span><span class="identifier">withSelf</span><span> { </span><span class="identifier">self</span><span> =&gt;
-        (
-          </span><span class="identifier">placeholder</span><span> := </span><span class="string-literal">&quot;Enter your name here&quot;</span><span>,
-          </span><span class="comment">// here, input events are run through the given Pipe
-</span><span>          </span><span class="comment">// this starts background fibers within the lifecycle of the &lt;input&gt; element
-</span><span>          </span><span class="identifier">onInput</span><span> --&gt; (</span><span class="identifier">_</span><span>.</span><span class="identifier">foreach</span><span>(</span><span class="identifier">_</span><span> =&gt; </span><span class="identifier">self</span><span>.</span><span class="identifier">value</span><span>.</span><span class="identifier">get</span><span>.</span><span class="identifier">flatMap</span><span>(</span><span class="identifier">name</span><span>.</span><span class="identifier">set</span><span>)))
-        )
-      },
-      </span><span class="identifier">span</span><span>(
-        </span><span class="string-literal">&quot; Hello, &quot;</span><span>,
-        </span><span class="comment">// here, a Signal is rendered into the HTML
-</span><span>        </span><span class="comment">// this starts background fibers within the life cycle of the &lt;span&gt; element
-</span><span>        </span><span class="identifier">name</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">toUpperCase</span><span>)
-      )
-    )
-  }</span></code></pre>
-        <div id="mdoc-html-run3" data-mdoc-js></div>
-        <p>The ideas are very much the same as the prior example.</p>
-        <ol class="arabic">
-          <li><code>input(...)</code> is a <code>Resource</code> that creates an <code>&lt;input&gt;</code> element and also manages <code>Fiber</code>s that handle input events. </li>
-          <li><code>span(...)</code> is a <code>Resource</code> that creates a <code>&lt;span&gt;</code> element and also manages <code>Fiber</code>s that handle rendering of the name.</li>
-          <li><code>div(...)</code> is a <code>Resource</code> composed of the <code>input(...)</code> and <code>span(...)</code> <code>Resource</code>s, and therefore (indirectly) manages the <code>Fiber</code>s of its child components.</li>
-        </ol>
-        <p>And there we have it: a self-contained component consisting of non-trivial resources, that can be safely used, reused, and torn down.</p>
-        
-        <h3 id="task-scheduling-and-glitch-free-rendering" class="section">Task scheduling and glitch-free rendering<a class="anchor-link right" href="#task-scheduling-and-glitch-free-rendering"><i class="icofont-laika">&#xef71;</i></a></h3>
-        <p>A JavaScript webapp typically has a flow like:</p>
-        <ol class="arabic">
-          <li>
-            An event fires. Examples:
-            <ul>
-              <li>a user event, such a button click</li>
-              <li>a scheduled timer event</li>
-              <li>an I/O event, such as an HTTP response or WebSocket message</li>
-            </ul>
-          </li>
-          <li>An event handler is triggered, starting (potentially concurrent) tasks to update the application state and the UI. These tasks may also setup new event emitters, for example by scheduling timers or initiating an HTTP request.</li>
-          <li>The UI re-renders.</li>
-        </ol>
-        <p><strong>Calico</strong> is highly-optimized for this pattern and by default schedules all tasks as so-called <em>microtasks</em>. These microtasks have very high-priority: while there is still work to be done, the UI will not re-render and no further events will be processed. Only once all microtasks are complete, will the UI re-render and events will start being processed again.</p>
-        <p>Notice that this scheduling strategy guarantees glitch-free rendering. Because all tasks triggered by an event must complete before the view re-renders, the user will never see inconsistent state in the UI.</p>
-        <p>However, there are certain situations where you may want the browser to re-render in the middle of a task. In these cases, simply sequence an <code>IO.cede</code> operation. This will temporarily yield control flow back to the browser so that it may re-render the UI, before resuming the task.</p>
-        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="identifier">updateComponentA</span><span> *&gt; </span><span class="comment">// doesn&#39;t render yet
-</span><span>  </span><span class="identifier">updateComponentB</span><span> *&gt; </span><span class="comment">// still didn&#39;t render
-</span><span>  </span><span class="type-name">IO</span><span>.</span><span class="identifier">cede</span><span> *&gt; </span><span class="comment">// re-render now
-</span><span>  </span><span class="identifier">doOtherStuff</span><span> *&gt; ... </span><span class="comment">// do non-view-related work</span></code></pre>
-        <p>Explicitly inserting an <code>IO.cede</code> can be a useful strategy to improve your app’s UX, by re-rendering as soon as you are done updating the view, and deferring other work until after the re-render. This will make your UI more responsive.</p>
-        <p>To learn more I recommend <a href="https://javascript.info/event-loop">this article about the JavaScript event loop</a>.
-        <script type="text/javascript" src="index.md.js" defer></script>
-        <script type="text/javascript" src="mdoc.js" defer></script></p>
 
         <hr style="margin-top: 30px"/>
         <footer style="font-size: 90%; text-align: center">
