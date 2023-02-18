@@ -27,6 +27,7 @@ import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import fs2.concurrent.Signal
 import org.scalajs.dom
+import shapeless3.deriving.K0
 
 trait Modifier[F[_], E, A]:
   outer =>
@@ -42,6 +43,13 @@ object Modifier:
 
   private val _forUnit: Modifier[Id, Any, Unit] =
     (_, _) => Resource.unit
+
+  given forTuple[F[_], E, M <: Tuple](
+      using inst: K0.ProductInstances[Modifier[F, E, _], M]
+  ): Modifier[F, E, M] = (m, e) =>
+    inst.foldLeft(m)(Resource.unit[F]) {
+      [a] => (r: Resource[F, Unit], m: Modifier[F, E, a], a: a) => r *> m.modify(a, e)
+    }
 
   inline given [F[_], E]: Contravariant[Modifier[F, E, _]] =
     _contravariant.asInstanceOf[Contravariant[Modifier[F, E, _]]]

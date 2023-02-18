@@ -22,7 +22,6 @@ import cats.effect.kernel.Resource
 import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import org.scalajs.dom
-import shapeless3.deriving.K0
 
 final class HtmlTag[F[_], E] private[calico] (name: String, void: Boolean)(using F: Async[F]):
 
@@ -31,19 +30,5 @@ final class HtmlTag[F[_], E] private[calico] (name: String, void: Boolean)(using
 
   def withSelf[M](mkModifier: E => M)(using M: Modifier[F, E, M]): Resource[F, E] =
     build.toResource.flatTap(e => M.modify(mkModifier(e), e))
-
-  def apply[M <: Tuple](modifiers: M)(
-      using inst: K0.ProductInstances[Modifier[F, E, _], M]): Resource[F, E] =
-    inst.foldLeft(modifiers)(build.toResource) {
-      [a] => (r: Resource[F, E], m: Modifier[F, E, a], a: a) => r.flatTap(m.modify(a, _))
-    }
-
-  def withSelf[M <: Tuple](mkModifiers: E => M)(
-      using inst: K0.ProductInstances[Modifier[F, E, _], M]): Resource[F, E] =
-    build.toResource.flatTap { e =>
-      inst.foldLeft(mkModifiers(e))(Resource.pure(e)) {
-        [a] => (r: Resource[F, E], m: Modifier[F, E, a], a: a) => r.flatTap(m.modify(a, _))
-      }
-    }
 
   private def build = F.delay(dom.document.createElement(name).asInstanceOf[E])
