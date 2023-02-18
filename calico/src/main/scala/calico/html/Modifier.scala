@@ -37,7 +37,7 @@ trait Modifier[F[_], E, A]:
   inline final def contramap[B](inline f: B => A): Modifier[F, E, B] =
     (b: B, e: E) => outer.modify(f(b), e)
 
-object Modifier:
+object Modifier extends ModifierLowPriority:
   inline given forUnit[F[_], E]: Modifier[F, E, Unit] =
     _forUnit.asInstanceOf[Modifier[F, E, Unit]]
 
@@ -75,6 +75,11 @@ object Modifier:
       }
     }
 
+private trait ModifierLowPriority:
+  given forFoldable[F[_], E <: fs2.dom.Node[F], G[_]: Foldable, A](
+      using M: Modifier[F, E, A]): Modifier[F, E, G[A]] =
+    (ga, e) => ga.foldMapM(M.modify(_, e)).void
+
 private trait Modifiers[F[_]](using F: Async[F]):
 
   inline given forString[E <: fs2.dom.Node[F]]: Modifier[F, E, String] =
@@ -111,10 +116,6 @@ private trait Modifiers[F[_]](using F: Async[F]):
   given forResource[E <: fs2.dom.Node[F], A](
       using M: Modifier[F, E, A]): Modifier[F, E, Resource[F, A]] =
     (a, e) => a.flatMap(M.modify(_, e))
-
-  given forFoldable[E <: fs2.dom.Node[F], G[_]: Foldable, A](
-      using M: Modifier[F, E, A]): Modifier[F, E, G[A]] =
-    (ga, e) => ga.foldMapM(M.modify(_, e)).void
 
   inline given forNode[N <: fs2.dom.Node[F], N2 <: fs2.dom.Node[F]]
       : Modifier[F, N, Resource[F, N2]] =
