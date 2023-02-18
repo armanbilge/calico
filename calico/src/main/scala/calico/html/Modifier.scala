@@ -37,6 +37,12 @@ trait Modifier[F[_], E, A]:
     (b: B, e: E) => outer.modify(f(b), e)
 
 object Modifier:
+  inline given forUnit[F[_], E]: Modifier[F, E, Unit] =
+    _forUnit.asInstanceOf[Modifier[F, E, Unit]]
+
+  private val _forUnit: Modifier[Id, Any, Unit] =
+    (_, _) => Resource.unit
+
   inline given [F[_], E]: Contravariant[Modifier[F, E, _]] =
     _contravariant.asInstanceOf[Contravariant[Modifier[F, E, _]]]
   private val _contravariant: Contravariant[Modifier[Id, Any, _]] = new:
@@ -62,11 +68,6 @@ object Modifier:
     }
 
 private trait Modifiers[F[_]](using F: Async[F]):
-  inline given forUnit[E]: Modifier[F, E, Unit] =
-    _forUnit.asInstanceOf[Modifier[F, E, Unit]]
-
-  private val _forUnit: Modifier[F, Any, Unit] =
-    (_, _) => Resource.unit
 
   inline given forString[E <: fs2.dom.Node[F]]: Modifier[F, E, String] =
     _forString.asInstanceOf[Modifier[F, E, String]]
