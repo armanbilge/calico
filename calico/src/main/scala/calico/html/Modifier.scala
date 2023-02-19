@@ -51,8 +51,7 @@ object Modifier:
       [a] => (r: Resource[F, Unit], m: Modifier[F, E, a], a: a) => r *> m.modify(a, e)
     }
 
-  given forList[F[_], E <: fs2.dom.Node[F], A](
-      using M: Modifier[F, E, A]): Modifier[F, E, List[A]] =
+  given forList[F[_], E, A](using M: Modifier[F, E, A]): Modifier[F, E, List[A]] =
     (as, e) => as.foldMapM(M.modify(_, e)).void
 
   given forResource[F[_], E, A](using M: Modifier[F, E, A]): Modifier[F, E, Resource[F, A]] =
