@@ -51,6 +51,9 @@ object Modifier extends ModifierLowPriority:
       [a] => (r: Resource[F, Unit], m: Modifier[F, E, a], a: a) => r *> m.modify(a, e)
     }
 
+  given forResource[F[_], E, A](using M: Modifier[F, E, A]): Modifier[F, E, Resource[F, A]] =
+    (a, e) => a.flatMap(M.modify(_, e))
+
   inline given [F[_], E]: Contravariant[Modifier[F, E, _]] =
     _contravariant.asInstanceOf[Contravariant[Modifier[F, E, _]]]
   private val _contravariant: Contravariant[Modifier[Id, Any, _]] = new:
@@ -112,10 +115,6 @@ private trait Modifiers[F[_]](using F: Async[F]):
 
   private val _forStringOptionSignal: Modifier[F, dom.Node, Signal[F, Option[String]]] =
     _forStringSignal.contramap(_.map(_.getOrElse("")))
-
-  given forResource[E <: fs2.dom.Node[F], A](
-      using M: Modifier[F, E, A]): Modifier[F, E, Resource[F, A]] =
-    (a, e) => a.flatMap(M.modify(_, e))
 
   inline given forNode[N <: fs2.dom.Node[F], N2 <: fs2.dom.Node[F]]
       : Modifier[F, N, Resource[F, N2]] =
