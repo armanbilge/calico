@@ -48,6 +48,8 @@ sealed class Html[F[_]](using F: Async[F])
 
   def cls: ClassProp[F] = ClassProp[F]
 
+  def rel: HtmlAttr[F, List[String]] = HtmlAttr("rel", encoders.whitespaceSeparatedStrings)
+
   def role: HtmlAttr[F, List[String]] = HtmlAttr("role", encoders.whitespaceSeparatedStrings)
 
   def dataAttr(suffix: String): HtmlAttr[F, String] =
