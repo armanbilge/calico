@@ -116,12 +116,18 @@ private trait Modifiers[F[_]](using F: Async[F]):
   private val _forStringOptionSignal: Modifier[F, dom.Node, Signal[F, Option[String]]] =
     _forStringSignal.contramap(_.map(_.getOrElse("")))
 
-  inline given forNode[N <: fs2.dom.Node[F], N2 <: fs2.dom.Node[F]]
-      : Modifier[F, N, Resource[F, N2]] =
-    _forNode.asInstanceOf[Modifier[F, N, Resource[F, N2]]]
+  inline given forNode[N <: fs2.dom.Node[F], N2 <: fs2.dom.Node[F]]: Modifier[F, N, N2] =
+    _forNode.asInstanceOf[Modifier[F, N, N2]]
 
-  private val _forNode: Modifier[F, dom.Node, Resource[F, dom.Node]] = (n2, n) =>
-    n2.evalMap(n2 => F.delay(n.appendChild(n2)))
+  private val _forNode: Modifier[F, dom.Node, dom.Node] = (n2, n) =>
+    Resource.eval(F.delay(n.appendChild(n2)))
+
+  inline given forNodeResource[N <: fs2.dom.Node[F], N2 <: fs2.dom.Node[F]]
+      : Modifier[F, N, Resource[F, N2]] =
+    _forNodeResource.asInstanceOf[Modifier[F, N, Resource[F, N2]]]
+
+  private val _forNodeResource: Modifier[F, dom.Node, Resource[F, dom.Node]] =
+    Modifier.forResource(using _forNode)
 
   inline given forNodeSignal[
       N <: fs2.dom.Node[F],
