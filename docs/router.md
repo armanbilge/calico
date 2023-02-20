@@ -2,7 +2,7 @@
 
 @:callout(info)
 
-[frontroute] is a full-featured routing library, that was originally developed for Laminar and now supports Calico as well. It also has extensive documentation and examples, so be sure to [check it out][frontroute]!
+[frontroute] is a full-featured routing library, that was originally developed for Laminar and now supports **Calico** as well. It also has extensive documentation and examples, so be sure to [check it out][frontroute]!
 
 @:@
 
