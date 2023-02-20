@@ -113,7 +113,11 @@
       <main class="content">
 
         <h1 id="router" class="title">Router</h1>
-        <p><strong>Calico</strong> offers a router as an optional module. A router helps you build a single-page application composed of sub-pages with distinct URLs and support for session history (e.g., back/forward). It is implemented via the <a href="https://developer.mozilla.org/en-US/docs/Web/API/History">History</a> API.</p>
+        <div class="callout info">
+          <i class="icofont-laika">&#xef4e;</i>
+          <p><a href="https://frontroute.dev/v/0.17.x-calico/">frontroute</a> is a full-featured routing library, that was originally developed for Laminar and now supports <strong>Calico</strong> as well. It also has extensive documentation and examples, so be sure to <a href="https://frontroute.dev/v/0.17.x-calico/">check it out</a>!</p>
+        </div>
+        <p><strong>Calico</strong> offers a simple router as an optional module. A router helps you build a single-page application composed of sub-pages with distinct URLs and support for session history (e.g., back/forward). It is implemented via the <a href="https://developer.mozilla.org/en-US/docs/Web/API/History">History</a> API.</p>
         <pre class="keep-together pdf epub"><code class="nohighlight"><span class="identifier">libraryDependencies</span><span> += </span><span class="string-literal">&quot;com.armanbilge&quot;</span><span> %%% </span><span class="string-literal">&quot;calico-router&quot;</span><span> % </span><span class="string-literal">&quot;0.2.0-RC1&quot;</span></code></pre>
         <p><code>calico-router</code> is built only with Cats Effect, FS2-DOM, and http4s, and has no dependency on <code>calico</code> core, such that it is framework-agnostic. Integration with <strong>Calico</strong> is seamless.</p>
         <p>Special thanks to <a href="https://github.com/jberggg">@jberggg</a> whose <a href="https://github.com/jberggg/fs2-spa-router">fs2-spa-router</a> inspired this project.</p>
