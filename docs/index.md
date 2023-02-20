@@ -10,7 +10,7 @@ I am very grateful to [@SystemFw](https://github.com/SystemFw/) who gave me a tu
 
 ### Try it!
 
-With special thanks to [@yurique](https://github.com/yurique/), you can now try **Calico** right in your browser at [scribble.ninja](https://scribble.ninja/)!
+With special thanks to [@yurique], you can now try **Calico** right in your browser at [scribble.ninja](https://scribble.ninja/)!
 
 ```scala
 libraryDependencies += "com.armanbilge" %%% "calico" % "@PRERELEASE_VERSION@"
@@ -20,4 +20,7 @@ Please open issues (and PRs!) for anything and everything :)
 
 ### Integrations
 
+- The incredible [@yurique] has ported [frontroute](https://frontroute.dev/v/0.17.x-calico/) to Calico, including its extensive docs and demos!
 - [calico-smithy4s-demo](https://github.com/kubukoz/calico-smithy4s-demo/) showcases a fullstack app and integration with [smithy4s](https://github.com/disneystreaming/smithy4s/). Thank you [@kubukoz](https://github.com/kubukoz/)!
+
+[@yurique]: https://github.com/yurique/

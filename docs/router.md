@@ -1,6 +1,12 @@
 # Router
 
-**Calico** offers a router as an optional module. A router helps you build a single-page application composed of sub-pages with distinct URLs and support for session history (e.g., back/forward). It is implemented via the [History](https://developer.mozilla.org/en-US/docs/Web/API/History) API.
+@:callout(info)
+
+[frontroute] is a full-featured routing library, that was originally designed for Laminar and now supports Calico as well. It also has extensive documentation and examples, so be sure to [check it out][frontroute]!
+
+@:@
+
+**Calico** offers a simple router as an optional module. A router helps you build a single-page application composed of sub-pages with distinct URLs and support for session history (e.g., back/forward). It is implemented via the [History](https://developer.mozilla.org/en-US/docs/Web/API/History) API.
 
 ```scala
 libraryDependencies += "com.armanbilge" %%% "calico-router" % "@VERSION@"
@@ -107,3 +113,5 @@ val app: Resource[IO, HtmlDivElement[IO]] =
 
 app.renderInto(node.asInstanceOf[fs2.dom.Node[IO]]).useForever.unsafeRunAndForget()
 ```
+
+[frontroute]: https://frontroute.dev/v/0.17.x-calico/
