@@ -27,6 +27,7 @@ import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import fs2.concurrent.Signal
 import org.scalajs.dom
+import shapeless3.deriving.K0
 
 trait Modifier[F[_], E, A]:
   outer =>
@@ -37,6 +38,28 @@ trait Modifier[F[_], E, A]:
     (b: B, e: E) => outer.modify(f(b), e)
 
 object Modifier:
+  inline given forUnit[F[_], E]: Modifier[F, E, Unit] =
+    _forUnit.asInstanceOf[Modifier[F, E, Unit]]
+
+  private val _forUnit: Modifier[Id, Any, Unit] =
+    (_, _) => Resource.unit
+
+  given forTuple[F[_], E, M <: Tuple](
+      using inst: K0.ProductInstances[Modifier[F, E, _], M]
+  ): Modifier[F, E, M] = (m, e) =>
+    inst.foldLeft(m)(Resource.unit[F]) {
+      [a] => (r: Resource[F, Unit], m: Modifier[F, E, a], a: a) => r *> m.modify(a, e)
+    }
+
+  given forOption[F[_], E, A](using M: Modifier[F, E, A]): Modifier[F, E, Option[A]] =
+    (as, e) => as.foldMapM(M.modify(_, e)).void
+
+  given forList[F[_], E, A](using M: Modifier[F, E, A]): Modifier[F, E, List[A]] =
+    (as, e) => as.foldMapM(M.modify(_, e)).void
+
+  given forResource[F[_], E, A](using M: Modifier[F, E, A]): Modifier[F, E, Resource[F, A]] =
+    (a, e) => a.flatMap(M.modify(_, e))
+
   inline given [F[_], E]: Contravariant[Modifier[F, E, _]] =
     _contravariant.asInstanceOf[Contravariant[Modifier[F, E, _]]]
   private val _contravariant: Contravariant[Modifier[Id, Any, _]] = new:
@@ -62,11 +85,6 @@ object Modifier:
     }
 
 private trait Modifiers[F[_]](using F: Async[F]):
-  inline given forUnit[E]: Modifier[F, E, Unit] =
-    _forUnit.asInstanceOf[Modifier[F, E, Unit]]
-
-  private val _forUnit: Modifier[F, Any, Unit] =
-    (_, _) => Resource.unit
 
   inline given forString[E <: fs2.dom.Node[F]]: Modifier[F, E, String] =
     _forString.asInstanceOf[Modifier[F, E, String]]
@@ -99,20 +117,18 @@ private trait Modifiers[F[_]](using F: Async[F]):
   private val _forStringOptionSignal: Modifier[F, dom.Node, Signal[F, Option[String]]] =
     _forStringSignal.contramap(_.map(_.getOrElse("")))
 
-  given forResource[E <: fs2.dom.Node[F], A](
-      using M: Modifier[F, E, A]): Modifier[F, E, Resource[F, A]] =
-    (a, e) => a.flatMap(M.modify(_, e))
+  inline given forNode[N <: fs2.dom.Node[F], N2 <: fs2.dom.Node[F]]: Modifier[F, N, N2] =
+    _forNode.asInstanceOf[Modifier[F, N, N2]]
 
-  given forFoldable[E <: fs2.dom.Node[F], G[_]: Foldable, A](
-      using M: Modifier[F, E, A]): Modifier[F, E, G[A]] =
-    (ga, e) => ga.foldMapM(M.modify(_, e)).void
+  private val _forNode: Modifier[F, dom.Node, dom.Node] = (n2, n) =>
+    Resource.eval(F.delay(n.appendChild(n2)))
 
-  inline given forNode[N <: fs2.dom.Node[F], N2 <: fs2.dom.Node[F]]
+  inline given forNodeResource[N <: fs2.dom.Node[F], N2 <: fs2.dom.Node[F]]
       : Modifier[F, N, Resource[F, N2]] =
-    _forNode.asInstanceOf[Modifier[F, N, Resource[F, N2]]]
+    _forNodeResource.asInstanceOf[Modifier[F, N, Resource[F, N2]]]
 
-  private val _forNode: Modifier[F, dom.Node, Resource[F, dom.Node]] = (n2, n) =>
-    n2.evalMap(n2 => F.delay(n.appendChild(n2)))
+  private val _forNodeResource: Modifier[F, dom.Node, Resource[F, dom.Node]] =
+    Modifier.forResource(using _forNode)
 
   inline given forNodeSignal[
       N <: fs2.dom.Node[F],
