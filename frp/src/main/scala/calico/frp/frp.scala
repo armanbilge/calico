@@ -58,6 +58,14 @@ given [F[_]: Concurrent]: Monad[Signal[F, _]] = new StackSafeMonad[Signal[F, _]]
     def get = siga.get.flatMap(f(_).get)
     def continuous = Stream.repeatEval(get)
     def discrete = siga.discrete.switchMap(f(_).discrete)
+    override def getAndDiscreteUpdates(using Concurrent[F]) =
+      getAndDiscreteUpdatesImpl
+    private def getAndDiscreteUpdatesImpl =
+      siga.getAndDiscreteUpdates.flatMap { (a, as) =>
+        f(a).getAndDiscreteUpdates.map { (b, bs) =>
+          (b, (Stream.emit(bs) ++ as.map(f(_).discrete)).switchMap(identity(_)))
+        }
+      }
 
   override def ap[A, B](ff: Signal[F, A => B])(fa: Signal[F, A]) =
     new:
@@ -66,8 +74,7 @@ given [F[_]: Concurrent]: Monad[Signal[F, _]] = new StackSafeMonad[Signal[F, _]]
       def continuous: Stream[F, B] = Stream.repeatEval(get)
       def get: F[B] = ff.get.ap(fa.get)
 
-      override def getAndDiscreteUpdates(
-          implicit ev: Concurrent[F]): Resource[F, (B, Stream[F, B])] =
+      override def getAndDiscreteUpdates(using Concurrent[F]): Resource[F, (B, Stream[F, B])] =
         getAndDiscreteUpdatesImpl
 
       private def getAndDiscreteUpdatesImpl =
