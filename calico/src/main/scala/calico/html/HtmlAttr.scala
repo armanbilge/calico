@@ -121,7 +121,8 @@ private trait HtmlAttrModifiers[F[_]](using F: Async[F]):
 
   inline given forOptionSignalResourceHtmlAttr[E <: fs2.dom.Element[F], V]
       : Modifier[F, E, OptionSignalResourceModifier[F, V]] =
-    _forOptionSignalResourceHtmlAttr.asInstanceOf[Modifier[F, E, OptionSignalResourceModifier[F, V]]]
+    _forOptionSignalResourceHtmlAttr
+      .asInstanceOf[Modifier[F, E, OptionSignalResourceModifier[F, V]]]
 
   private val _forOptionSignalResourceHtmlAttr =
     Modifier
