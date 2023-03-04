@@ -18,10 +18,10 @@ import fs2.dom.*
 import scala.concurrent.duration.*
 
 val app: Resource[IO, HtmlDivElement[IO]] =
-  Stream.fixedRate[IO](1.second).as(1).scanMonoid.holdOptionResource
+  Stream.fixedRate[IO](1.second).as(1).scanMonoid.map(_.toString).holdOptionResource
     .flatMap { tick =>
       div(
-        div("Tick #: ", tick.map(_.toString)),
+        div("Tick #: ", tick),
         div(
           "Random #: ",
           Random.scalaUtilRandom[IO].toResource.flatMap { random =>
