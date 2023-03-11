@@ -106,7 +106,7 @@ val app: Resource[IO, HtmlDivElement[IO]] =
       div(
         label("North input: "),
         input.withSelf { self =>
-          onInput --> (_.foreach(_ => self.value.get.flatMap(northSig.set)))
+          onInput **> self.value.get.flatMap(northSig.set)
         },
       ),
       br(()),
@@ -116,13 +116,11 @@ val app: Resource[IO, HtmlDivElement[IO]] =
             option(disabled := true, selected := true, "Select input"),
             option(value := "north", "North"),
             option(value := "south", "South"),
-            onChange --> (
-              _.foreach(_ => self.value.get.map {
-                case "north" => Some(Cardinal.North)
-                case "south" => Some(Cardinal.South)
-                case _ => None
-              }.flatMap(cardinalSig.set(_)))
-            )
+            onChange **> self.value.get.map {
+              case "north" => Some(Cardinal.North)
+              case "south" => Some(Cardinal.South)
+              case _ => None
+            }.flatMap(cardinalSig.set(_))
           )
         },
         " ",
@@ -137,7 +135,7 @@ val app: Resource[IO, HtmlDivElement[IO]] =
       div(
         label("South input: "),
         input.withSelf { self =>
-          onInput --> (_.foreach(_ => self.value.get.flatMap(southSig.set)))
+          onInput **> self.value.get.flatMap(southSig.set)
         },
       ),
     )

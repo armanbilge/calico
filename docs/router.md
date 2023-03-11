@@ -73,9 +73,7 @@ val app: Resource[IO, HtmlDivElement[IO]] =
               " ",
               button(
                 "+",
-                onClick --> {
-                  _.foreach(_ => n.get.map(i => countUri(i + 1)).flatMap(router.navigate))
-                }
+                onClick **> n.get.map(i => countUri(i + 1)).flatMap(router.navigate)
               )
             )
         }
@@ -92,7 +90,7 @@ val app: Resource[IO, HtmlDivElement[IO]] =
               li(
                 a(
                   href := "#",
-                  onClick --> (_.foreach(_ => router.navigate(helloUri(who)))),
+                  onClick **> router.navigate(helloUri(who)),
                   s"Hello, $who"
                 )
               )
@@ -100,7 +98,7 @@ val app: Resource[IO, HtmlDivElement[IO]] =
             li(
               a(
                 href := "#",
-                onClick --> (_.foreach(_ => router.navigate(countUri(0)))),
+                onClick **> router.navigate(countUri(0)),
                 "Let's count!"
               )
             )
