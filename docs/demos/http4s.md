@@ -34,7 +34,7 @@ val app: Resource[IO, HtmlDivElement[IO]] = (
 ).flatMapN { (repoInput, starsResult) =>
 
   val countStars: IO[Unit] =
-    starsResult.set("<i> counting ... </i>") *>
+    starsResult.set(" counting ... ") *>
       repoInput.value.get
         .flatMap { repo =>
           client.expect[Repo](s"https://api.github.com/repos/$repo").attempt
