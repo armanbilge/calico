@@ -48,7 +48,7 @@ val app: Resource[IO, HtmlDivElement[IO]] = (
     h3("How many stars?"),
     repoInput,
     button(
-      // switchMap cancels an on-going request if the button is clicked again
+      // switchMap cancels an ongoing request if the button is clicked again
       onClick --> (_.switchMap(_ => Stream.exec(countStars))),
       "Count"
     ),
