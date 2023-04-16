@@ -157,7 +157,7 @@
     </span><span class="identifier">h3</span><span>(</span><span class="string-literal">&quot;How many stars?&quot;</span><span>),
     </span><span class="identifier">repoInput</span><span>,
     </span><span class="identifier">button</span><span>(
-      </span><span class="comment">// switchMap cancels an on-going request if the button is clicked again
+      </span><span class="comment">// switchMap cancels an ongoing request if the button is clicked again
 </span><span>      </span><span class="identifier">onClick</span><span> --&gt; (</span><span class="identifier">_</span><span>.</span><span class="identifier">switchMap</span><span>(</span><span class="identifier">_</span><span> =&gt; </span><span class="type-name">Stream</span><span>.</span><span class="identifier">exec</span><span>(</span><span class="identifier">countStars</span><span>))),
       </span><span class="string-literal">&quot;Count&quot;</span><span>
     ),
