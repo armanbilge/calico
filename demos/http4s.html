@@ -143,7 +143,7 @@
 ).</span><span class="identifier">flatMapN</span><span> { (</span><span class="identifier">repoInput</span><span>, </span><span class="identifier">starsResult</span><span>) =&gt;
 
   </span><span class="keyword">val</span><span> </span><span class="identifier">countStars</span><span>: </span><span class="type-name">IO</span><span>[</span><span class="type-name">Unit</span><span>] =
-    </span><span class="identifier">starsResult</span><span>.</span><span class="identifier">set</span><span>(</span><span class="string-literal">&quot;&lt;i&gt; counting ... &lt;/i&gt;&quot;</span><span>) *&gt;
+    </span><span class="identifier">starsResult</span><span>.</span><span class="identifier">set</span><span>(</span><span class="string-literal">&quot; counting ... &quot;</span><span>) *&gt;
       </span><span class="identifier">repoInput</span><span>.</span><span class="identifier">value</span><span>.</span><span class="identifier">get</span><span>
         .</span><span class="identifier">flatMap</span><span> { </span><span class="identifier">repo</span><span> =&gt;
           </span><span class="identifier">client</span><span>.</span><span class="identifier">expect</span><span>[</span><span class="type-name">Repo</span><span>](</span><span class="string-literal">s&quot;https://api.github.com/repos/</span><span class="substitution">$repo</span><span class="string-literal">&quot;</span><span>).</span><span class="identifier">attempt</span><span>
