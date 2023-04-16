@@ -22,6 +22,7 @@ val CatsVersion = "2.9.0"
 val CatsEffectVersion = "3.5.0-RC3"
 val Fs2Version = "3.7.0-RC4"
 val Fs2DomVersion = "0.2.0-RC3"
+val Http4sDomVersion = "0.2.7"
 val MonocleVersion = "3.2.0"
 
 lazy val root =
@@ -133,7 +134,16 @@ lazy val unidocs = project
     ScalaUnidoc / unidoc / fullClasspath := (todoMvc / Compile / fullClasspath).value
   )
 
-lazy val jsdocs = project.dependsOn(calico, router).enablePlugins(ScalaJSPlugin)
+lazy val jsdocs = project
+  .settings(
+    libraryDependencies ++= Seq(
+      "org.http4s" %%% "http4s-dom" % Http4sDomVersion,
+      "org.http4s" %%% "http4s-circe" % "0.23.18"
+    )
+  )
+  .dependsOn(calico, router)
+  .enablePlugins(ScalaJSPlugin)
+
 lazy val docs = project
   .in(file("site"))
   .enablePlugins(TypelevelSitePlugin)
@@ -167,6 +177,7 @@ lazy val docs = project
           Root / "todomvc" / sourcemap
         )
     },
+    mdocVariables += ("HTTP4S_DOM_VERSION" -> Http4sDomVersion),
     mdocVariables += {
       val src = IO.readLines(
         (todoMvc / sourceDirectory).value / "main" / "scala" / "todomvc" / "TodoMvc.scala")
