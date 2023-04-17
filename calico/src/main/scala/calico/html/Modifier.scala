@@ -37,6 +37,28 @@ trait Modifier[F[_], E, A]:
   inline final def contramap[B](inline f: B => A): Modifier[F, E, B] =
     (b: B, e: E) => outer.modify(f(b), e)
 
+  extension (a: A)
+    inline final def toMod[E0 <: E]: Mod[F, E0] =
+      Mod(a)(using this.asInstanceOf[Modifier[F, E0, A]])
+
+/**
+ * A reified modifier
+ */
+trait Mod[F[_], E]:
+  protected type M
+  protected def mod: M
+  protected def modifier: Modifier[F, E, M]
+
+object Mod:
+  def apply[F[_], E, A](a: A)(using Modifier[F, E, A]): Mod[F, E] =
+    new:
+      type M = A
+      def mod = a
+      def modifier = summon[Modifier[F, E, M]]
+
+  given [F[_], E, E0 <: E]: Modifier[F[_], E0, Mod[F, E]] = (m, e) =>
+    m.modifier.modify(m.mod, e)
+
 object Modifier:
   inline given forUnit[F[_], E]: Modifier[F, E, Unit] =
     _forUnit.asInstanceOf[Modifier[F, E, Unit]]
