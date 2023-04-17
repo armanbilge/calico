@@ -17,6 +17,7 @@
 package calico
 package syntax
 
+import calico.html.Modifier
 import cats.Functor
 import cats.data.State
 import cats.effect.kernel.Async
@@ -50,3 +51,7 @@ extension [F[_]](component: Resource[F, fs2.dom.Node[F]])
 extension [F[_], A](sigRef: SignallingRef[F, A])
   def zoom[B](lens: Lens[A, B])(using Functor[F]): SignallingRef[F, B] =
     SignallingRef.lens[F, A, B](sigRef)(lens.get(_), a => b => lens.replace(b)(a))
+
+extension [E](e: E)
+  inline def modify[F[_], A](a: A)(using m: Modifier[F, E, A]): Resource[F, Unit] =
+    m.modify(a, e)
