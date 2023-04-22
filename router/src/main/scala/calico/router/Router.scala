@@ -94,7 +94,7 @@ object Router:
 
         def teleport(uri: Uri) = for
           absUri <- mkAbsolute(uri)
-          _ <- history.pushState((), absUri.renderString)
+          _ <- history.replaceState((), absUri.renderString)
           _ <- gps.publish1(absUri)
         yield ()
 
