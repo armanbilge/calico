@@ -20,7 +20,7 @@ ThisBuild / tlJdkRelease := Some(8)
 
 val CatsVersion = "2.9.0"
 val CatsEffectVersion = "3.5.0-RC5"
-val Fs2Version = "3.7.0-RC4"
+val Fs2Version = "3.7.0-RC5"
 val Fs2DomVersion = "0.2.0-RC3"
 val Http4sDomVersion = "0.2.7"
 val MonocleVersion = "3.2.0"
