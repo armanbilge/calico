@@ -79,7 +79,7 @@ lazy val router = project
     tlVersionIntroduced := Map("3" -> "0.1.2"),
     libraryDependencies ++= Seq(
       "com.armanbilge" %%% "fs2-dom" % Fs2DomVersion,
-      "org.http4s" %%% "http4s-core" % "0.23.18"
+      "org.http4s" %%% "http4s-core" % "0.23.19"
     )
   )
 
