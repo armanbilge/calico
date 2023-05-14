@@ -9,7 +9,6 @@ import calico.syntax.*
 import calico.unsafe.given
 import cats.effect.*
 import cats.effect.std.Random
-import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import fs2.*
 import fs2.concurrent.*
@@ -44,7 +43,6 @@ import calico.html.io.{*, given}
 import calico.syntax.*
 import calico.unsafe.given
 import cats.effect.*
-import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import fs2.*
 import fs2.concurrent.*
@@ -75,7 +73,6 @@ import calico.syntax.*
 import calico.unsafe.given
 import cats.data.*
 import cats.effect.*
-import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import fs2.*
 import fs2.concurrent.*
