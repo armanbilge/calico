@@ -145,7 +145,7 @@
         <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">override</span><span> </span><span class="keyword">def</span><span> </span><span class="declaration-name">rootElementId</span><span> = </span><span class="string-literal">&quot;somewhere-over-the-rainbow&quot;</span></code></pre>
         <p><code>IOWebApp</code> also provides a <code>window: fs2.dom.Window[IO]</code> to access various Web APIs.</p>
         <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">def</span><span> </span><span class="declaration-name">render</span><span> =
-  </span><span class="type-name">Resource</span><span>.</span><span class="identifier">eval</span><span>(</span><span class="identifier">window</span><span>.</span><span class="identifier">location</span><span>.</span><span class="identifier">href</span><span>.</span><span class="identifier">get</span><span>).</span><span class="identifier">flatMap</span><span> { </span><span class="identifier">location</span><span> =&gt;
+  </span><span class="identifier">window</span><span>.</span><span class="identifier">location</span><span>.</span><span class="identifier">href</span><span>.</span><span class="identifier">get</span><span>.</span><span class="identifier">toResource</span><span>.</span><span class="identifier">flatMap</span><span> { </span><span class="identifier">location</span><span> =&gt;
     </span><span class="identifier">div</span><span>(</span><span class="string-literal">s&quot;Welcome to </span><span class="substitution">$location</span><span class="string-literal">&quot;</span><span>)
   }</span></code></pre>
         <p><script type="text/javascript" src="iowebapp.md.js" defer></script>

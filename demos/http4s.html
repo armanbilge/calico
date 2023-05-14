@@ -149,7 +149,7 @@
 
 </span><span class="keyword">val</span><span> </span><span class="identifier">app</span><span>: </span><span class="type-name">Resource</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">HtmlDivElement</span><span>[</span><span class="type-name">IO</span><span>]] = (
   </span><span class="identifier">input</span><span>(</span><span class="identifier">size</span><span> := </span><span class="number-literal">36</span><span>, </span><span class="identifier">typ</span><span> := </span><span class="string-literal">&quot;text&quot;</span><span>, </span><span class="identifier">value</span><span> := </span><span class="string-literal">&quot;armanbilge/calico&quot;</span><span>),
-  </span><span class="type-name">Resource</span><span>.</span><span class="identifier">eval</span><span>(</span><span class="type-name">SignallingRef</span><span>[</span><span class="type-name">IO</span><span>].</span><span class="identifier">of</span><span>(</span><span class="string-literal">&quot;&quot;</span><span>))
+  </span><span class="type-name">SignallingRef</span><span>[</span><span class="type-name">IO</span><span>].</span><span class="identifier">of</span><span>(</span><span class="string-literal">&quot;&quot;</span><span>).</span><span class="identifier">toResource</span><span>
 ).</span><span class="identifier">flatMapN</span><span> { (</span><span class="identifier">repoInput</span><span>, </span><span class="identifier">starsResult</span><span>) =&gt;
 
   </span><span class="keyword">val</span><span> </span><span class="identifier">countStars</span><span>: </span><span class="type-name">IO</span><span>[</span><span class="type-name">Unit</span><span>] =
