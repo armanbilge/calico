@@ -22,7 +22,8 @@ val CatsVersion = "2.9.0"
 val CatsEffectVersion = "3.5.0"
 val Fs2Version = "3.7.0"
 val Fs2DomVersion = "0.2.0"
-val Http4sDomVersion = "0.2.7"
+val Http4sVersion = "0.23.19"
+val Http4sDomVersion = "0.2.9"
 val MonocleVersion = "3.2.0"
 
 lazy val root =
@@ -79,7 +80,7 @@ lazy val router = project
     tlVersionIntroduced := Map("3" -> "0.1.2"),
     libraryDependencies ++= Seq(
       "com.armanbilge" %%% "fs2-dom" % Fs2DomVersion,
-      "org.http4s" %%% "http4s-core" % "0.23.19"
+      "org.http4s" %%% "http4s-core" % Http4sVersion
     )
   )
 
@@ -95,6 +96,7 @@ lazy val sandbox = project
         .withModuleSplitStyle(ModuleSplitStyle.SmallModulesFor(List("calico")))
     },
     libraryDependencies ++= Seq(
+      "org.http4s" %%% "http4s-dom" % Http4sDomVersion,
       "dev.optics" %%% "monocle-macro" % MonocleVersion
     )
   )
@@ -138,7 +140,7 @@ lazy val jsdocs = project
   .settings(
     libraryDependencies ++= Seq(
       "org.http4s" %%% "http4s-dom" % Http4sDomVersion,
-      "org.http4s" %%% "http4s-circe" % "0.23.18"
+      "org.http4s" %%% "http4s-circe" % Http4sVersion
     )
   )
   .dependsOn(calico, router)
