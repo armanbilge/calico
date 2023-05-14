@@ -39,7 +39,7 @@ override def rootElementId = "somewhere-over-the-rainbow"
 
 ```scala
 def render =
-  Resource.eval(window.location.href.get).flatMap { location =>
+  window.location.href.get.toResource.flatMap { location =>
     div(s"Welcome to $location")
   }
 ```

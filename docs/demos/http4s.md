@@ -30,7 +30,7 @@ val client = FetchClientBuilder[IO].create
 
 val app: Resource[IO, HtmlDivElement[IO]] = (
   input(size := 36, typ := "text", value := "armanbilge/calico"),
-  Resource.eval(SignallingRef[IO].of(""))
+  SignallingRef[IO].of("").toResource
 ).flatMapN { (repoInput, starsResult) =>
 
   val countStars: IO[Unit] =
