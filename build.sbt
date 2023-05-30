@@ -11,7 +11,7 @@ ThisBuild / tlCiReleaseBranches ++= Seq("series/0.1")
 ThisBuild / tlSitePublishBranch := Some("main")
 ThisBuild / tlSonatypeUseLegacyHost := false
 
-ThisBuild / crossScalaVersions := Seq("3.2.2")
+ThisBuild / crossScalaVersions := Seq("3.3.0")
 ThisBuild / scalacOptions ++= Seq("-new-syntax", "-indent", "-source:future")
 ThisBuild / scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.6.0"
 
