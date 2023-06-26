@@ -28,8 +28,6 @@ import fs2.concurrent.Topic
 import fs2.dom.Dom
 import fs2.dom.Window
 import org.http4s.Uri
-import org.scalajs.dom
-import org.scalajs.macrotaskexecutor.MacrotaskExecutor
 
 abstract class Router[F[_]] private ():
 

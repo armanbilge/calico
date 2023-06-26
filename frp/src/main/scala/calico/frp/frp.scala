@@ -19,11 +19,8 @@ package frp
 
 import cats.Monad
 import cats.StackSafeMonad
-import cats.data.OptionT
 import cats.effect.kernel.Concurrent
-import cats.effect.kernel.Resource
 import cats.syntax.all.*
-import fs2.Pull
 import fs2.Stream
 import fs2.concurrent.Signal
 
