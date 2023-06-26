@@ -149,6 +149,7 @@ lazy val docs = project
   .in(file("site"))
   .enablePlugins(TypelevelSitePlugin)
   .settings(
+    scalacOptions ~= (_.filterNot(_.startsWith("-Wunused"))),
     tlSiteApiPackage := Some("calico"),
     tlSiteIsTypelevelProject := Some(TypelevelProject.Affiliate),
     mdocJS := Some(jsdocs),
