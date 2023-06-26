@@ -25,7 +25,8 @@ import org.scalajs.dom
 
 import scala.annotation.unused
 
-final class HtmlTag[F[_], E] private[calico] (name: String, @unused void: Boolean)(using F: Async[F]):
+final class HtmlTag[F[_], E] private[calico] (name: String, @unused void: Boolean)(
+    using F: Async[F]):
 
   def apply[M](modifier: M)(using M: Modifier[F, E, M]): Resource[F, E] =
     build.toResource.flatTap(M.modify(modifier, _))
