@@ -137,6 +137,7 @@ lazy val unidocs = project
 
 lazy val jsdocs = project
   .settings(
+    scalacOptions ~= (_.filterNot(_.startsWith("-Wunused"))),
     libraryDependencies ++= Seq(
       "org.http4s" %%% "http4s-dom" % Http4sDomVersion,
       "org.http4s" %%% "http4s-circe" % Http4sVersion
@@ -149,7 +150,6 @@ lazy val docs = project
   .in(file("site"))
   .enablePlugins(TypelevelSitePlugin)
   .settings(
-    scalacOptions ~= (_.filterNot(_.startsWith("-Wunused"))),
     tlSiteApiPackage := Some("calico"),
     tlSiteIsTypelevelProject := Some(TypelevelProject.Affiliate),
     mdocJS := Some(jsdocs),
