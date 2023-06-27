@@ -19,7 +19,6 @@ package html
 
 import cats.effect.kernel.Concurrent
 import cats.effect.kernel.Resource
-import cats.effect.syntax.all.*
 import cats.syntax.all.*
 
 private abstract class DomHotswap[F[_], A]:

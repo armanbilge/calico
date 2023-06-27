@@ -22,11 +22,8 @@ import calico.frp.given
 import calico.html.io.*
 import calico.html.io.given
 import calico.router.*
-import calico.syntax.*
 import cats.data.*
 import cats.effect.*
-import cats.effect.std.*
-import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import fs2.concurrent.*
 import fs2.dom.*

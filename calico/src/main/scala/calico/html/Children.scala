@@ -17,7 +17,6 @@
 package calico
 package html
 
-import calico.syntax.*
 import cats.Hash
 import cats.effect.kernel.Async
 import cats.effect.kernel.Ref

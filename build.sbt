@@ -13,10 +13,8 @@ ThisBuild / tlSonatypeUseLegacyHost := false
 
 ThisBuild / crossScalaVersions := Seq("3.3.0")
 ThisBuild / scalacOptions ++= Seq("-new-syntax", "-indent", "-source:future")
-ThisBuild / scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.6.0"
 
 ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17"))
-ThisBuild / tlJdkRelease := Some(8)
 
 val CatsVersion = "2.9.0"
 val CatsEffectVersion = "3.5.1"
@@ -98,7 +96,8 @@ lazy val sandbox = project
     libraryDependencies ++= Seq(
       "org.http4s" %%% "http4s-dom" % Http4sDomVersion,
       "dev.optics" %%% "monocle-macro" % MonocleVersion
-    )
+    ),
+    scalacOptions ~= (_.filterNot(_.startsWith("-Wunused")))
   )
 
 lazy val todoMvc = project
@@ -138,6 +137,7 @@ lazy val unidocs = project
 
 lazy val jsdocs = project
   .settings(
+    scalacOptions ~= (_.filterNot(_.startsWith("-Wunused"))),
     libraryDependencies ++= Seq(
       "org.http4s" %%% "http4s-dom" % Http4sDomVersion,
       "org.http4s" %%% "http4s-circe" % Http4sVersion
@@ -151,31 +151,39 @@ lazy val docs = project
   .enablePlugins(TypelevelSitePlugin)
   .settings(
     tlSiteApiPackage := Some("calico"),
+    tlSiteIsTypelevelProject := Some(TypelevelProject.Affiliate),
     mdocJS := Some(jsdocs),
     laikaConfig ~= { _.withRawContent },
-    tlSiteHeliumConfig ~= {
+    tlSiteHelium ~= {
+      import laika.helium.config._
       // Actually, this *disables* auto-linking, to avoid duplicates with mdoc
-      _.site.autoLinkJS()
+      _.site
+        .autoLinkJS()
+        .site
+        .mainNavigation(appendLinks = Seq(
+          ThemeNavigationSection(
+            "Related Projects",
+            TextLink.external("https://typelevel.org/cats-effect/", "Cats Effect"),
+            TextLink.external("https://fs2.io/", "FS2"),
+            TextLink.external("https://github.com/armanbilge/fs2-dom/", "fs2-dom"),
+            TextLink.external("https://http4s.github.io/http4s-dom/", "http4s-dom")
+          )
+        ))
     },
-    tlSiteRelatedProjects ++= Seq(
-      TypelevelProject.CatsEffect,
-      TypelevelProject.Fs2,
-      "fs2-dom" -> url("https://github.com/armanbilge/fs2-dom/"),
-      "http4s-dom" -> url("https://http4s.github.io/http4s-dom/")
-    ),
     laikaInputs := {
       import laika.ast.Path.Root
+      import laika.io.model.FilePath
       val jsArtifact = (todoMvc / Compile / fullOptJS / artifactPath).value
       val sourcemap = jsArtifact.getName + ".map"
       laikaInputs
         .value
         .delegate
         .addFile(
-          jsArtifact,
+          FilePath.fromJavaFile(jsArtifact),
           Root / "todomvc" / "index.js"
         )
         .addFile(
-          jsArtifact.toPath.resolveSibling(sourcemap).toFile,
+          FilePath.fromNioPath(jsArtifact.toPath.resolveSibling(sourcemap)),
           Root / "todomvc" / sourcemap
         )
     },
