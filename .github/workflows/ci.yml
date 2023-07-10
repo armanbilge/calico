@@ -199,7 +199,7 @@ jobs:
       - name: Submit Dependencies
         uses: scalacenter/sbt-dependency-submission@v2
         with:
-          modules-ignore: todoMvc_sjs1_3 rootJS_3 docs_3 rootJVM_3 rootNative_3 sandbox_sjs1_3
+          modules-ignore: todomvc_sjs1_3 rootjs_3 docs_3 rootjvm_3 rootnative_3 sandbox_sjs1_3
           configs-ignore: test scala-tool scala-doc-tool test-internal
 
   validate-steward:
