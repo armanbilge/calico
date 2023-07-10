@@ -1,4 +1,4 @@
-val sbtTypelevelVersion = "0.5.0-RC6"
+val sbtTypelevelVersion = "0.5.0-RC7"
 addSbtPlugin("org.typelevel" % "sbt-typelevel" % sbtTypelevelVersion)
 addSbtPlugin("org.typelevel" % "sbt-typelevel-scalafix" % sbtTypelevelVersion)
 addSbtPlugin("org.typelevel" % "sbt-typelevel-site" % sbtTypelevelVersion)
