@@ -77,6 +77,8 @@ lazy val router = project
     name := "calico-router",
     tlVersionIntroduced := Map("3" -> "0.1.2"),
     libraryDependencies ++= Seq(
+      "org.typelevel" %%% "cats-core" % CatsVersion,
+      "org.typelevel" %%% "cats-effect" % CatsEffectVersion,
       "com.armanbilge" %%% "fs2-dom" % Fs2DomVersion,
       "org.http4s" %%% "http4s-core" % Http4sVersion
     )
