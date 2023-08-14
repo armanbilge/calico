@@ -16,7 +16,7 @@ ThisBuild / scalacOptions ++= Seq("-new-syntax", "-indent", "-source:future")
 
 ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17"))
 
-val CatsVersion = "2.9.0"
+val CatsVersion = "2.10.0"
 val CatsEffectVersion = "3.5.1"
 val Fs2Version = "3.8.0"
 val Fs2DomVersion = "0.2.1"
@@ -77,6 +77,8 @@ lazy val router = project
     name := "calico-router",
     tlVersionIntroduced := Map("3" -> "0.1.2"),
     libraryDependencies ++= Seq(
+      "org.typelevel" %%% "cats-core" % CatsVersion,
+      "org.typelevel" %%% "cats-effect" % CatsEffectVersion,
       "com.armanbilge" %%% "fs2-dom" % Fs2DomVersion,
       "org.http4s" %%% "http4s-core" % Http4sVersion
     )
