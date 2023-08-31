@@ -18,7 +18,7 @@ ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17"))
 
 val CatsVersion = "2.10.0"
 val CatsEffectVersion = "3.5.1"
-val Fs2Version = "3.9.0"
+val Fs2Version = "3.9.1"
 val Fs2DomVersion = "0.2.1"
 val Http4sVersion = "0.23.23"
 val Http4sDomVersion = "0.2.9"
