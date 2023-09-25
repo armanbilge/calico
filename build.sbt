@@ -158,19 +158,15 @@ lazy val docs = project
     laikaConfig ~= { _.withRawContent },
     tlSiteHelium ~= {
       import laika.helium.config._
-      // Actually, this *disables* auto-linking, to avoid duplicates with mdoc
-      _.site
-        .autoLinkJS()
-        .site
-        .mainNavigation(appendLinks = Seq(
-          ThemeNavigationSection(
-            "Related Projects",
-            TextLink.external("https://typelevel.org/cats-effect/", "Cats Effect"),
-            TextLink.external("https://fs2.io/", "FS2"),
-            TextLink.external("https://github.com/armanbilge/fs2-dom/", "fs2-dom"),
-            TextLink.external("https://http4s.github.io/http4s-dom/", "http4s-dom")
-          )
-        ))
+      _.site.mainNavigation(appendLinks = Seq(
+        ThemeNavigationSection(
+          "Related Projects",
+          TextLink.external("https://typelevel.org/cats-effect/", "Cats Effect"),
+          TextLink.external("https://fs2.io/", "FS2"),
+          TextLink.external("https://github.com/armanbilge/fs2-dom/", "fs2-dom"),
+          TextLink.external("https://http4s.github.io/http4s-dom/", "http4s-dom")
+        )
+      ))
     },
     laikaInputs := {
       import laika.ast.Path.Root
