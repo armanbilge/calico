@@ -56,7 +56,7 @@ lazy val calico = project
       "com.armanbilge" %%% "fs2-dom" % Fs2DomVersion,
       "org.typelevel" %%% "shapeless3-deriving" % "3.3.0",
       "dev.optics" %%% "monocle-core" % MonocleVersion,
-      "org.scala-js" %%% "scalajs-dom" % "2.7.0"
+      "org.scala-js" %%% "scalajs-dom" % "2.8.0"
     ),
     Compile / generateDomDefs := {
       import _root_.calico.html.codegen.DomDefsGenerator
