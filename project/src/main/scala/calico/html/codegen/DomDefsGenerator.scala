@@ -134,10 +134,10 @@ object DomDefsGenerator {
         keyKind = "HtmlAttr",
         implNameSuffix = "HtmlAttr",
         baseImplDefComments = List(
-          "Create HTML attribute (Note: for SVG attrs, use L.svg.svgAttr)",
+          "Create HTML attribute",
           "",
           "@param key   - name of the attribute, e.g. \"value\"",
-          "@param codec - used to encode V into String, e.g. StringAsIsCodec",
+          "@param encode - used to encode V into String",
           "",
           "@tparam V    - value type for this attr in Scala"
         ),
@@ -249,7 +249,7 @@ object DomDefsGenerator {
           "Create custom HTML element property",
           "",
           "@param key   - name of the prop in JS, e.g. \"value\"",
-          "@param codec - used to encode V into DomV, e.g. StringAsIsCodec,",
+          "@param encode - used to encode V into DomV",
           "",
           "@tparam V    - value type for this prop in Scala",
           "@tparam DomV - value type for this prop in the underlying JS DOM."

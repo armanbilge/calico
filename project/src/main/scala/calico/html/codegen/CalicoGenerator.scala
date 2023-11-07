@@ -86,11 +86,11 @@ private[codegen] class CalicoGenerator(srcManaged: File)
 
     val baseImplDef = if (tagType == HtmlTagType) {
       List(
-        s"@inline private[calico] def ${keyImplName}[$scalaJsElementTypeParam <: $baseScalaJsHtmlElementType](key: String, void: Boolean = false): HtmlTag[F, $scalaJsElementTypeParam] = HtmlTag[F, $scalaJsElementTypeParam](key, void)"
+        s"@inline def ${keyImplName}[$scalaJsElementTypeParam <: $baseScalaJsHtmlElementType](key: String, void: Boolean = false): HtmlTag[F, $scalaJsElementTypeParam] = HtmlTag[F, $scalaJsElementTypeParam](key, void)"
       )
     } else {
       List(
-        s"@inline private[calico] def ${keyImplName}[$scalaJsElementTypeParam <: $baseScalaJsSvgElementType](key: String): ${keyKind}[$scalaJsElementTypeParam] = ${keyKindConstructor(keyKind)}(key)"
+        s"@inline def ${keyImplName}[$scalaJsElementTypeParam <: $baseScalaJsSvgElementType](key: String): ${keyKind}[$scalaJsElementTypeParam] = ${keyKindConstructor(keyKind)}(key)"
       )
     }
 
@@ -147,11 +147,11 @@ private[codegen] class CalicoGenerator(srcManaged: File)
 
     val baseImplDef = if (tagType == SvgTagType) {
       List(
-        s"@inline private[calico] def ${baseImplName}[V](key: String, encode: V => String, namespace: Option[String]): ${keyKind}[V] = ${keyKindConstructor(keyKind)}(key, encode, namespace)"
+        s"@inline def ${baseImplName}[V](key: String, encode: V => String, namespace: Option[String]): ${keyKind}[V] = ${keyKindConstructor(keyKind)}(key, encode, namespace)"
       )
     } else {
       List(
-        s"@inline private[calico] def ${baseImplName}[V](key: String, encode: V => String): ${keyKind}[F, V] = ${keyKindConstructor(keyKind)}(key, encode)"
+        s"@inline def ${baseImplName}[V](key: String, encode: V => String): ${keyKind}[F, V] = ${keyKindConstructor(keyKind)}(key, encode)"
       )
     }
 
@@ -199,7 +199,7 @@ private[codegen] class CalicoGenerator(srcManaged: File)
     val (defs, defGroupComments) = defsAndGroupComments(defGroups, printDefGroupComments)
 
     val baseImplDef = List(
-      s"@inline private[calico] def ${baseImplName}[V, DomV](key: String, encode: V => DomV): ${keyKind}[F, V, DomV] = ${keyKindConstructor(keyKind)}(key, encode)"
+      s"@inline def ${baseImplName}[V, DomV](key: String, encode: V => DomV): ${keyKind}[F, V, DomV] = ${keyKindConstructor(keyKind)}(key, encode)"
     )
 
     val headerLines = List(
