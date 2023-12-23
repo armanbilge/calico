@@ -43,6 +43,7 @@ val app: Resource[IO, HtmlDivElement[IO]] = (
           case Right(Repo(stars)) => starsResult.set(s"$stars ★")
           case Left(_) => starsResult.set(s"Not found :(")
         }
+        .background // transfer fetch requests to background fibers to avoid blocking page rendering
 
   div(
     h3("How many stars?"),
