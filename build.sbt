@@ -14,7 +14,7 @@ ThisBuild / tlSonatypeUseLegacyHost := false
 ThisBuild / crossScalaVersions := Seq("3.3.1")
 ThisBuild / scalacOptions ++= Seq("-new-syntax", "-indent", "-source:future")
 
-ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17"))
+ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("21"))
 
 val CatsVersion = "2.10.0"
 val CatsEffectVersion = "3.5.2"
