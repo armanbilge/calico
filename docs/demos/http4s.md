@@ -43,7 +43,6 @@ val app: Resource[IO, HtmlDivElement[IO]] = (
           case Right(Repo(stars)) => starsResult.set(s"$stars ★")
           case Left(_) => starsResult.set(s"Not found :(")
         }
-        .background // transfer fetch requests to background fibers to avoid blocking page rendering
 
   div(
     h3("How many stars?"),
@@ -119,7 +118,7 @@ def previousPage(c: SignallingRef[IO, Boolean]): Resource[IO, HtmlElement[IO]] =
           case Right(Repo(name)) =>
             data.set(name) >> show.set(true)
           case Left(error) => IO(println(s"Error is ${error}"))
-        }).background
+        }).background // transfer fetch requests to background fibers to avoid blocking page rendering
 
       div(
         show
@@ -128,7 +127,8 @@ def previousPage(c: SignallingRef[IO, Boolean]): Resource[IO, HtmlElement[IO]] =
               case false => fetchData *> div("loading...")
               case true =>
                 div(
-                  div("get name:", data),
+                  styleAttr := "display: flex; flex-direction: row;",
+                  div("Get repo name: ", data, styleAttr := "margin-right: 1em;"),
                   button("next", onClick --> (_.foreach(_ => c.set(true))))
                 )
           )
