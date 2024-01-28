@@ -18,8 +18,7 @@ package calico
 
 import calico.syntax.*
 import calico.unsafe.given
-import cats.effect.IO
-import cats.effect.Resource
+import cats.effect.{IO, Resource}
 import fs2.dom.Window
 
 trait IOWebApp:
@@ -31,5 +30,14 @@ trait IOWebApp:
   def render: Resource[IO, fs2.dom.HtmlElement[IO]]
 
   def main(args: Array[String]): Unit =
-    val rootElement = window.document.getElementById(rootElementId).map(_.get)
-    rootElement.flatMap(render.renderInto(_).useForever).unsafeRunAndForget()
+    window
+      .document
+      .getElementById(rootElementId)
+      .flatMap {
+        case Some(element) => IO.pure(element)
+        case None =>
+          IO.raiseError(new NoSuchElementException(
+            s"Unable to mount Calico. Check if $rootElementId exists in the html"))
+      }
+      .flatMap(render.renderInto(_).useForever)
+      .unsafeRunAndForget()
