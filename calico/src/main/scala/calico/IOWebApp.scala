@@ -35,10 +35,9 @@ trait IOWebApp:
       .document
       .getElementById(rootElementId)
       .flatMap {
-        case Some(element) => IO.pure(element)
+        case Some(root) => render.renderInto(root).useForever
         case None =>
           IO.raiseError(new NoSuchElementException(
             s"Unable to mount ${getClass.getSimpleName.init} into element with id \"$rootElementId\", does it exist in the HTML?"))
       }
-      .flatMap(render.renderInto(_).useForever)
       .unsafeRunAndForget()
