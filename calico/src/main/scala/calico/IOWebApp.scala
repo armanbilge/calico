@@ -18,7 +18,8 @@ package calico
 
 import calico.syntax.*
 import calico.unsafe.given
-import cats.effect.{IO, Resource}
+import cats.effect.IO
+import cats.effect.Resource
 import fs2.dom.Window
 
 trait IOWebApp:
