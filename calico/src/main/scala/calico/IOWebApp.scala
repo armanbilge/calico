@@ -38,7 +38,7 @@ trait IOWebApp:
         case Some(element) => IO.pure(element)
         case None =>
           IO.raiseError(new NoSuchElementException(
-            s"Unable to mount Calico. Check if $rootElementId exists in html"))
+            s"Unable to mount ${getClass.getSimpleName.init} into element with id \"$rootElementId\", does it exist in the HTML?"))
       }
       .flatMap(render.renderInto(_).useForever)
       .unsafeRunAndForget()
