@@ -40,7 +40,8 @@ extension [E](e: E)
 
 extension [F[_]](component: Resource[F, Node[F]])
   def mountInto(rootNode: F[Node[F]])(using Monad[F], Dom[F]): Resource[F, Unit] = {
-    Resource.eval(rootNode)
-      .flatMap(root => component
-        .flatMap(e => Resource.make(root.appendChild(e))(_ => root.removeChild(e))))
+    Resource
+      .eval(rootNode)
+      .flatMap(root =>
+        component.flatMap(e => Resource.make(root.appendChild(e))(_ => root.removeChild(e))))
   }
