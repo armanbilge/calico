@@ -19,12 +19,12 @@ package syntax
 
 import calico.html.Modifier
 import cats.Functor
+import cats.Monad
 import cats.effect.kernel.Resource
 import fs2.concurrent.SignallingRef
 import fs2.dom.Dom
-import monocle.Lens
 import fs2.dom.Element
-import cats.Monad
+import monocle.Lens
 
 extension [F[_]](component: Resource[F, fs2.dom.Node[F]])
   def renderInto(root: fs2.dom.Node[F])(using Functor[F], Dom[F]): Resource[F, Unit] =
