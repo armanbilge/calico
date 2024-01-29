@@ -23,6 +23,8 @@ import cats.effect.kernel.Resource
 import fs2.concurrent.SignallingRef
 import fs2.dom.Dom
 import monocle.Lens
+import fs2.dom.Element
+import cats.Monad
 
 extension [F[_]](component: Resource[F, fs2.dom.Node[F]])
   def renderInto(root: fs2.dom.Node[F])(using Functor[F], Dom[F]): Resource[F, Unit] =
@@ -35,3 +37,11 @@ extension [F[_], A](sigRef: SignallingRef[F, A])
 extension [E](e: E)
   inline def modify[F[_], A](a: A)(using m: Modifier[F, E, A]): Resource[F, Unit] =
     m.modify(a, e)
+
+extension [F[_]](component: Resource[F, Element[F]])
+  def mountInto(rootElement: F[Element[F]])(using Monad[F], Dom[F]): Resource[F, Element[F]] = {
+    for {
+      root <- Resource.eval(rootElement)
+      _ <- component.flatMap(e => Resource.make(root.appendChild(e))(_ => root.removeChild(e)))
+    } yield root
+  }
