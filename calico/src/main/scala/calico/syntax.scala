@@ -20,10 +20,10 @@ package syntax
 import calico.html.Modifier
 import cats.Functor
 import cats.Monad
-import cats.effect.kernel.Resource
+import cats.effect.Resource
 import fs2.concurrent.SignallingRef
 import fs2.dom.Dom
-import fs2.dom.Element
+import fs2.dom.Node
 import monocle.Lens
 
 extension [F[_]](component: Resource[F, fs2.dom.Node[F]])
@@ -38,10 +38,9 @@ extension [E](e: E)
   inline def modify[F[_], A](a: A)(using m: Modifier[F, E, A]): Resource[F, Unit] =
     m.modify(a, e)
 
-extension [F[_]](component: Resource[F, Element[F]])
-  def mountInto(rootElement: F[Element[F]])(using Monad[F], Dom[F]): Resource[F, Element[F]] = {
-    for {
-      root <- Resource.eval(rootElement)
-      _ <- component.flatMap(e => Resource.make(root.appendChild(e))(_ => root.removeChild(e)))
-    } yield root
+extension [F[_]](component: Resource[F, Node[F]])
+  def mountInto(rootNode: F[Node[F]])(using Monad[F], Dom[F]): Resource[F, Unit] = {
+    Resource.eval(rootNode)
+      .flatMap(root => component
+        .flatMap(e => Resource.make(root.appendChild(e))(_ => root.removeChild(e))))
   }
