@@ -87,7 +87,7 @@ object TodoMvc extends IOWebApp:
           val editing = Option.when(e)("editing")
           completed.toList ++ editing.toList
         },
-        onDblClick --> (_.foreach(_ => editing.set(true))),
+        onDblClick **> editing.set(true),
         children <-- editing.map {
           case true =>
             List(
@@ -102,7 +102,7 @@ object TodoMvc extends IOWebApp:
                   onKeyDown --> {
                     _.filter(_.key == KeyValue.Enter).foreach(_ => endEdit)
                   },
-                  onBlur --> (_.foreach(_ => endEdit))
+                  onBlur **> endEdit
                 )
               }
             )
@@ -113,17 +113,13 @@ object TodoMvc extends IOWebApp:
                   cls := "toggle",
                   typ := "checkbox",
                   checked <-- todo.map(_.fold(false)(_.completed)),
-                  onInput --> {
-                    _.foreach { _ =>
-                      self.checked.get.flatMap { checked =>
-                        todo.update(_.map(_.copy(completed = checked)))
-                      }
-                    }
+                  onInput **> self.checked.get.flatMap { checked =>
+                    todo.update(_.map(_.copy(completed = checked)))
                   }
                 )
               },
               label(todo.map(_.map(_.text))),
-              button(cls := "destroy", onClick --> (_.foreach(_ => todo.set(None))))
+              button(cls := "destroy", onClick **> todo.set(None))
             )
         }
       )
@@ -152,7 +148,7 @@ object TodoMvc extends IOWebApp:
             li(
               a(
                 cls <-- filter.map(_ == f).map(Option.when(_)("selected").toList),
-                onClick --> (_.foreach(_ => router.navigate(Uri(fragment = f.fragment.some)))),
+                onClick **> router.navigate(Uri(fragment = f.fragment.some)),
                 f.toString
               )
             )
