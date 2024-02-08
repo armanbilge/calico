@@ -37,7 +37,7 @@ Add the following to your `build.sbt`:
 jsEnv := new PWEnv(
         browserName = "chrome",
         headless = true,
-        showLogs = true
+        showLogs = false
     )
 ```
 Add the following to your `plugins.sbt`:
@@ -123,7 +123,7 @@ class BasicSuite extends CatsEffectSuite {
 }
 
 ```
-The test case `renders empty elements` is designed to verify that the application correctly renders empty HTML elements. 
+The test case *`(renders empty elements)`* is designed to verify that the application correctly renders empty HTML elements. 
 It does this by creating empty div and span elements, rendering them into the mainApp fixture, 
 and then checking that the rendered elements match the expected output.  
 
@@ -141,3 +141,80 @@ This effect creates an expected div element using `document.createElement("div")
 using `dom.document.querySelector("#app > div")`, and then asserts that the actual element is not null and that its outer HTML matches the expected element's outer HTML.  
 The same steps are repeated for an empty span element.  
 This test case ensures that the application can correctly render empty div and span elements, and that the rendered elements are correctly added to the DOM.
+
+## Writing test cases with scala-test
+In Calico, every component is represented as `Resource[IO, HtmlElement[IO]]`. Scalatest requires `cats-effect-testing` to run test cases based on cats-effects.
+Basic test cases can be written as follows:
+
+```scala
+package basic
+
+import calico.*
+import calico.html.io.*
+import calico.html.io.given
+import cats.Monad
+import cats.effect.IO
+import cats.effect.Resource
+import cats.effect.testing.scalatest.AsyncIOSpec
+import fs2.dom.Dom
+import fs2.dom.Element
+import fs2.dom.Node
+import fs2.dom.Window
+import org.scalajs.dom
+import org.scalajs.dom.document
+import org.scalatest.funsuite.AsyncFunSuite
+import org.scalatest.matchers.should.Matchers.equal
+import org.scalatest.matchers.should.Matchers.should
+
+class BasicSpec extends AsyncFunSuite with AsyncIOSpec {
+  // Prepare the DOM
+  val appDiv: dom.Element = document.createElement("div")
+  appDiv.id = "app"
+  document.body.appendChild(appDiv)
+
+  val rootElementId: String = "app"
+  val window: Window[IO] = Window[IO]
+  val rootElement: IO[Node[IO]] = window.document.getElementById(rootElementId).map(_.get)
+  def mainApp() = rootElement
+  extension [F[_]](componentUnderTest: Resource[F, Node[F]])
+    /**
+     * Combines the component under test with a root element 
+     * and mounts the component into the root element.
+     */
+    def mountInto(rootElement: F[Node[F]])(using Monad[F], Dom[F]): Resource[F, Unit] = {
+      Resource
+        .eval(rootElement)
+        .flatMap(root =>
+          componentUnderTest.flatMap(e =>
+            Resource.make(root.appendChild(e))(_ => root.removeChild(e))))
+    }
+
+  test("renders empty elements") {
+    val empty_div: Resource[IO, Element[IO]] = div("")
+    empty_div.mountInto(mainApp()).surround {
+      IO {
+        val expectedEl = document.createElement("div")
+        val actual = dom.document.querySelector("#app > div")
+        assert(actual != null, "querySelector returned null. Check if the query is correct")
+        actual.outerHTML should equal(expectedEl.outerHTML)
+      }
+    }
+  }
+}
+```
+The test case *`(renders empty elements)`* is designed to verify that the application correctly renders empty HTML elements.
+It does this by creating empty div element, rendering them into the mainApp(), `mainApp()` is an alias for `rootElement`
+and then checking that the rendered elements match the expected output.
+
+### Here's a step-by-step breakdown:
+An empty div element is created using `div("")`.
+
+1. This is a `Resource[IO, Element[IO]]`, which means it's a resource that can be used and then cleaned up after use.
+
+2. The div element is rendered into the mainApp()  fixture using `empty_div.mountInto(mainApp())`.
+   The `surround` method is then called to execute testing code before and after the resource is used.
+
+3. Inside the `surround` block, an IO effect is created.
+   This effect creates an expected div element using `document.createElement("div")`, fetches the actual rendered element from the DOM
+   using `dom.document.querySelector("#app > div")`, and then asserts that the actual element is not null and that its outer HTML matches the expected element's outer HTML.  
+   This test case ensures that the application can correctly render empty div element, and that the rendered elements are correctly added to the DOM.
