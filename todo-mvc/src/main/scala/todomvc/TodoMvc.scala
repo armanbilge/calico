@@ -117,11 +117,8 @@ object TodoMvc extends IOWebApp:
                     }
                   },
                   onBlur --> (_.foreach(_ => {
-                    editing
-                      .get
-                      .flatMap(
-                        IO.whenA(_)(endEdit)
-                      ) // do not endEdit when blur is triggered after Escape
+                    // do not endEdit when blur is triggered after Escape
+                    editing.get.ifM(endEdit, IO.unit)
                   }))
                 )
               }
