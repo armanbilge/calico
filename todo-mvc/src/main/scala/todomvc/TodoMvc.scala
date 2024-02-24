@@ -26,8 +26,8 @@ import cats.syntax.all.*
 import fs2.concurrent.*
 import fs2.dom.*
 import io.circe
-import io.circe.Decoder.Result
 import io.circe.*
+import io.circe.Decoder.Result
 import io.circe.syntax.*
 import org.http4s.*
 import org.scalajs.dom.KeyValue
@@ -103,7 +103,7 @@ object TodoMvc extends IOWebApp:
                   todo.update(t =>
                     text match {
                       case "" => None
-                      case _ => t.map(_.copy(text = text.trim))
+                      case _ => t.map(_.copy(text = text))
                     })
                 } *> editing.set(false)
                 (
@@ -160,10 +160,13 @@ object TodoMvc extends IOWebApp:
       span(
         cls := "todo-count",
         strong(store.activeCount.map(_.toString)),
-        store.activeCount.map {
-          case 1 => " item left"
-          case n => " items left"
-        }
+        store
+          .activeCount
+          .map {
+            case 1 => " item left"
+            case n => " items left"
+          }
+          .changes
       ),
       ul(
         cls := "filters",
@@ -192,7 +195,7 @@ object TodoMvc extends IOWebApp:
 
 class TodoStore(entries: SignallingSortedMapRef[IO, Long, Todo], nextId: IO[Long]):
   def toggleAll(completed: Boolean): IO[Unit] =
-    entries.update(_.map((id, todo) => (id, todo.copy(completed = completed))))
+    entries.update(sm => SortedMap.from(sm.view.mapValues(_.copy(completed = completed))))
 
   def allCompleted: Signal[IO, Boolean] = entries.map(_.values.forall(_.completed))
 
@@ -244,20 +247,25 @@ object TodoStore:
       _ <- Resource.eval {
         OptionT(window.localStorage.getItem(key))
           .subflatMap(circe.jawn.decode[List[(Long, Todo)]](_).toOption.map(SortedMap.from))
-          .foreachF(mapRef.set(_))
+          .foreachF(mapRef.set)
       }
 
-//      _ <- window
-//        .localStorage
-//        .events(window)
-//        .foreach {
-//          case Storage.Event.Updated(`key`, _, value, _) =>
-//            jawn.decode[SortedMap[Long, Todo]](value).foldMapM(mapRef.set(_))
-//          case _ => IO.unit
-//        }
-//        .compile
-//        .drain
-//        .background
+      _ <- window
+        .localStorage
+        .events(window)
+        .foreach {
+          case Storage.Event.Updated(`key`, _, value, _) =>
+            circe
+              .jawn
+              .decode[List[(Long, Todo)]](value)
+              .toOption
+              .map(SortedMap.from)
+              .foldMapM(mapRef.set)
+          case _ => IO.unit
+        }
+        .compile
+        .drain
+        .background
 
       _ <- mapRef
         .discrete
