@@ -157,13 +157,10 @@ object TodoMvc extends IOWebApp:
       span(
         cls := "todo-count",
         strong(store.activeCount.map(_.toString)),
-        store
-          .activeCount
-          .map {
-            case 1 => " item left"
-            case n => " items left"
-          }
-          .changes
+        store.activeCount.map {
+          case 1 => " item left"
+          case n => " items left"
+        }
       ),
       ul(
         cls := "filters",
@@ -194,9 +191,9 @@ class TodoStore(entries: SignallingSortedMapRef[IO, Long, Todo], nextId: IO[Long
   def toggleAll(completed: Boolean): IO[Unit] =
     entries.update(sm => SortedMap.from(sm.view.mapValues(_.copy(completed = completed))))
 
-  def allCompleted: Signal[IO, Boolean] = entries.map(_.values.forall(_.completed))
+  def allCompleted: Signal[IO, Boolean] = entries.map(_.values.forall(_.completed)).changes
 
-  def hasCompleted: Signal[IO, Boolean] = entries.map(_.values.exists(_.completed))
+  def hasCompleted: Signal[IO, Boolean] = entries.map(_.values.exists(_.completed)).changes
 
   def clearCompleted: IO[Unit] = entries.update(_.filterNot((_, todo) => todo.completed))
 
@@ -208,9 +205,9 @@ class TodoStore(entries: SignallingSortedMapRef[IO, Long, Todo], nextId: IO[Long
   def ids(filter: Filter): Signal[IO, List[Long]] =
     entries.map(_.filter((_, t) => filter.pred(t)).keySet.toList)
 
-  def size: Signal[IO, Int] = entries.map(_.size)
+  def size: Signal[IO, Int] = entries.map(_.size).changes
 
-  def activeCount: Signal[IO, Int] = entries.map(_.values.count(!_.completed))
+  def activeCount: Signal[IO, Int] = entries.map(_.values.count(!_.completed)).changes
 
 object TodoStore:
 
