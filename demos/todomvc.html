@@ -137,18 +137,17 @@
         <pre><code class="nohighlight"><span class="keyword">package</span><span> </span><span class="identifier">todomvc</span><span>
 
 </span><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.*
-</span><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.</span><span class="identifier">frp</span><span>.*
-</span><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.</span><span class="identifier">frp</span><span>.</span><span class="keyword">given</span><span>
-</span><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.</span><span class="identifier">html</span><span>.</span><span class="identifier">io</span><span>.*
-</span><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.</span><span class="identifier">html</span><span>.</span><span class="identifier">io</span><span>.</span><span class="keyword">given</span><span>
+</span><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.</span><span class="identifier">frp</span><span>.{*, </span><span class="keyword">given</span><span>}
+</span><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.</span><span class="identifier">html</span><span>.</span><span class="identifier">io</span><span>.{*, </span><span class="keyword">given</span><span>}
 </span><span class="keyword">import</span><span> </span><span class="identifier">calico</span><span>.</span><span class="identifier">router</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">data</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">syntax</span><span>.</span><span class="identifier">all</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">fs2</span><span>.</span><span class="identifier">concurrent</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">fs2</span><span>.</span><span class="identifier">dom</span><span>.*
-</span><span class="keyword">import</span><span> </span><span class="identifier">io</span><span>.</span><span class="identifier">circe</span><span>.</span><span class="type-name">Codec</span><span>
-</span><span class="keyword">import</span><span> </span><span class="identifier">io</span><span>.</span><span class="identifier">circe</span><span>.</span><span class="identifier">jawn</span><span>
+</span><span class="keyword">import</span><span> </span><span class="identifier">io</span><span>.</span><span class="identifier">circe</span><span>
+</span><span class="keyword">import</span><span> </span><span class="identifier">io</span><span>.</span><span class="identifier">circe</span><span>.</span><span class="type-name">Decoder</span><span>.</span><span class="type-name">Result</span><span>
+</span><span class="keyword">import</span><span> </span><span class="identifier">io</span><span>.</span><span class="identifier">circe</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">io</span><span>.</span><span class="identifier">circe</span><span>.</span><span class="identifier">syntax</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">org</span><span>.</span><span class="identifier">http4s</span><span>.*
 </span><span class="keyword">import</span><span> </span><span class="identifier">org</span><span>.</span><span class="identifier">scalajs</span><span>.</span><span class="identifier">dom</span><span>.</span><span class="type-name">KeyValue</span><span>
@@ -166,9 +165,17 @@
       } { </span><span class="identifier">filter</span><span> =&gt;
         </span><span class="identifier">div</span><span>(
           </span><span class="identifier">cls</span><span> := </span><span class="string-literal">&quot;todoapp&quot;</span><span>,
-          </span><span class="identifier">div</span><span>(</span><span class="identifier">cls</span><span> := </span><span class="string-literal">&quot;header&quot;</span><span>, </span><span class="identifier">h1</span><span>(</span><span class="string-literal">&quot;todos&quot;</span><span>), </span><span class="type-name">TodoInput</span><span>(</span><span class="identifier">store</span><span>)),
-          </span><span class="identifier">div</span><span>(
+          </span><span class="identifier">headerTag</span><span>(</span><span class="identifier">cls</span><span> := </span><span class="string-literal">&quot;header&quot;</span><span>, </span><span class="identifier">h1</span><span>(</span><span class="string-literal">&quot;todos&quot;</span><span>), </span><span class="type-name">TodoInput</span><span>(</span><span class="identifier">store</span><span>)),
+          </span><span class="identifier">sectionTag</span><span>(
             </span><span class="identifier">cls</span><span> := </span><span class="string-literal">&quot;main&quot;</span><span>,
+            </span><span class="identifier">input</span><span>.</span><span class="identifier">withSelf</span><span>(</span><span class="identifier">self</span><span> =&gt;
+              (
+                </span><span class="identifier">idAttr</span><span> := </span><span class="string-literal">&quot;toggle-all&quot;</span><span>,
+                </span><span class="identifier">cls</span><span> := </span><span class="string-literal">&quot;toggle-all&quot;</span><span>,
+                </span><span class="identifier">typ</span><span> := </span><span class="string-literal">&quot;checkbox&quot;</span><span>,
+                </span><span class="identifier">checked</span><span> &lt;-- </span><span class="identifier">store</span><span>.</span><span class="identifier">allCompleted</span><span>,
+                </span><span class="identifier">onInput</span><span> --&gt; { </span><span class="identifier">_</span><span>.</span><span class="identifier">foreach</span><span>(</span><span class="identifier">_</span><span> =&gt; </span><span class="identifier">self</span><span>.</span><span class="identifier">checked</span><span>.</span><span class="identifier">get</span><span>.</span><span class="identifier">flatMap</span><span>(</span><span class="identifier">store</span><span>.</span><span class="identifier">toggleAll</span><span>)) })),
+            </span><span class="identifier">label</span><span>(</span><span class="identifier">forId</span><span> := </span><span class="string-literal">&quot;toggle-all&quot;</span><span>, </span><span class="string-literal">&quot;Mark all as complete&quot;</span><span>),
             </span><span class="identifier">ul</span><span>(
               </span><span class="identifier">cls</span><span> := </span><span class="string-literal">&quot;todo-list&quot;</span><span>,
               </span><span class="identifier">children</span><span>[</span><span class="type-name">Long</span><span>](</span><span class="identifier">id</span><span> =&gt; </span><span class="type-name">TodoItem</span><span>(</span><span class="identifier">store</span><span>.</span><span class="identifier">entry</span><span>(</span><span class="identifier">id</span><span>))) &lt;-- </span><span class="identifier">filter</span><span>.</span><span class="identifier">flatMap</span><span>(</span><span class="identifier">store</span><span>.</span><span class="identifier">ids</span><span>(</span><span class="identifier">_</span><span>))
@@ -178,7 +185,7 @@
             .</span><span class="identifier">size</span><span>
             .</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span> &gt; </span><span class="number-literal">0</span><span>)
             .</span><span class="identifier">changes</span><span>
-            .</span><span class="identifier">map</span><span>(</span><span class="keyword">if</span><span> </span><span class="identifier">_</span><span> </span><span class="keyword">then</span><span> </span><span class="type-name">StatusBar</span><span>(</span><span class="identifier">store</span><span>.</span><span class="identifier">activeCount</span><span>, </span><span class="identifier">filter</span><span>, </span><span class="identifier">router</span><span>).</span><span class="identifier">some</span><span> </span><span class="keyword">else</span><span> </span><span class="type-name">None</span><span>)
+            .</span><span class="identifier">map</span><span>(</span><span class="keyword">if</span><span> </span><span class="identifier">_</span><span> </span><span class="keyword">then</span><span> </span><span class="type-name">StatusBar</span><span>(</span><span class="identifier">store</span><span>, </span><span class="identifier">filter</span><span>, </span><span class="identifier">router</span><span>).</span><span class="identifier">some</span><span> </span><span class="keyword">else</span><span> </span><span class="type-name">None</span><span>)
         )
       }
     }
@@ -212,22 +219,33 @@
           </span><span class="keyword">case</span><span> </span><span class="boolean-literal">true</span><span> =&gt;
             </span><span class="type-name">List</span><span>(
               </span><span class="identifier">input</span><span>.</span><span class="identifier">withSelf</span><span> { </span><span class="identifier">self</span><span> =&gt;
-                </span><span class="keyword">val</span><span> </span><span class="identifier">endEdit</span><span> = </span><span class="identifier">self</span><span>.</span><span class="identifier">value</span><span>.</span><span class="identifier">get</span><span>.</span><span class="identifier">flatMap</span><span> { </span><span class="identifier">text</span><span> =&gt;
-                  </span><span class="identifier">todo</span><span>.</span><span class="identifier">update</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">copy</span><span>(</span><span class="identifier">text</span><span> = </span><span class="identifier">text</span><span>))) *&gt; </span><span class="identifier">editing</span><span>.</span><span class="identifier">set</span><span>(</span><span class="boolean-literal">false</span><span>)
-                }
-
+                </span><span class="keyword">val</span><span> </span><span class="identifier">endEdit</span><span> = </span><span class="identifier">self</span><span>.</span><span class="identifier">value</span><span>.</span><span class="identifier">get</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">trim</span><span>).</span><span class="identifier">flatMap</span><span> { </span><span class="identifier">text</span><span> =&gt;
+                  </span><span class="identifier">todo</span><span>.</span><span class="identifier">update</span><span>(</span><span class="identifier">t</span><span> =&gt;
+                    </span><span class="identifier">text</span><span> </span><span class="keyword">match</span><span> {
+                      </span><span class="keyword">case</span><span> </span><span class="string-literal">&quot;&quot;</span><span> =&gt; </span><span class="type-name">None</span><span>
+                      </span><span class="keyword">case</span><span> </span><span class="identifier">_</span><span> =&gt; </span><span class="identifier">t</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">copy</span><span>(</span><span class="identifier">text</span><span> = </span><span class="identifier">text</span><span>))
+                    })
+                } *&gt; </span><span class="identifier">editing</span><span>.</span><span class="identifier">set</span><span>(</span><span class="boolean-literal">false</span><span>)
                 (
                   </span><span class="identifier">cls</span><span> := </span><span class="string-literal">&quot;edit&quot;</span><span>,
                   </span><span class="identifier">defaultValue</span><span> &lt;-- </span><span class="identifier">todo</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">foldMap</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">text</span><span>)),
                   </span><span class="identifier">onKeyDown</span><span> --&gt; {
-                    </span><span class="identifier">_</span><span>.</span><span class="identifier">filter</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">key</span><span> == </span><span class="type-name">KeyValue</span><span>.</span><span class="type-name">Enter</span><span>).</span><span class="identifier">foreach</span><span>(</span><span class="identifier">_</span><span> =&gt; </span><span class="identifier">endEdit</span><span>)
+                    </span><span class="identifier">_</span><span>.</span><span class="identifier">foreach</span><span> {
+                      </span><span class="keyword">case</span><span> </span><span class="identifier">e</span><span> </span><span class="keyword">if</span><span> </span><span class="identifier">e</span><span>.</span><span class="identifier">key</span><span> == </span><span class="type-name">KeyValue</span><span>.</span><span class="type-name">Enter</span><span> =&gt; </span><span class="identifier">endEdit</span><span>
+                      </span><span class="keyword">case</span><span> </span><span class="identifier">e</span><span> </span><span class="keyword">if</span><span> </span><span class="identifier">e</span><span>.</span><span class="identifier">key</span><span> == </span><span class="type-name">KeyValue</span><span>.</span><span class="type-name">Escape</span><span> =&gt; </span><span class="identifier">editing</span><span>.</span><span class="identifier">set</span><span>(</span><span class="boolean-literal">false</span><span>)
+                      </span><span class="keyword">case</span><span> </span><span class="identifier">_</span><span> =&gt; </span><span class="type-name">IO</span><span>.</span><span class="identifier">unit</span><span>
+                    }
                   },
-                  </span><span class="identifier">onBlur</span><span> --&gt; (</span><span class="identifier">_</span><span>.</span><span class="identifier">foreach</span><span>(</span><span class="identifier">_</span><span> =&gt; </span><span class="identifier">endEdit</span><span>))
+                  </span><span class="identifier">onBlur</span><span> --&gt; (</span><span class="identifier">_</span><span>.</span><span class="identifier">foreach</span><span>(</span><span class="identifier">_</span><span> =&gt; {
+                    </span><span class="comment">// do not endEdit when blur is triggered after Escape
+</span><span>                    </span><span class="identifier">editing</span><span>.</span><span class="identifier">get</span><span>.</span><span class="identifier">ifM</span><span>(</span><span class="identifier">endEdit</span><span>, </span><span class="type-name">IO</span><span>.</span><span class="identifier">unit</span><span>)
+                  }))
                 )
               }
             )
           </span><span class="keyword">case</span><span> </span><span class="boolean-literal">false</span><span> =&gt;
-            </span><span class="type-name">List</span><span>(
+            </span><span class="type-name">List</span><span>(</span><span class="identifier">div</span><span>(
+              </span><span class="identifier">cls</span><span> := </span><span class="string-literal">&quot;view&quot;</span><span>,
               </span><span class="identifier">input</span><span>.</span><span class="identifier">withSelf</span><span> { </span><span class="identifier">self</span><span> =&gt;
                 (
                   </span><span class="identifier">cls</span><span> := </span><span class="string-literal">&quot;toggle&quot;</span><span>,
@@ -244,13 +262,13 @@
               },
               </span><span class="identifier">label</span><span>(</span><span class="identifier">todo</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">text</span><span>))),
               </span><span class="identifier">button</span><span>(</span><span class="identifier">cls</span><span> := </span><span class="string-literal">&quot;destroy&quot;</span><span>, </span><span class="identifier">onClick</span><span> --&gt; (</span><span class="identifier">_</span><span>.</span><span class="identifier">foreach</span><span>(</span><span class="identifier">_</span><span> =&gt; </span><span class="identifier">todo</span><span>.</span><span class="identifier">set</span><span>(</span><span class="type-name">None</span><span>))))
-            )
+            ))
         }
       )
     }
 
   </span><span class="keyword">def</span><span> </span><span class="declaration-name">StatusBar</span><span>(
-      </span><span class="identifier">activeCount</span><span>: </span><span class="type-name">Signal</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">Int</span><span>],
+      </span><span class="identifier">store</span><span>: </span><span class="type-name">TodoStore</span><span>,
       </span><span class="identifier">filter</span><span>: </span><span class="type-name">Signal</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">Filter</span><span>],
       </span><span class="identifier">router</span><span>: </span><span class="type-name">Router</span><span>[</span><span class="type-name">IO</span><span>]
   ): </span><span class="type-name">Resource</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">HtmlElement</span><span>[</span><span class="type-name">IO</span><span>]] =
@@ -258,29 +276,47 @@
       </span><span class="identifier">cls</span><span> := </span><span class="string-literal">&quot;footer&quot;</span><span>,
       </span><span class="identifier">span</span><span>(
         </span><span class="identifier">cls</span><span> := </span><span class="string-literal">&quot;todo-count&quot;</span><span>,
-        </span><span class="identifier">activeCount</span><span>.</span><span class="identifier">map</span><span> {
-          </span><span class="keyword">case</span><span> </span><span class="number-literal">1</span><span> =&gt; </span><span class="string-literal">&quot;1 item left&quot;</span><span>
-          </span><span class="keyword">case</span><span> </span><span class="identifier">n</span><span> =&gt; </span><span class="identifier">n</span><span>.</span><span class="identifier">toString</span><span> + </span><span class="string-literal">&quot; items left&quot;</span><span>
+        </span><span class="identifier">strong</span><span>(</span><span class="identifier">store</span><span>.</span><span class="identifier">activeCount</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">toString</span><span>)),
+        </span><span class="identifier">store</span><span>.</span><span class="identifier">activeCount</span><span>.</span><span class="identifier">map</span><span> {
+          </span><span class="keyword">case</span><span> </span><span class="number-literal">1</span><span> =&gt; </span><span class="string-literal">&quot; item left&quot;</span><span>
+          </span><span class="keyword">case</span><span> </span><span class="identifier">n</span><span> =&gt; </span><span class="string-literal">&quot; items left&quot;</span><span>
         }
       ),
       </span><span class="identifier">ul</span><span>(
         </span><span class="identifier">cls</span><span> := </span><span class="string-literal">&quot;filters&quot;</span><span>,
-        </span><span class="type-name">Filter</span><span>
-          .</span><span class="identifier">values</span><span>
-          .</span><span class="identifier">toList</span><span>
-          .</span><span class="identifier">map</span><span> { </span><span class="identifier">f</span><span> =&gt;
-            </span><span class="identifier">li</span><span>(
-              </span><span class="identifier">a</span><span>(
-                </span><span class="identifier">cls</span><span> &lt;-- </span><span class="identifier">filter</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span> == </span><span class="identifier">f</span><span>).</span><span class="identifier">map</span><span>(</span><span class="type-name">Option</span><span>.</span><span class="identifier">when</span><span>(</span><span class="identifier">_</span><span>)(</span><span class="string-literal">&quot;selected&quot;</span><span>).</span><span class="identifier">toList</span><span>),
-                </span><span class="identifier">onClick</span><span> --&gt; (</span><span class="identifier">_</span><span>.</span><span class="identifier">foreach</span><span>(</span><span class="identifier">_</span><span> =&gt; </span><span class="identifier">router</span><span>.</span><span class="identifier">navigate</span><span>(</span><span class="type-name">Uri</span><span>(</span><span class="identifier">fragment</span><span> = </span><span class="identifier">f</span><span>.</span><span class="identifier">fragment</span><span>.</span><span class="identifier">some</span><span>)))),
-                </span><span class="identifier">f</span><span>.</span><span class="identifier">toString</span><span>
-              )
+        </span><span class="type-name">Filter</span><span>.</span><span class="identifier">values</span><span>.</span><span class="identifier">toList</span><span>.</span><span class="identifier">map</span><span> { </span><span class="identifier">f</span><span> =&gt;
+          </span><span class="identifier">li</span><span>(
+            </span><span class="identifier">a</span><span>(
+              </span><span class="identifier">cls</span><span> &lt;-- </span><span class="identifier">filter</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span> == </span><span class="identifier">f</span><span>).</span><span class="identifier">map</span><span>(</span><span class="type-name">Option</span><span>.</span><span class="identifier">when</span><span>(</span><span class="identifier">_</span><span>)(</span><span class="string-literal">&quot;selected&quot;</span><span>).</span><span class="identifier">toList</span><span>),
+              </span><span class="identifier">onClick</span><span> --&gt; (</span><span class="identifier">_</span><span>.</span><span class="identifier">foreach</span><span>(</span><span class="identifier">_</span><span> =&gt; </span><span class="identifier">router</span><span>.</span><span class="identifier">navigate</span><span>(</span><span class="type-name">Uri</span><span>(</span><span class="identifier">fragment</span><span> = </span><span class="identifier">f</span><span>.</span><span class="identifier">fragment</span><span>.</span><span class="identifier">some</span><span>)))),
+              </span><span class="identifier">href</span><span> := </span><span class="string-literal">s&quot;/#</span><span class="substitution">${f.fragment}</span><span class="string-literal">&quot;</span><span>,
+              </span><span class="identifier">f</span><span>.</span><span class="identifier">toString</span><span>
             )
-          }
-      )
+          )
+        }
+      ),
+      </span><span class="identifier">store</span><span>
+        .</span><span class="identifier">hasCompleted</span><span>
+        .</span><span class="identifier">map</span><span>(
+          </span><span class="type-name">Option</span><span>.</span><span class="identifier">when</span><span>(</span><span class="identifier">_</span><span>)(
+            </span><span class="identifier">button</span><span>(
+              </span><span class="identifier">cls</span><span> := </span><span class="string-literal">&quot;clear-completed&quot;</span><span>,
+              </span><span class="identifier">onClick</span><span> --&gt; {
+                </span><span class="identifier">_</span><span>.</span><span class="identifier">foreach</span><span>(</span><span class="identifier">_</span><span> =&gt; </span><span class="identifier">store</span><span>.</span><span class="identifier">clearCompleted</span><span>)
+              },
+              </span><span class="string-literal">&quot;Clear completed&quot;</span><span>)))
     )
 
 </span><span class="keyword">class</span><span> </span><span class="type-name">TodoStore</span><span>(</span><span class="identifier">entries</span><span>: </span><span class="type-name">SignallingSortedMapRef</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">Long</span><span>, </span><span class="type-name">Todo</span><span>], </span><span class="identifier">nextId</span><span>: </span><span class="type-name">IO</span><span>[</span><span class="type-name">Long</span><span>]):
+  </span><span class="keyword">def</span><span> </span><span class="declaration-name">toggleAll</span><span>(</span><span class="identifier">completed</span><span>: </span><span class="type-name">Boolean</span><span>): </span><span class="type-name">IO</span><span>[</span><span class="type-name">Unit</span><span>] =
+    </span><span class="identifier">entries</span><span>.</span><span class="identifier">update</span><span>(</span><span class="identifier">sm</span><span> =&gt; </span><span class="type-name">SortedMap</span><span>.</span><span class="identifier">from</span><span>(</span><span class="identifier">sm</span><span>.</span><span class="identifier">view</span><span>.</span><span class="identifier">mapValues</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">copy</span><span>(</span><span class="identifier">completed</span><span> = </span><span class="identifier">completed</span><span>))))
+
+  </span><span class="keyword">def</span><span> </span><span class="declaration-name">allCompleted</span><span>: </span><span class="type-name">Signal</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">Boolean</span><span>] = </span><span class="identifier">entries</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">values</span><span>.</span><span class="identifier">forall</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">completed</span><span>)).</span><span class="identifier">changes</span><span>
+
+  </span><span class="keyword">def</span><span> </span><span class="declaration-name">hasCompleted</span><span>: </span><span class="type-name">Signal</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">Boolean</span><span>] = </span><span class="identifier">entries</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">values</span><span>.</span><span class="identifier">exists</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">completed</span><span>)).</span><span class="identifier">changes</span><span>
+
+  </span><span class="keyword">def</span><span> </span><span class="declaration-name">clearCompleted</span><span>: </span><span class="type-name">IO</span><span>[</span><span class="type-name">Unit</span><span>] = </span><span class="identifier">entries</span><span>.</span><span class="identifier">update</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">filterNot</span><span>((</span><span class="identifier">_</span><span>, </span><span class="identifier">todo</span><span>) =&gt; </span><span class="identifier">todo</span><span>.</span><span class="identifier">completed</span><span>))
+
   </span><span class="keyword">def</span><span> </span><span class="declaration-name">create</span><span>(</span><span class="identifier">text</span><span>: </span><span class="type-name">String</span><span>): </span><span class="type-name">IO</span><span>[</span><span class="type-name">Unit</span><span>] =
     </span><span class="identifier">nextId</span><span>.</span><span class="identifier">flatMap</span><span>(</span><span class="identifier">entries</span><span>(</span><span class="identifier">_</span><span>).</span><span class="identifier">set</span><span>(</span><span class="type-name">Some</span><span>(</span><span class="type-name">Todo</span><span>(</span><span class="identifier">text</span><span>, </span><span class="boolean-literal">false</span><span>))))
 
@@ -289,22 +325,43 @@
   </span><span class="keyword">def</span><span> </span><span class="declaration-name">ids</span><span>(</span><span class="identifier">filter</span><span>: </span><span class="type-name">Filter</span><span>): </span><span class="type-name">Signal</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">List</span><span>[</span><span class="type-name">Long</span><span>]] =
     </span><span class="identifier">entries</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">filter</span><span>((</span><span class="identifier">_</span><span>, </span><span class="identifier">t</span><span>) =&gt; </span><span class="identifier">filter</span><span>.</span><span class="identifier">pred</span><span>(</span><span class="identifier">t</span><span>)).</span><span class="identifier">keySet</span><span>.</span><span class="identifier">toList</span><span>)
 
-  </span><span class="keyword">def</span><span> </span><span class="declaration-name">size</span><span>: </span><span class="type-name">Signal</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">Int</span><span>] = </span><span class="identifier">entries</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">size</span><span>)
+  </span><span class="keyword">def</span><span> </span><span class="declaration-name">size</span><span>: </span><span class="type-name">Signal</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">Int</span><span>] = </span><span class="identifier">entries</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">size</span><span>).</span><span class="identifier">changes</span><span>
 
-  </span><span class="keyword">def</span><span> </span><span class="declaration-name">activeCount</span><span>: </span><span class="type-name">Signal</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">Int</span><span>] = </span><span class="identifier">entries</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">values</span><span>.</span><span class="identifier">count</span><span>(!</span><span class="identifier">_</span><span>.</span><span class="identifier">completed</span><span>))
+  </span><span class="keyword">def</span><span> </span><span class="declaration-name">activeCount</span><span>: </span><span class="type-name">Signal</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">Int</span><span>] = </span><span class="identifier">entries</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">values</span><span>.</span><span class="identifier">count</span><span>(!</span><span class="identifier">_</span><span>.</span><span class="identifier">completed</span><span>)).</span><span class="identifier">changes</span><span>
 
 </span><span class="keyword">object</span><span> </span><span class="type-name">TodoStore</span><span>:
 
   </span><span class="keyword">def</span><span> </span><span class="declaration-name">apply</span><span>(</span><span class="identifier">window</span><span>: </span><span class="type-name">Window</span><span>[</span><span class="type-name">IO</span><span>]): </span><span class="type-name">Resource</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">TodoStore</span><span>] =
     </span><span class="keyword">val</span><span> </span><span class="identifier">key</span><span> = </span><span class="string-literal">&quot;todos-calico&quot;</span><span>
 
+    </span><span class="keyword">implicit</span><span> </span><span class="keyword">val</span><span> </span><span class="identifier">encodeFoo</span><span>: </span><span class="type-name">Encoder</span><span>[(</span><span class="type-name">Long</span><span>, </span><span class="type-name">Todo</span><span>)] = </span><span class="keyword">new</span><span> </span><span class="type-name">Encoder</span><span>[(</span><span class="type-name">Long</span><span>, </span><span class="type-name">Todo</span><span>)] {
+      </span><span class="keyword">override</span><span> </span><span class="keyword">def</span><span> </span><span class="declaration-name">apply</span><span>(</span><span class="identifier">a</span><span>: (</span><span class="type-name">Long</span><span>, </span><span class="type-name">Todo</span><span>)): </span><span class="type-name">Json</span><span> = {
+        </span><span class="keyword">val</span><span> (</span><span class="identifier">id</span><span>, </span><span class="identifier">todo</span><span>) = </span><span class="identifier">a</span><span>
+        </span><span class="type-name">Json</span><span>.</span><span class="identifier">obj</span><span>(
+          (</span><span class="string-literal">&quot;id&quot;</span><span>, </span><span class="type-name">Json</span><span>.</span><span class="identifier">fromLong</span><span>(</span><span class="identifier">id</span><span>)),
+          (</span><span class="string-literal">&quot;title&quot;</span><span>, </span><span class="type-name">Json</span><span>.</span><span class="identifier">fromString</span><span>(</span><span class="identifier">todo</span><span>.</span><span class="identifier">text</span><span>)),
+          (</span><span class="string-literal">&quot;completed&quot;</span><span>, </span><span class="type-name">Json</span><span>.</span><span class="identifier">fromBoolean</span><span>(</span><span class="identifier">todo</span><span>.</span><span class="identifier">completed</span><span>))
+        )
+      }
+    }
+
+    </span><span class="keyword">implicit</span><span> </span><span class="keyword">val</span><span> </span><span class="identifier">decodeFoo</span><span>: </span><span class="type-name">Decoder</span><span>[(</span><span class="type-name">Long</span><span>, </span><span class="type-name">Todo</span><span>)] = </span><span class="keyword">new</span><span> </span><span class="type-name">Decoder</span><span>[(</span><span class="type-name">Long</span><span>, </span><span class="type-name">Todo</span><span>)] {
+      </span><span class="keyword">override</span><span> </span><span class="keyword">def</span><span> </span><span class="declaration-name">apply</span><span>(</span><span class="identifier">c</span><span>: </span><span class="type-name">HCursor</span><span>): </span><span class="type-name">Result</span><span>[(</span><span class="type-name">Long</span><span>, </span><span class="type-name">Todo</span><span>)] = </span><span class="keyword">for</span><span> {
+        </span><span class="identifier">id</span><span> &lt;- </span><span class="identifier">c</span><span>.</span><span class="identifier">downField</span><span>(</span><span class="string-literal">&quot;id&quot;</span><span>).</span><span class="identifier">as</span><span>[</span><span class="type-name">Long</span><span>]
+        </span><span class="identifier">title</span><span> &lt;- </span><span class="identifier">c</span><span>.</span><span class="identifier">downField</span><span>(</span><span class="string-literal">&quot;title&quot;</span><span>).</span><span class="identifier">as</span><span>[</span><span class="type-name">String</span><span>]
+        </span><span class="identifier">completed</span><span> &lt;- </span><span class="identifier">c</span><span>.</span><span class="identifier">downField</span><span>(</span><span class="string-literal">&quot;completed&quot;</span><span>).</span><span class="identifier">as</span><span>[</span><span class="type-name">Boolean</span><span>]
+      } </span><span class="keyword">yield</span><span> {
+        (</span><span class="identifier">id</span><span>, </span><span class="type-name">Todo</span><span>(</span><span class="identifier">title</span><span>, </span><span class="identifier">completed</span><span>))
+      }
+    }
+
     </span><span class="keyword">for</span><span>
       </span><span class="identifier">mapRef</span><span> &lt;- </span><span class="type-name">SignallingSortedMapRef</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">Long</span><span>, </span><span class="type-name">Todo</span><span>].</span><span class="identifier">toResource</span><span>
 
       </span><span class="identifier">_</span><span> &lt;- </span><span class="type-name">Resource</span><span>.</span><span class="identifier">eval</span><span> {
         </span><span class="type-name">OptionT</span><span>(</span><span class="identifier">window</span><span>.</span><span class="identifier">localStorage</span><span>.</span><span class="identifier">getItem</span><span>(</span><span class="identifier">key</span><span>))
-          .</span><span class="identifier">subflatMap</span><span>(</span><span class="identifier">jawn</span><span>.</span><span class="identifier">decode</span><span>[</span><span class="type-name">SortedMap</span><span>[</span><span class="type-name">Long</span><span>, </span><span class="type-name">Todo</span><span>]](</span><span class="identifier">_</span><span>).</span><span class="identifier">toOption</span><span>)
-          .</span><span class="identifier">foreachF</span><span>(</span><span class="identifier">mapRef</span><span>.</span><span class="identifier">set</span><span>(</span><span class="identifier">_</span><span>))
+          .</span><span class="identifier">subflatMap</span><span>(</span><span class="identifier">circe</span><span>.</span><span class="identifier">jawn</span><span>.</span><span class="identifier">decode</span><span>[</span><span class="type-name">List</span><span>[(</span><span class="type-name">Long</span><span>, </span><span class="type-name">Todo</span><span>)]](</span><span class="identifier">_</span><span>).</span><span class="identifier">toOption</span><span>.</span><span class="identifier">map</span><span>(</span><span class="type-name">SortedMap</span><span>.</span><span class="identifier">from</span><span>))
+          .</span><span class="identifier">foreachF</span><span>(</span><span class="identifier">mapRef</span><span>.</span><span class="identifier">set</span><span>)
       }
 
       </span><span class="identifier">_</span><span> &lt;- </span><span class="identifier">window</span><span>
@@ -312,7 +369,12 @@
         .</span><span class="identifier">events</span><span>(</span><span class="identifier">window</span><span>)
         .</span><span class="identifier">foreach</span><span> {
           </span><span class="keyword">case</span><span> </span><span class="type-name">Storage</span><span>.</span><span class="type-name">Event</span><span>.</span><span class="type-name">Updated</span><span>(</span><span class="identifier">`key`</span><span>, </span><span class="identifier">_</span><span>, </span><span class="identifier">value</span><span>, </span><span class="identifier">_</span><span>) =&gt;
-            </span><span class="identifier">jawn</span><span>.</span><span class="identifier">decode</span><span>[</span><span class="type-name">SortedMap</span><span>[</span><span class="type-name">Long</span><span>, </span><span class="type-name">Todo</span><span>]](</span><span class="identifier">value</span><span>).</span><span class="identifier">foldMapM</span><span>(</span><span class="identifier">mapRef</span><span>.</span><span class="identifier">set</span><span>(</span><span class="identifier">_</span><span>))
+            </span><span class="identifier">circe</span><span>
+              .</span><span class="identifier">jawn</span><span>
+              .</span><span class="identifier">decode</span><span>[</span><span class="type-name">List</span><span>[(</span><span class="type-name">Long</span><span>, </span><span class="type-name">Todo</span><span>)]](</span><span class="identifier">value</span><span>)
+              .</span><span class="identifier">toOption</span><span>
+              .</span><span class="identifier">map</span><span>(</span><span class="type-name">SortedMap</span><span>.</span><span class="identifier">from</span><span>)
+              .</span><span class="identifier">foldMapM</span><span>(</span><span class="identifier">mapRef</span><span>.</span><span class="identifier">set</span><span>)
           </span><span class="keyword">case</span><span> </span><span class="identifier">_</span><span> =&gt; </span><span class="type-name">IO</span><span>.</span><span class="identifier">unit</span><span>
         }
         .</span><span class="identifier">compile</span><span>
@@ -321,7 +383,13 @@
 
       </span><span class="identifier">_</span><span> &lt;- </span><span class="identifier">mapRef</span><span>
         .</span><span class="identifier">discrete</span><span>
-        .</span><span class="identifier">foreach</span><span>(</span><span class="identifier">todos</span><span> =&gt; </span><span class="type-name">IO</span><span>.</span><span class="identifier">cede</span><span> *&gt; </span><span class="identifier">window</span><span>.</span><span class="identifier">localStorage</span><span>.</span><span class="identifier">setItem</span><span>(</span><span class="identifier">key</span><span>, </span><span class="identifier">todos</span><span>.</span><span class="identifier">asJson</span><span>.</span><span class="identifier">noSpaces</span><span>))
+        .</span><span class="identifier">foreach</span><span>((</span><span class="identifier">todos</span><span>: </span><span class="type-name">Map</span><span>[</span><span class="type-name">Long</span><span>, </span><span class="type-name">Todo</span><span>]) =&gt;
+          </span><span class="type-name">IO</span><span>.</span><span class="identifier">cede</span><span> *&gt; </span><span class="identifier">window</span><span>
+            .</span><span class="identifier">localStorage</span><span>
+            .</span><span class="identifier">setItem</span><span>(
+              </span><span class="identifier">key</span><span>,
+              </span><span class="identifier">todos</span><span>.</span><span class="identifier">toList</span><span>.</span><span class="identifier">asJson</span><span>.</span><span class="identifier">noSpaces</span><span>
+            ))
         .</span><span class="identifier">compile</span><span>
         .</span><span class="identifier">drain</span><span>
         .</span><span class="identifier">background</span><span>
