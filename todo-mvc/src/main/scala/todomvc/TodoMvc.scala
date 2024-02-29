@@ -17,18 +17,17 @@
 package todomvc
 
 import calico.*
-import calico.frp.*
-import calico.frp.given
-import calico.html.io.*
-import calico.html.io.given
+import calico.frp.{*, given}
+import calico.html.io.{*, given}
 import calico.router.*
 import cats.data.*
 import cats.effect.*
 import cats.syntax.all.*
 import fs2.concurrent.*
 import fs2.dom.*
-import io.circe.Codec
-import io.circe.jawn
+import io.circe
+import io.circe.Decoder.Result
+import io.circe.*
 import io.circe.syntax.*
 import org.http4s.*
 import org.scalajs.dom.KeyValue
@@ -46,9 +45,17 @@ object TodoMvc extends IOWebApp:
       } { filter =>
         div(
           cls := "todoapp",
-          div(cls := "header", h1("todos"), TodoInput(store)),
-          div(
+          headerTag(cls := "header", h1("todos"), TodoInput(store)),
+          sectionTag(
             cls := "main",
+            input.withSelf(self =>
+              (
+                idAttr := "toggle-all",
+                cls := "toggle-all",
+                typ := "checkbox",
+                checked <-- store.allCompleted,
+                onInput --> { _.foreach(_ => self.checked.get.flatMap(store.toggleAll)) })),
+            label(forId := "toggle-all", "Mark all as complete"),
             ul(
               cls := "todo-list",
               children[Long](id => TodoItem(store.entry(id))) <-- filter.flatMap(store.ids(_))
@@ -58,7 +65,7 @@ object TodoMvc extends IOWebApp:
             .size
             .map(_ > 0)
             .changes
-            .map(if _ then StatusBar(store.activeCount, filter, router).some else None)
+            .map(if _ then StatusBar(store, filter, router).some else None)
         )
       }
     }
@@ -92,22 +99,33 @@ object TodoMvc extends IOWebApp:
           case true =>
             List(
               input.withSelf { self =>
-                val endEdit = self.value.get.flatMap { text =>
-                  todo.update(_.map(_.copy(text = text))) *> editing.set(false)
-                }
-
+                val endEdit = self.value.get.map(_.trim).flatMap { text =>
+                  todo.update(t =>
+                    text match {
+                      case "" => None
+                      case _ => t.map(_.copy(text = text))
+                    })
+                } *> editing.set(false)
                 (
                   cls := "edit",
                   defaultValue <-- todo.map(_.foldMap(_.text)),
                   onKeyDown --> {
-                    _.filter(_.key == KeyValue.Enter).foreach(_ => endEdit)
+                    _.foreach {
+                      case e if e.key == KeyValue.Enter => endEdit
+                      case e if e.key == KeyValue.Escape => editing.set(false)
+                      case _ => IO.unit
+                    }
                   },
-                  onBlur --> (_.foreach(_ => endEdit))
+                  onBlur --> (_.foreach(_ => {
+                    // do not endEdit when blur is triggered after Escape
+                    editing.get.ifM(endEdit, IO.unit)
+                  }))
                 )
               }
             )
           case false =>
-            List(
+            List(div(
+              cls := "view",
               input.withSelf { self =>
                 (
                   cls := "toggle",
@@ -124,13 +142,13 @@ object TodoMvc extends IOWebApp:
               },
               label(todo.map(_.map(_.text))),
               button(cls := "destroy", onClick --> (_.foreach(_ => todo.set(None))))
-            )
+            ))
         }
       )
     }
 
   def StatusBar(
-      activeCount: Signal[IO, Int],
+      store: TodoStore,
       filter: Signal[IO, Filter],
       router: Router[IO]
   ): Resource[IO, HtmlElement[IO]] =
@@ -138,29 +156,47 @@ object TodoMvc extends IOWebApp:
       cls := "footer",
       span(
         cls := "todo-count",
-        activeCount.map {
-          case 1 => "1 item left"
-          case n => n.toString + " items left"
+        strong(store.activeCount.map(_.toString)),
+        store.activeCount.map {
+          case 1 => " item left"
+          case n => " items left"
         }
       ),
       ul(
         cls := "filters",
-        Filter
-          .values
-          .toList
-          .map { f =>
-            li(
-              a(
-                cls <-- filter.map(_ == f).map(Option.when(_)("selected").toList),
-                onClick --> (_.foreach(_ => router.navigate(Uri(fragment = f.fragment.some)))),
-                f.toString
-              )
+        Filter.values.toList.map { f =>
+          li(
+            a(
+              cls <-- filter.map(_ == f).map(Option.when(_)("selected").toList),
+              onClick --> (_.foreach(_ => router.navigate(Uri(fragment = f.fragment.some)))),
+              href := s"/#${f.fragment}",
+              f.toString
             )
-          }
-      )
+          )
+        }
+      ),
+      store
+        .hasCompleted
+        .map(
+          Option.when(_)(
+            button(
+              cls := "clear-completed",
+              onClick --> {
+                _.foreach(_ => store.clearCompleted)
+              },
+              "Clear completed")))
     )
 
 class TodoStore(entries: SignallingSortedMapRef[IO, Long, Todo], nextId: IO[Long]):
+  def toggleAll(completed: Boolean): IO[Unit] =
+    entries.update(sm => SortedMap.from(sm.view.mapValues(_.copy(completed = completed))))
+
+  def allCompleted: Signal[IO, Boolean] = entries.map(_.values.forall(_.completed)).changes
+
+  def hasCompleted: Signal[IO, Boolean] = entries.map(_.values.exists(_.completed)).changes
+
+  def clearCompleted: IO[Unit] = entries.update(_.filterNot((_, todo) => todo.completed))
+
   def create(text: String): IO[Unit] =
     nextId.flatMap(entries(_).set(Some(Todo(text, false))))
 
@@ -169,22 +205,43 @@ class TodoStore(entries: SignallingSortedMapRef[IO, Long, Todo], nextId: IO[Long
   def ids(filter: Filter): Signal[IO, List[Long]] =
     entries.map(_.filter((_, t) => filter.pred(t)).keySet.toList)
 
-  def size: Signal[IO, Int] = entries.map(_.size)
+  def size: Signal[IO, Int] = entries.map(_.size).changes
 
-  def activeCount: Signal[IO, Int] = entries.map(_.values.count(!_.completed))
+  def activeCount: Signal[IO, Int] = entries.map(_.values.count(!_.completed)).changes
 
 object TodoStore:
 
   def apply(window: Window[IO]): Resource[IO, TodoStore] =
     val key = "todos-calico"
 
+    implicit val encodeFoo: Encoder[(Long, Todo)] = new Encoder[(Long, Todo)] {
+      override def apply(a: (Long, Todo)): Json = {
+        val (id, todo) = a
+        Json.obj(
+          ("id", Json.fromLong(id)),
+          ("title", Json.fromString(todo.text)),
+          ("completed", Json.fromBoolean(todo.completed))
+        )
+      }
+    }
+
+    implicit val decodeFoo: Decoder[(Long, Todo)] = new Decoder[(Long, Todo)] {
+      override def apply(c: HCursor): Result[(Long, Todo)] = for {
+        id <- c.downField("id").as[Long]
+        title <- c.downField("title").as[String]
+        completed <- c.downField("completed").as[Boolean]
+      } yield {
+        (id, Todo(title, completed))
+      }
+    }
+
     for
       mapRef <- SignallingSortedMapRef[IO, Long, Todo].toResource
 
       _ <- Resource.eval {
         OptionT(window.localStorage.getItem(key))
-          .subflatMap(jawn.decode[SortedMap[Long, Todo]](_).toOption)
-          .foreachF(mapRef.set(_))
+          .subflatMap(circe.jawn.decode[List[(Long, Todo)]](_).toOption.map(SortedMap.from))
+          .foreachF(mapRef.set)
       }
 
       _ <- window
@@ -192,7 +249,12 @@ object TodoStore:
         .events(window)
         .foreach {
           case Storage.Event.Updated(`key`, _, value, _) =>
-            jawn.decode[SortedMap[Long, Todo]](value).foldMapM(mapRef.set(_))
+            circe
+              .jawn
+              .decode[List[(Long, Todo)]](value)
+              .toOption
+              .map(SortedMap.from)
+              .foldMapM(mapRef.set)
           case _ => IO.unit
         }
         .compile
@@ -201,7 +263,13 @@ object TodoStore:
 
       _ <- mapRef
         .discrete
-        .foreach(todos => IO.cede *> window.localStorage.setItem(key, todos.asJson.noSpaces))
+        .foreach((todos: Map[Long, Todo]) =>
+          IO.cede *> window
+            .localStorage
+            .setItem(
+              key,
+              todos.toList.asJson.noSpaces
+            ))
         .compile
         .drain
         .background
