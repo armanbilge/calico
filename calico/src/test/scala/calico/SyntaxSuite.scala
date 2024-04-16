@@ -22,6 +22,7 @@ import calico.syntax.*
 import cats.effect.*
 import cats.syntax.all.*
 import fs2.concurrent.*
+import fs2.dom.*
 
 class SyntaxSuite:
 
@@ -30,10 +31,12 @@ class SyntaxSuite:
   def nodeSignal: SignallingRef[IO, Resource[IO, fs2.dom.Node[IO]]] = ???
   def nodeOptionSignal: SignallingRef[IO, Option[Resource[IO, fs2.dom.Node[IO]]]] = ???
 
+  def mod = (cls := "bar").toMod[Node[IO]]
+
   def signalModifiers =
     div(
       stringSignal,
       stringOptionSignal,
       nodeSignal,
       nodeOptionSignal
-    ).flatTap(_.modify(cls := "foo"))
+    ).flatTap(_.modify(cls := "foo")).flatTap(_.modify(mod))
