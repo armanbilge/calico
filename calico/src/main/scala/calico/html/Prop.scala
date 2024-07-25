@@ -165,7 +165,7 @@ object EventProp:
       private[calico] val key: String,
       private[calico] val sink: Pipe[F, Any, Nothing])
 
-  inline given [F[_]]: (Functor[EventProp[F, _]] & FunctorFilter[EventProp[F, _]]) =
+  inline given [F[_]]: Functor[EventProp[F, _]] & FunctorFilter[EventProp[F, _]] =
     _functor.asInstanceOf[Functor[EventProp[F, _]] & FunctorFilter[EventProp[F, _]]]
   private val _functor: Functor[EventProp[Id, _]] & FunctorFilter[EventProp[Id, _]] =
     new Functor[EventProp[Id, _]] with FunctorFilter[EventProp[Id, _]]:
