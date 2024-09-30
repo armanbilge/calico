@@ -54,7 +54,7 @@ object TodoMvc extends IOWebApp:
                 cls := "toggle-all",
                 typ := "checkbox",
                 checked <-- store.allCompleted,
-                onInput --> { _.foreach(_ => self.checked.get.flatMap(store.toggleAll)) })),
+                onInput(self.checked.get.flatMap(store.toggleAll)))),
             label(forId := "toggle-all", "Mark all as complete"),
             ul(
               cls := "todo-list",
@@ -109,14 +109,12 @@ object TodoMvc extends IOWebApp:
                 (
                   cls := "edit",
                   defaultValue <-- todo.map(_.foldMap(_.text)),
-                  onKeyDown --> {
-                    _.foreach {
-                      case e if e.key == KeyValue.Enter => endEdit
-                      case e if e.key == KeyValue.Escape => editing.set(false)
-                      case _ => IO.unit
-                    }
+                  onKeyDown {
+                    case e if e.key == KeyValue.Enter => endEdit
+                    case e if e.key == KeyValue.Escape => editing.set(false)
+                    case _ => IO.unit
                   },
-                  onBlur{
+                  onBlur {
                     // do not endEdit when blur is triggered after Escape
                     editing.get.ifM(endEdit, IO.unit)
                   }
@@ -179,10 +177,9 @@ object TodoMvc extends IOWebApp:
           Option.when(_)(
             button(
               cls := "clear-completed",
-              onClick --> {
-                _.foreach(_ => store.clearCompleted)
-              },
-              "Clear completed")))
+              onClick(store.clearCompleted),
+              "Clear completed"
+            )))
     )
 
 class TodoStore(entries: SignallingSortedMapRef[IO, Long, Todo], nextId: IO[Long]):
