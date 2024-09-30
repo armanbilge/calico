@@ -114,8 +114,7 @@ object SignallingSortedMapRef:
 
         new SignallingSortedMapRef[F, K, V]
           with AbstractSignallingRef[F, State, SortedMap[K, V]](newId, state):
-          outer =>
-          def getValue(s: State) = s.value
+          outer => def getValue(s: State) = s.value
 
           def getLastUpdate(s: State) = s.lastUpdate
 

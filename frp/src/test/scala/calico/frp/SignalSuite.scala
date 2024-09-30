@@ -18,16 +18,13 @@ package calico.frp
 
 import cats.data.NonEmptyList
 import cats.effect.IO
-import cats.effect.kernel.Resource
 import cats.effect.testkit.TestControl
 import cats.effect.testkit.TestInstances
 import cats.kernel.Eq
-import cats.laws.discipline.ApplicativeTests
 import cats.laws.discipline.MonadTests
 import cats.syntax.all.*
 import fs2.Stream
 import fs2.concurrent.Signal
-import fs2.concurrent.SignallingRef
 import munit.DisciplineSuite
 import org.scalacheck.Arbitrary
 import org.scalacheck.Arbitrary.arbitrary

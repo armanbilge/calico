@@ -38,7 +38,6 @@ import calico.router.*
 import calico.syntax.*
 import calico.unsafe.given
 import cats.effect.*
-import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import fs2.*
 import fs2.concurrent.*
@@ -47,7 +46,7 @@ import org.http4s.*
 import org.http4s.syntax.all.*
 
 val app: Resource[IO, HtmlDivElement[IO]] =
-  Resource.eval(Router(Window[IO])).flatMap { router =>
+  Router(Window[IO]).toResource.flatMap { router =>
     (SignallingRef[IO].of(0), SignallingRef[IO].of(0)).tupled.toResource.flatMap {
       (helloCounter, countCounter) =>
 
@@ -60,13 +59,13 @@ val app: Resource[IO, HtmlDivElement[IO]] =
         val helloRoute = Routes.one[IO] {
           case uri if uri.query.params.get("page").contains("hello") =>
             uri.query.params.getOrElse("who", "world")
-        } { who => Resource.eval(helloCounter.update(_ + 1)) *> div("Hello, ", who) }
+        } { who => helloCounter.update(_ + 1).toResource *> div("Hello, ", who) }
 
         val countRoute = Routes.one[IO] {
           case uri if uri.query.params.get("page").contains("count") =>
             uri.query.params.get("n").flatMap(_.toIntOption).getOrElse(0)
         } { n =>
-          Resource.eval(countCounter.update(_ + 1)) *>
+          countCounter.update(_ + 1).toResource *>
             p(
               "Sheep: ",
               n.map(_.toString),

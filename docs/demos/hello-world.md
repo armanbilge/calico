@@ -6,7 +6,6 @@ import calico.html.io.{*, given}
 import calico.unsafe.given
 import calico.syntax.*
 import cats.effect.*
-import cats.effect.syntax.all.*
 import fs2.*
 import fs2.concurrent.*
 import fs2.dom.*
