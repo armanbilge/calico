@@ -36,4 +36,12 @@ class SyntaxSuite {
       nodeOptionSignal
     )
 
+  // verify that all overloads / alternatives of "-->" infer correctly
+  def onEventApplyOverloads = {
+    div(
+      onClick --> (_.drain),
+      onClick(_ => IO.unit),
+      onClick(IO.unit)
+    )
+  }
 }

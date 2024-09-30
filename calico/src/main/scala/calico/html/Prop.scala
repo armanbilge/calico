@@ -154,8 +154,11 @@ final class EventProp[F[_], A] private[calico] (key: String, pipe: Pipe[F, Any, 
   @inline def -->(sink: Pipe[F, A, Nothing]): PipeModifier[F] =
     PipeModifier(key, pipe.andThen(sink))
 
-  @inline def **>(fu: F[Unit]): PipeModifier[F] =
+  @inline def apply(fu: F[Unit]): PipeModifier[F] =
     -->(_.foreach(_ => fu))
+
+  @inline def apply(fun: A => F[Unit]): PipeModifier[F] =
+    -->(_.foreach(fun))
 
   @inline private def through[B](pipe: Pipe[F, A, B]): EventProp[F, B] =
     new EventProp(key, this.pipe.andThen(pipe))

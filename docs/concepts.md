@@ -54,6 +54,9 @@ val component: Resource[IO, HtmlDivElement[IO]] =
           // here, input events are run through the given Pipe
           // this starts background fibers within the lifecycle of the <input> element
           onInput --> (_.foreach(_ => self.value.get.flatMap(name.set)))
+          // You can also use simpler syntax - these are all equivalent to a foreach:
+          // onInput(_ => self.value.get.flatMap(name.set))
+          // onInput(self.value.get.flatMap(name.set))
         )
       },
       span(
@@ -73,7 +76,7 @@ component.renderInto(node.asInstanceOf[fs2.dom.Node[IO]]).useForever.unsafeRunAn
 
 The ideas are very much the same as the prior example.
 
-1. `input(...)` is a `Resource` that creates an `<input>` element and also manages `Fiber`s that handle input events. 
+1. `input(...)` is a `Resource` that creates an `<input>` element and also manages `Fiber`s that handle input events.
 2. `span(...)` is a `Resource` that creates a `<span>` element and also manages `Fiber`s that handle rendering of the name.
 3. `div(...)` is a `Resource` composed of the `input(...)` and `span(...)` `Resource`s, and therefore (indirectly) manages the `Fiber`s of its child components.
 
@@ -106,7 +109,7 @@ val app: Resource[IO, HtmlDivElement[IO]] =
       div(
         label("North input: "),
         input.withSelf { self =>
-          onInput **> self.value.get.flatMap(northSig.set)
+          onInput(self.value.get.flatMap(northSig.set))
         },
       ),
       br(()),
@@ -116,11 +119,13 @@ val app: Resource[IO, HtmlDivElement[IO]] =
             option(disabled := true, selected := true, "Select input"),
             option(value := "north", "North"),
             option(value := "south", "South"),
-            onChange **> self.value.get.map {
-              case "north" => Some(Cardinal.North)
-              case "south" => Some(Cardinal.South)
-              case _ => None
-            }.flatMap(cardinalSig.set(_))
+            onChange {
+              self.value.get.map {
+                case "north" => Some(Cardinal.North)
+                case "south" => Some(Cardinal.South)
+                case _ => None
+              }.flatMap(cardinalSig.set(_))
+            }
           )
         },
         " ",
@@ -135,7 +140,7 @@ val app: Resource[IO, HtmlDivElement[IO]] =
       div(
         label("South input: "),
         input.withSelf { self =>
-          onInput **> self.value.get.flatMap(southSig.set)
+          onInput(self.value.get.flatMap(southSig.set))
         },
       ),
     )
