@@ -1,3 +1,6 @@
+import com.typesafe.tools.mima.core.ProblemFilters
+import com.typesafe.tools.mima.core.DirectMissingMethodProblem
+
 ThisBuild / tlBaseVersion := "0.2"
 
 ThisBuild / organization := "com.armanbilge"
@@ -66,7 +69,11 @@ lazy val calico = project
         DomDefsGenerator.generate((Compile / sourceManaged).value / "domdefs").unsafeRunSync()
       }
     },
-    Compile / sourceGenerators += (Compile / generateDomDefs)
+    Compile / sourceGenerators += (Compile / generateDomDefs),
+    mimaBinaryIssueFilters ++= Seq(
+      // Static forwarder, only used in Java interop
+      ProblemFilters.exclude[DirectMissingMethodProblem]("calico.html.EventProp.apply")
+    )
   )
   .dependsOn(frp.js)
 
