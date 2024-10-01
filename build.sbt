@@ -14,18 +14,18 @@ ThisBuild / tlCiReleaseBranches ++= Seq("series/0.1")
 ThisBuild / tlSitePublishBranch := Some("main")
 ThisBuild / tlSonatypeUseLegacyHost := false
 
-ThisBuild / crossScalaVersions := Seq("3.3.1")
+ThisBuild / crossScalaVersions := Seq("3.3.4")
 ThisBuild / scalacOptions ++= Seq("-new-syntax", "-indent", "-source:future")
 
 ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("21"))
 
-val CatsVersion = "2.10.0"
-val CatsEffectVersion = "3.5.3"
-val Fs2Version = "3.9.4"
+val CatsVersion = "2.12.0"
+val CatsEffectVersion = "3.5.4"
+val Fs2Version = "3.11.0"
 val Fs2DomVersion = "0.2.1"
-val Http4sVersion = "0.23.25"
+val Http4sVersion = "0.23.28"
 val Http4sDomVersion = "0.2.11"
-val MonocleVersion = "3.2.0"
+val MonocleVersion = "3.3.0"
 
 lazy val root =
   tlCrossRootProject.aggregate(frp, calico, router, sandbox, todoMvc, unidocs)
@@ -42,9 +42,9 @@ lazy val frp = crossProject(JVMPlatform, JSPlatform)
       "co.fs2" %%% "fs2-core" % Fs2Version,
       "org.typelevel" %%% "cats-laws" % CatsVersion % Test,
       "org.typelevel" %%% "cats-effect-testkit" % CatsEffectVersion % Test,
-      "org.typelevel" %%% "discipline-munit" % "2.0.0-M3" % Test,
-      "org.typelevel" %%% "munit-cats-effect" % "2.0.0-M4" % Test,
-      "org.scalameta" %%% "munit-scalacheck" % "1.0.0-M11" % Test
+      "org.typelevel" %%% "discipline-munit" % "2.0.0" % Test,
+      "org.typelevel" %%% "munit-cats-effect" % "2.0.0" % Test,
+      "org.scalameta" %%% "munit-scalacheck" % "1.0.0" % Test
     )
   )
 
@@ -57,7 +57,7 @@ lazy val calico = project
     name := "calico",
     libraryDependencies ++= Seq(
       "com.armanbilge" %%% "fs2-dom" % Fs2DomVersion,
-      "org.typelevel" %%% "shapeless3-deriving" % "3.4.1",
+      "org.typelevel" %%% "shapeless3-deriving" % "3.4.3",
       "dev.optics" %%% "monocle-core" % MonocleVersion,
       "org.scala-js" %%% "scalajs-dom" % "2.8.0"
     ),
@@ -121,7 +121,7 @@ lazy val todoMvc = project
         .withModuleSplitStyle(ModuleSplitStyle.SmallModulesFor(List("todomvc")))
     },
     libraryDependencies ++= Seq(
-      "io.circe" %%% "circe-jawn" % "0.14.6"
+      "io.circe" %%% "circe-jawn" % "0.14.10"
     ),
     bundleMonCheckRun := true,
     bundleMonCommitStatus := false,
