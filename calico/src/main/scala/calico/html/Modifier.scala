@@ -26,6 +26,7 @@ import cats.syntax.all.*
 import fs2.concurrent.Signal
 import org.scalajs.dom
 import shapeless3.deriving.K0
+
 import scala.annotation.nowarn
 
 trait Modifier[F[_], E, A]:
