@@ -26,8 +26,8 @@ import cats.syntax.all.*
 import fs2.concurrent.*
 import fs2.dom.*
 import io.circe
-import io.circe.Decoder.Result
 import io.circe.*
+import io.circe.Decoder.Result
 import io.circe.syntax.*
 import org.http4s.*
 import org.scalajs.dom.KeyValue
