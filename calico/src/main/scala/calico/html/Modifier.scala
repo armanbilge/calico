@@ -27,11 +27,14 @@ import fs2.concurrent.Signal
 import org.scalajs.dom
 import shapeless3.deriving.K0
 
+import scala.annotation.nowarn
+
 trait Modifier[F[_], E, A]:
   outer =>
 
   def modify(a: A, e: E): Resource[F, Unit]
 
+  @nowarn("msg=New anonymous class definition will be duplicated at each inline site")
   inline final def contramap[B](inline f: B => A): Modifier[F, E, B] =
     (b: B, e: E) => outer.modify(f(b), e)
 
