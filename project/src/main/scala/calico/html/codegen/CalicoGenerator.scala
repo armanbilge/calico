@@ -158,7 +158,6 @@ private[codegen] class CalicoGenerator(srcManaged: File)
     val headerLines = List(
       s"package $attrDefsPackagePath",
       "",
-      keyTypeImport(keyKind),
       codecsImport
     ) ++ namespaceImports ++ List("") ++ standardTraitCommentLines.map("// " + _)
 
@@ -206,7 +205,6 @@ private[codegen] class CalicoGenerator(srcManaged: File)
     val headerLines = List(
       s"package $propDefsPackagePath",
       "",
-      keyTypeImport(keyKind),
       codecsImport,
       ""
     ) ++ standardTraitCommentLines.map("// " + _)
@@ -251,7 +249,6 @@ private[codegen] class CalicoGenerator(srcManaged: File)
     val headerLines = List(
       s"package $eventPropDefsPackagePath",
       "",
-      keyTypeImport(keyKind),
       scalaJsDomImport,
       ""
     ) ++ standardTraitCommentLines.map("// " + _)

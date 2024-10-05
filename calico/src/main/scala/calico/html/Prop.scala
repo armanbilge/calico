@@ -17,7 +17,6 @@
 package calico
 package html
 
-import calico.syntax.*
 import cats.Contravariant
 import cats.Functor
 import cats.FunctorFilter
@@ -142,7 +141,8 @@ private trait PropModifiers[F[_]](using F: Async[F]):
 
   inline given forOptionSignalResourceProp[N, V, J]
       : Modifier[F, N, OptionSignalResourceModifier[F, V, J]] =
-    _forOptionSignalProp.asInstanceOf[Modifier[F, N, OptionSignalResourceModifier[F, V, J]]]
+    _forOptionSignalResourceProp
+      .asInstanceOf[Modifier[F, N, OptionSignalResourceModifier[F, V, J]]]
 
   private val _forOptionSignalResourceProp =
     Modifier.forSignalResource[F, Any, OptionSignalResourceModifier[F, Any, Any], Option[Any]](

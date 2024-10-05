@@ -31,5 +31,13 @@ trait IOWebApp:
   def render: Resource[IO, fs2.dom.HtmlElement[IO]]
 
   def main(args: Array[String]): Unit =
-    val rootElement = window.document.getElementById(rootElementId).map(_.get)
-    rootElement.flatMap(render.renderInto(_).useForever).unsafeRunAndForget()
+    window
+      .document
+      .getElementById(rootElementId)
+      .flatMap {
+        case Some(root) => render.renderInto(root).useForever
+        case None =>
+          IO.raiseError(new NoSuchElementException(
+            s"Unable to mount ${getClass.getSimpleName.init} into element with id \"$rootElementId\", does it exist in the HTML?"))
+      }
+      .unsafeRunAndForget()

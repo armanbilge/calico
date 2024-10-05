@@ -17,9 +17,7 @@
 package calico
 package html
 
-import calico.syntax.*
 import cats.Contravariant
-import cats.Foldable
 import cats.Id
 import cats.effect.kernel.Async
 import cats.effect.kernel.Resource
@@ -29,11 +27,14 @@ import fs2.concurrent.Signal
 import org.scalajs.dom
 import shapeless3.deriving.K0
 
+import scala.annotation.nowarn
+
 trait Modifier[F[_], E, A]:
   outer =>
 
   def modify(a: A, e: E): Resource[F, Unit]
 
+  @nowarn("msg=New anonymous class definition will be duplicated at each inline site")
   inline final def contramap[B](inline f: B => A): Modifier[F, E, B] =
     (b: B, e: E) => outer.modify(f(b), e)
 
@@ -121,7 +122,7 @@ private trait Modifiers[F[_]](using F: Async[F]):
     _forNode.asInstanceOf[Modifier[F, N, N2]]
 
   private val _forNode: Modifier[F, dom.Node, dom.Node] = (n2, n) =>
-    Resource.eval(F.delay(n.appendChild(n2)))
+    Resource.eval(F.delay { n.appendChild(n2); () })
 
   inline given forNodeResource[N <: fs2.dom.Node[F], N2 <: fs2.dom.Node[F]]
       : Modifier[F, N, Resource[F, N2]] =
@@ -142,7 +143,7 @@ private trait Modifiers[F[_]](using F: Async[F]):
         DomHotswap(head).flatMap { (hs, n2) =>
           F.delay(n.appendChild(n2)).toResource *>
             (F.cede *> tail
-              .foreach(hs.swap(_)((n2, n3) => F.delay(n.replaceChild(n3, n2))))
+              .foreach(hs.swap(_)((n2, n3) => F.delay { n.replaceChild(n3, n2); () }))
               .compile
               .drain).background
         }.void

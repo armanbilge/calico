@@ -18,10 +18,12 @@ package not.calico
 
 import calico.html.io.*
 import calico.html.io.given
+import calico.syntax.*
 import cats.effect.*
+import cats.syntax.all.*
 import fs2.concurrent.*
 
-class SyntaxSuite {
+class SyntaxSuite:
 
   def stringSignal: SignallingRef[IO, String] = ???
   def stringOptionSignal: SignallingRef[IO, Option[String]] = ???
@@ -34,6 +36,4 @@ class SyntaxSuite {
       stringOptionSignal,
       nodeSignal,
       nodeOptionSignal
-    )
-
-}
+    ).flatTap(_.modify(cls := "foo"))
