@@ -30,8 +30,8 @@ import fs2.Stream
 import fs2.concurrent.Signal
 import org.scalajs.dom
 
-import scala.scalajs.js
 import scala.annotation.targetName
+import scala.scalajs.js
 
 sealed class Prop[F[_], V, J] private[calico] (name: String, encode: V => J):
   import Prop.*
