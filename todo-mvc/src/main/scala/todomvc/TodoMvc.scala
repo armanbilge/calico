@@ -157,17 +157,13 @@ object TodoMvc extends IOWebApp:
       ),
       ul(
         cls := "filters",
-        Filter
-          .values
-          .toList
-          .map { f =>
-            li(
-              a(
-                cls <-- filter.map(_ == f).map(Option.when(_)("selected").toList),
-                onClick **> router.navigate(Uri(fragment = f.fragment.some)),
-                href := s"/#${f.fragment}",
-                f.toString
-              )
+        Filter.values.toList.map { f =>
+          li(
+            a(
+              cls <-- filter.map(_ == f).map(Option.when(_)("selected").toList),
+              onClick **> router.navigate(Uri(fragment = f.fragment.some)),
+              href := s"/#${f.fragment}",
+              f.toString
             )
           )
         }
