@@ -69,11 +69,7 @@ lazy val calico = project
         DomDefsGenerator.generate((Compile / sourceManaged).value / "domdefs").unsafeRunSync()
       }
     },
-    Compile / sourceGenerators += (Compile / generateDomDefs),
-    mimaBinaryIssueFilters ++= Seq(
-      // Static forwarder, only used in Java interop
-      ProblemFilters.exclude[DirectMissingMethodProblem]("calico.html.EventProp.apply")
-    )
+    Compile / sourceGenerators += (Compile / generateDomDefs)
   )
   .dependsOn(frp.js)
 

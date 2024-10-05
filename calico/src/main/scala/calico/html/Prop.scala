@@ -31,6 +31,7 @@ import fs2.concurrent.Signal
 import org.scalajs.dom
 
 import scala.scalajs.js
+import scala.annotation.targetName
 
 sealed class Prop[F[_], V, J] private[calico] (name: String, encode: V => J):
   import Prop.*
@@ -154,9 +155,14 @@ final class EventProp[F[_], A] private[calico] (key: String, pipe: Pipe[F, Any, 
   @inline def -->(sink: Pipe[F, A, Nothing]): PipeModifier[F] =
     PipeModifier(key, pipe.andThen(sink))
 
+  // N.B. Setting target names explicitly to avoid removing the static forwarders.
+  // See https://github.com/armanbilge/calico/pull/402#issuecomment-2395163945
+
+  @targetName("applyEffect")
   @inline def apply(fu: F[Unit]): PipeModifier[F] =
     -->(_.foreach(_ => fu))
 
+  @targetName("applyFun")
   @inline def apply(fun: A => F[Unit]): PipeModifier[F] =
     -->(_.foreach(fun))
 
