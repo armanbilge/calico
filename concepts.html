@@ -175,7 +175,10 @@
           </span><span class="comment">// here, input events are run through the given Pipe
 </span><span>          </span><span class="comment">// this starts background fibers within the lifecycle of the &lt;input&gt; element
 </span><span>          </span><span class="identifier">onInput</span><span> --&gt; (</span><span class="identifier">_</span><span>.</span><span class="identifier">foreach</span><span>(</span><span class="identifier">_</span><span> =&gt; </span><span class="identifier">self</span><span>.</span><span class="identifier">value</span><span>.</span><span class="identifier">get</span><span>.</span><span class="identifier">flatMap</span><span>(</span><span class="identifier">name</span><span>.</span><span class="identifier">set</span><span>)))
-        )
+          </span><span class="comment">// You can also use simpler syntax - these are all equivalent to a foreach:
+</span><span>          </span><span class="comment">// onInput(_ =&gt; self.value.get.flatMap(name.set))
+</span><span>          </span><span class="comment">// onInput(self.value.get.flatMap(name.set))
+</span><span>        )
       },
       </span><span class="identifier">span</span><span>(
         </span><span class="string-literal">&quot; Hello, &quot;</span><span>,
@@ -188,7 +191,7 @@
         <div id="mdoc-html-run3" data-mdoc-js></div>
         <p>The ideas are very much the same as the prior example.</p>
         <ol class="arabic">
-          <li><code>input(...)</code> is a <code>Resource</code> that creates an <code>&lt;input&gt;</code> element and also manages <code>Fiber</code>s that handle input events. </li>
+          <li><code>input(...)</code> is a <code>Resource</code> that creates an <code>&lt;input&gt;</code> element and also manages <code>Fiber</code>s that handle input events.</li>
           <li><code>span(...)</code> is a <code>Resource</code> that creates a <code>&lt;span&gt;</code> element and also manages <code>Fiber</code>s that handle rendering of the name.</li>
           <li><code>div(...)</code> is a <code>Resource</code> composed of the <code>input(...)</code> and <code>span(...)</code> <code>Resource</code>s, and therefore (indirectly) manages the <code>Fiber</code>s of its child components.</li>
         </ol>
@@ -216,7 +219,7 @@
       </span><span class="identifier">div</span><span>(
         </span><span class="identifier">label</span><span>(</span><span class="string-literal">&quot;North input: &quot;</span><span>),
         </span><span class="identifier">input</span><span>.</span><span class="identifier">withSelf</span><span> { </span><span class="identifier">self</span><span> =&gt;
-          </span><span class="identifier">onInput</span><span> --&gt; (</span><span class="identifier">_</span><span>.</span><span class="identifier">foreach</span><span>(</span><span class="identifier">_</span><span> =&gt; </span><span class="identifier">self</span><span>.</span><span class="identifier">value</span><span>.</span><span class="identifier">get</span><span>.</span><span class="identifier">flatMap</span><span>(</span><span class="identifier">northSig</span><span>.</span><span class="identifier">set</span><span>)))
+          </span><span class="identifier">onInput</span><span>(</span><span class="identifier">self</span><span>.</span><span class="identifier">value</span><span>.</span><span class="identifier">get</span><span>.</span><span class="identifier">flatMap</span><span>(</span><span class="identifier">northSig</span><span>.</span><span class="identifier">set</span><span>))
         },
       ),
       </span><span class="identifier">br</span><span>(()),
@@ -226,13 +229,13 @@
             </span><span class="identifier">option</span><span>(</span><span class="identifier">disabled</span><span> := </span><span class="boolean-literal">true</span><span>, </span><span class="identifier">selected</span><span> := </span><span class="boolean-literal">true</span><span>, </span><span class="string-literal">&quot;Select input&quot;</span><span>),
             </span><span class="identifier">option</span><span>(</span><span class="identifier">value</span><span> := </span><span class="string-literal">&quot;north&quot;</span><span>, </span><span class="string-literal">&quot;North&quot;</span><span>),
             </span><span class="identifier">option</span><span>(</span><span class="identifier">value</span><span> := </span><span class="string-literal">&quot;south&quot;</span><span>, </span><span class="string-literal">&quot;South&quot;</span><span>),
-            </span><span class="identifier">onChange</span><span> --&gt; (
-              </span><span class="identifier">_</span><span>.</span><span class="identifier">foreach</span><span>(</span><span class="identifier">_</span><span> =&gt; </span><span class="identifier">self</span><span>.</span><span class="identifier">value</span><span>.</span><span class="identifier">get</span><span>.</span><span class="identifier">map</span><span> {
+            </span><span class="identifier">onChange</span><span> {
+              </span><span class="identifier">self</span><span>.</span><span class="identifier">value</span><span>.</span><span class="identifier">get</span><span>.</span><span class="identifier">map</span><span> {
                 </span><span class="keyword">case</span><span> </span><span class="string-literal">&quot;north&quot;</span><span> =&gt; </span><span class="type-name">Some</span><span>(</span><span class="type-name">Cardinal</span><span>.</span><span class="type-name">North</span><span>)
                 </span><span class="keyword">case</span><span> </span><span class="string-literal">&quot;south&quot;</span><span> =&gt; </span><span class="type-name">Some</span><span>(</span><span class="type-name">Cardinal</span><span>.</span><span class="type-name">South</span><span>)
                 </span><span class="keyword">case</span><span> </span><span class="identifier">_</span><span> =&gt; </span><span class="type-name">None</span><span>
-              }.</span><span class="identifier">flatMap</span><span>(</span><span class="identifier">cardinalSig</span><span>.</span><span class="identifier">set</span><span>(</span><span class="identifier">_</span><span>)))
-            )
+              }.</span><span class="identifier">flatMap</span><span>(</span><span class="identifier">cardinalSig</span><span>.</span><span class="identifier">set</span><span>(</span><span class="identifier">_</span><span>))
+            }
           )
         },
         </span><span class="string-literal">&quot; &quot;</span><span>,
@@ -247,7 +250,7 @@
       </span><span class="identifier">div</span><span>(
         </span><span class="identifier">label</span><span>(</span><span class="string-literal">&quot;South input: &quot;</span><span>),
         </span><span class="identifier">input</span><span>.</span><span class="identifier">withSelf</span><span> { </span><span class="identifier">self</span><span> =&gt;
-          </span><span class="identifier">onInput</span><span> --&gt; (</span><span class="identifier">_</span><span>.</span><span class="identifier">foreach</span><span>(</span><span class="identifier">_</span><span> =&gt; </span><span class="identifier">self</span><span>.</span><span class="identifier">value</span><span>.</span><span class="identifier">get</span><span>.</span><span class="identifier">flatMap</span><span>(</span><span class="identifier">southSig</span><span>.</span><span class="identifier">set</span><span>)))
+          </span><span class="identifier">onInput</span><span>(</span><span class="identifier">self</span><span>.</span><span class="identifier">value</span><span>.</span><span class="identifier">get</span><span>.</span><span class="identifier">flatMap</span><span>(</span><span class="identifier">southSig</span><span>.</span><span class="identifier">set</span><span>))
         },
       ),
     )

@@ -174,7 +174,7 @@
                 </span><span class="identifier">cls</span><span> := </span><span class="string-literal">&quot;toggle-all&quot;</span><span>,
                 </span><span class="identifier">typ</span><span> := </span><span class="string-literal">&quot;checkbox&quot;</span><span>,
                 </span><span class="identifier">checked</span><span> &lt;-- </span><span class="identifier">store</span><span>.</span><span class="identifier">allCompleted</span><span>,
-                </span><span class="identifier">onInput</span><span> --&gt; { </span><span class="identifier">_</span><span>.</span><span class="identifier">foreach</span><span>(</span><span class="identifier">_</span><span> =&gt; </span><span class="identifier">self</span><span>.</span><span class="identifier">checked</span><span>.</span><span class="identifier">get</span><span>.</span><span class="identifier">flatMap</span><span>(</span><span class="identifier">store</span><span>.</span><span class="identifier">toggleAll</span><span>)) })),
+                </span><span class="identifier">onInput</span><span>(</span><span class="identifier">self</span><span>.</span><span class="identifier">checked</span><span>.</span><span class="identifier">get</span><span>.</span><span class="identifier">flatMap</span><span>(</span><span class="identifier">store</span><span>.</span><span class="identifier">toggleAll</span><span>)))),
             </span><span class="identifier">label</span><span>(</span><span class="identifier">forId</span><span> := </span><span class="string-literal">&quot;toggle-all&quot;</span><span>, </span><span class="string-literal">&quot;Mark all as complete&quot;</span><span>),
             </span><span class="identifier">ul</span><span>(
               </span><span class="identifier">cls</span><span> := </span><span class="string-literal">&quot;todo-list&quot;</span><span>,
@@ -214,7 +214,7 @@
           </span><span class="keyword">val</span><span> </span><span class="identifier">editing</span><span> = </span><span class="type-name">Option</span><span>.</span><span class="identifier">when</span><span>(</span><span class="identifier">e</span><span>)(</span><span class="string-literal">&quot;editing&quot;</span><span>)
           </span><span class="identifier">completed</span><span>.</span><span class="identifier">toList</span><span> ++ </span><span class="identifier">editing</span><span>.</span><span class="identifier">toList</span><span>
         },
-        </span><span class="identifier">onDblClick</span><span> --&gt; (</span><span class="identifier">_</span><span>.</span><span class="identifier">foreach</span><span>(</span><span class="identifier">_</span><span> =&gt; </span><span class="identifier">editing</span><span>.</span><span class="identifier">set</span><span>(</span><span class="boolean-literal">true</span><span>))),
+        </span><span class="identifier">onDblClick</span><span>(</span><span class="identifier">editing</span><span>.</span><span class="identifier">set</span><span>(</span><span class="boolean-literal">true</span><span>)),
         </span><span class="identifier">children</span><span> &lt;-- </span><span class="identifier">editing</span><span>.</span><span class="identifier">map</span><span> {
           </span><span class="keyword">case</span><span> </span><span class="boolean-literal">true</span><span> =&gt;
             </span><span class="type-name">List</span><span>(
@@ -229,17 +229,15 @@
                 (
                   </span><span class="identifier">cls</span><span> := </span><span class="string-literal">&quot;edit&quot;</span><span>,
                   </span><span class="identifier">defaultValue</span><span> &lt;-- </span><span class="identifier">todo</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">foldMap</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">text</span><span>)),
-                  </span><span class="identifier">onKeyDown</span><span> --&gt; {
-                    </span><span class="identifier">_</span><span>.</span><span class="identifier">foreach</span><span> {
-                      </span><span class="keyword">case</span><span> </span><span class="identifier">e</span><span> </span><span class="keyword">if</span><span> </span><span class="identifier">e</span><span>.</span><span class="identifier">key</span><span> == </span><span class="type-name">KeyValue</span><span>.</span><span class="type-name">Enter</span><span> =&gt; </span><span class="identifier">endEdit</span><span>
-                      </span><span class="keyword">case</span><span> </span><span class="identifier">e</span><span> </span><span class="keyword">if</span><span> </span><span class="identifier">e</span><span>.</span><span class="identifier">key</span><span> == </span><span class="type-name">KeyValue</span><span>.</span><span class="type-name">Escape</span><span> =&gt; </span><span class="identifier">editing</span><span>.</span><span class="identifier">set</span><span>(</span><span class="boolean-literal">false</span><span>)
-                      </span><span class="keyword">case</span><span> </span><span class="identifier">_</span><span> =&gt; </span><span class="type-name">IO</span><span>.</span><span class="identifier">unit</span><span>
-                    }
+                  </span><span class="identifier">onKeyDown</span><span> {
+                    </span><span class="keyword">case</span><span> </span><span class="identifier">e</span><span> </span><span class="keyword">if</span><span> </span><span class="identifier">e</span><span>.</span><span class="identifier">key</span><span> == </span><span class="type-name">KeyValue</span><span>.</span><span class="type-name">Enter</span><span> =&gt; </span><span class="identifier">endEdit</span><span>
+                    </span><span class="keyword">case</span><span> </span><span class="identifier">e</span><span> </span><span class="keyword">if</span><span> </span><span class="identifier">e</span><span>.</span><span class="identifier">key</span><span> == </span><span class="type-name">KeyValue</span><span>.</span><span class="type-name">Escape</span><span> =&gt; </span><span class="identifier">editing</span><span>.</span><span class="identifier">set</span><span>(</span><span class="boolean-literal">false</span><span>)
+                    </span><span class="keyword">case</span><span> </span><span class="identifier">_</span><span> =&gt; </span><span class="type-name">IO</span><span>.</span><span class="identifier">unit</span><span>
                   },
-                  </span><span class="identifier">onBlur</span><span> --&gt; (</span><span class="identifier">_</span><span>.</span><span class="identifier">foreach</span><span>(</span><span class="identifier">_</span><span> =&gt; {
+                  </span><span class="identifier">onBlur</span><span> {
                     </span><span class="comment">// do not endEdit when blur is triggered after Escape
 </span><span>                    </span><span class="identifier">editing</span><span>.</span><span class="identifier">get</span><span>.</span><span class="identifier">ifM</span><span>(</span><span class="identifier">endEdit</span><span>, </span><span class="type-name">IO</span><span>.</span><span class="identifier">unit</span><span>)
-                  }))
+                  }
                 )
               }
             )
@@ -251,17 +249,15 @@
                   </span><span class="identifier">cls</span><span> := </span><span class="string-literal">&quot;toggle&quot;</span><span>,
                   </span><span class="identifier">typ</span><span> := </span><span class="string-literal">&quot;checkbox&quot;</span><span>,
                   </span><span class="identifier">checked</span><span> &lt;-- </span><span class="identifier">todo</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">fold</span><span>(</span><span class="boolean-literal">false</span><span>)(</span><span class="identifier">_</span><span>.</span><span class="identifier">completed</span><span>)),
-                  </span><span class="identifier">onInput</span><span> --&gt; {
-                    </span><span class="identifier">_</span><span>.</span><span class="identifier">foreach</span><span> { </span><span class="identifier">_</span><span> =&gt;
-                      </span><span class="identifier">self</span><span>.</span><span class="identifier">checked</span><span>.</span><span class="identifier">get</span><span>.</span><span class="identifier">flatMap</span><span> { </span><span class="identifier">checked</span><span> =&gt;
-                        </span><span class="identifier">todo</span><span>.</span><span class="identifier">update</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">copy</span><span>(</span><span class="identifier">completed</span><span> = </span><span class="identifier">checked</span><span>)))
-                      }
+                  </span><span class="identifier">onInput</span><span> {
+                    </span><span class="identifier">self</span><span>.</span><span class="identifier">checked</span><span>.</span><span class="identifier">get</span><span>.</span><span class="identifier">flatMap</span><span> { </span><span class="identifier">checked</span><span> =&gt;
+                      </span><span class="identifier">todo</span><span>.</span><span class="identifier">update</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">copy</span><span>(</span><span class="identifier">completed</span><span> = </span><span class="identifier">checked</span><span>)))
                     }
                   }
                 )
               },
               </span><span class="identifier">label</span><span>(</span><span class="identifier">todo</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span>.</span><span class="identifier">text</span><span>))),
-              </span><span class="identifier">button</span><span>(</span><span class="identifier">cls</span><span> := </span><span class="string-literal">&quot;destroy&quot;</span><span>, </span><span class="identifier">onClick</span><span> --&gt; (</span><span class="identifier">_</span><span>.</span><span class="identifier">foreach</span><span>(</span><span class="identifier">_</span><span> =&gt; </span><span class="identifier">todo</span><span>.</span><span class="identifier">set</span><span>(</span><span class="type-name">None</span><span>))))
+              </span><span class="identifier">button</span><span>(</span><span class="identifier">cls</span><span> := </span><span class="string-literal">&quot;destroy&quot;</span><span>, </span><span class="identifier">onClick</span><span>(</span><span class="identifier">todo</span><span>.</span><span class="identifier">set</span><span>(</span><span class="type-name">None</span><span>)))
             ))
         }
       )
@@ -288,7 +284,7 @@
           </span><span class="identifier">li</span><span>(
             </span><span class="identifier">a</span><span>(
               </span><span class="identifier">cls</span><span> &lt;-- </span><span class="identifier">filter</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span> == </span><span class="identifier">f</span><span>).</span><span class="identifier">map</span><span>(</span><span class="type-name">Option</span><span>.</span><span class="identifier">when</span><span>(</span><span class="identifier">_</span><span>)(</span><span class="string-literal">&quot;selected&quot;</span><span>).</span><span class="identifier">toList</span><span>),
-              </span><span class="identifier">onClick</span><span> --&gt; (</span><span class="identifier">_</span><span>.</span><span class="identifier">foreach</span><span>(</span><span class="identifier">_</span><span> =&gt; </span><span class="identifier">router</span><span>.</span><span class="identifier">navigate</span><span>(</span><span class="type-name">Uri</span><span>(</span><span class="identifier">fragment</span><span> = </span><span class="identifier">f</span><span>.</span><span class="identifier">fragment</span><span>.</span><span class="identifier">some</span><span>)))),
+              </span><span class="identifier">onClick</span><span>(</span><span class="identifier">router</span><span>.</span><span class="identifier">navigate</span><span>(</span><span class="type-name">Uri</span><span>(</span><span class="identifier">fragment</span><span> = </span><span class="identifier">f</span><span>.</span><span class="identifier">fragment</span><span>.</span><span class="identifier">some</span><span>))),
               </span><span class="identifier">href</span><span> := </span><span class="string-literal">s&quot;/#</span><span class="substitution">${f.fragment}</span><span class="string-literal">&quot;</span><span>,
               </span><span class="identifier">f</span><span>.</span><span class="identifier">toString</span><span>
             )
@@ -301,10 +297,9 @@
           </span><span class="type-name">Option</span><span>.</span><span class="identifier">when</span><span>(</span><span class="identifier">_</span><span>)(
             </span><span class="identifier">button</span><span>(
               </span><span class="identifier">cls</span><span> := </span><span class="string-literal">&quot;clear-completed&quot;</span><span>,
-              </span><span class="identifier">onClick</span><span> --&gt; {
-                </span><span class="identifier">_</span><span>.</span><span class="identifier">foreach</span><span>(</span><span class="identifier">_</span><span> =&gt; </span><span class="identifier">store</span><span>.</span><span class="identifier">clearCompleted</span><span>)
-              },
-              </span><span class="string-literal">&quot;Clear completed&quot;</span><span>)))
+              </span><span class="identifier">onClick</span><span>(</span><span class="identifier">store</span><span>.</span><span class="identifier">clearCompleted</span><span>),
+              </span><span class="string-literal">&quot;Clear completed&quot;</span><span>
+            )))
     )
 
 </span><span class="keyword">class</span><span> </span><span class="type-name">TodoStore</span><span>(</span><span class="identifier">entries</span><span>: </span><span class="type-name">SignallingSortedMapRef</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">Long</span><span>, </span><span class="type-name">Todo</span><span>], </span><span class="identifier">nextId</span><span>: </span><span class="type-name">IO</span><span>[</span><span class="type-name">Long</span><span>]):

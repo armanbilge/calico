@@ -192,9 +192,7 @@
               </span><span class="string-literal">&quot; &quot;</span><span>,
               </span><span class="identifier">button</span><span>(
                 </span><span class="string-literal">&quot;+&quot;</span><span>,
-                </span><span class="identifier">onClick</span><span> --&gt; {
-                  </span><span class="identifier">_</span><span>.</span><span class="identifier">foreach</span><span>(</span><span class="identifier">_</span><span> =&gt; </span><span class="identifier">n</span><span>.</span><span class="identifier">get</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">i</span><span> =&gt; </span><span class="identifier">countUri</span><span>(</span><span class="identifier">i</span><span> + </span><span class="number-literal">1</span><span>)).</span><span class="identifier">flatMap</span><span>(</span><span class="identifier">router</span><span>.</span><span class="identifier">navigate</span><span>))
-                }
+                </span><span class="identifier">onClick</span><span>(</span><span class="identifier">n</span><span>.</span><span class="identifier">get</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">i</span><span> =&gt; </span><span class="identifier">countUri</span><span>(</span><span class="identifier">i</span><span> + </span><span class="number-literal">1</span><span>)).</span><span class="identifier">flatMap</span><span>(</span><span class="identifier">router</span><span>.</span><span class="identifier">navigate</span><span>))
               )
             )
         }
@@ -211,7 +209,7 @@
               </span><span class="identifier">li</span><span>(
                 </span><span class="identifier">a</span><span>(
                   </span><span class="identifier">href</span><span> := </span><span class="string-literal">&quot;#&quot;</span><span>,
-                  </span><span class="identifier">onClick</span><span> --&gt; (</span><span class="identifier">_</span><span>.</span><span class="identifier">foreach</span><span>(</span><span class="identifier">_</span><span> =&gt; </span><span class="identifier">router</span><span>.</span><span class="identifier">navigate</span><span>(</span><span class="identifier">helloUri</span><span>(</span><span class="identifier">who</span><span>)))),
+                  </span><span class="identifier">onClick</span><span>(</span><span class="identifier">router</span><span>.</span><span class="identifier">navigate</span><span>(</span><span class="identifier">helloUri</span><span>(</span><span class="identifier">who</span><span>))),
                   </span><span class="string-literal">s&quot;Hello, </span><span class="substitution">$who</span><span class="string-literal">&quot;</span><span>
                 )
               )
@@ -219,7 +217,7 @@
             </span><span class="identifier">li</span><span>(
               </span><span class="identifier">a</span><span>(
                 </span><span class="identifier">href</span><span> := </span><span class="string-literal">&quot;#&quot;</span><span>,
-                </span><span class="identifier">onClick</span><span> --&gt; (</span><span class="identifier">_</span><span>.</span><span class="identifier">foreach</span><span>(</span><span class="identifier">_</span><span> =&gt; </span><span class="identifier">router</span><span>.</span><span class="identifier">navigate</span><span>(</span><span class="identifier">countUri</span><span>(</span><span class="number-literal">0</span><span>)))),
+                </span><span class="identifier">onClick</span><span>(</span><span class="identifier">router</span><span>.</span><span class="identifier">navigate</span><span>(</span><span class="identifier">countUri</span><span>(</span><span class="number-literal">0</span><span>))),
                 </span><span class="string-literal">&quot;Let&#39;s count!&quot;</span><span>
               )
             )
