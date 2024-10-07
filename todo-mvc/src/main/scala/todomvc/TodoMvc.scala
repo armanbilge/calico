@@ -54,7 +54,7 @@ object TodoMvc extends IOWebApp:
                 cls := "toggle-all",
                 typ := "checkbox",
                 checked <-- store.allCompleted,
-                onInput --> { _.foreach(_ => self.checked.get.flatMap(store.toggleAll)) })),
+                onInput(self.checked.get.flatMap(store.toggleAll)))),
             label(forId := "toggle-all", "Mark all as complete"),
             ul(
               cls := "todo-list",
@@ -94,7 +94,7 @@ object TodoMvc extends IOWebApp:
           val editing = Option.when(e)("editing")
           completed.toList ++ editing.toList
         },
-        onDblClick --> (_.foreach(_ => editing.set(true))),
+        onDblClick(editing.set(true)),
         children <-- editing.map {
           case true =>
             List(
@@ -109,17 +109,15 @@ object TodoMvc extends IOWebApp:
                 (
                   cls := "edit",
                   defaultValue <-- todo.map(_.foldMap(_.text)),
-                  onKeyDown --> {
-                    _.foreach {
-                      case e if e.key == KeyValue.Enter => endEdit
-                      case e if e.key == KeyValue.Escape => editing.set(false)
-                      case _ => IO.unit
-                    }
+                  onKeyDown {
+                    case e if e.key == KeyValue.Enter => endEdit
+                    case e if e.key == KeyValue.Escape => editing.set(false)
+                    case _ => IO.unit
                   },
-                  onBlur --> (_.foreach(_ => {
+                  onBlur {
                     // do not endEdit when blur is triggered after Escape
                     editing.get.ifM(endEdit, IO.unit)
-                  }))
+                  }
                 )
               }
             )
@@ -131,17 +129,15 @@ object TodoMvc extends IOWebApp:
                   cls := "toggle",
                   typ := "checkbox",
                   checked <-- todo.map(_.fold(false)(_.completed)),
-                  onInput --> {
-                    _.foreach { _ =>
-                      self.checked.get.flatMap { checked =>
-                        todo.update(_.map(_.copy(completed = checked)))
-                      }
+                  onInput {
+                    self.checked.get.flatMap { checked =>
+                      todo.update(_.map(_.copy(completed = checked)))
                     }
                   }
                 )
               },
               label(todo.map(_.map(_.text))),
-              button(cls := "destroy", onClick --> (_.foreach(_ => todo.set(None))))
+              button(cls := "destroy", onClick(todo.set(None)))
             ))
         }
       )
@@ -168,7 +164,7 @@ object TodoMvc extends IOWebApp:
           li(
             a(
               cls <-- filter.map(_ == f).map(Option.when(_)("selected").toList),
-              onClick --> (_.foreach(_ => router.navigate(Uri(fragment = f.fragment.some)))),
+              onClick(router.navigate(Uri(fragment = f.fragment.some))),
               href := s"/#${f.fragment}",
               f.toString
             )
@@ -181,10 +177,9 @@ object TodoMvc extends IOWebApp:
           Option.when(_)(
             button(
               cls := "clear-completed",
-              onClick --> {
-                _.foreach(_ => store.clearCompleted)
-              },
-              "Clear completed")))
+              onClick(store.clearCompleted),
+              "Clear completed"
+            )))
     )
 
 class TodoStore(entries: SignallingSortedMapRef[IO, Long, Todo], nextId: IO[Long]):
