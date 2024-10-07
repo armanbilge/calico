@@ -1,6 +1,3 @@
-import com.typesafe.tools.mima.core.ProblemFilters
-import com.typesafe.tools.mima.core.DirectMissingMethodProblem
-
 ThisBuild / tlBaseVersion := "0.2"
 
 ThisBuild / organization := "com.armanbilge"
