@@ -20,7 +20,7 @@ val CatsVersion = "2.12.0"
 val CatsEffectVersion = "3.5.4"
 val Fs2Version = "3.11.0"
 val Fs2DomVersion = "0.2.1"
-val Http4sVersion = "0.23.28"
+val Http4sVersion = "0.23.29"
 val Http4sDomVersion = "0.2.11"
 val MonocleVersion = "3.3.0"
 
