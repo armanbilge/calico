@@ -81,6 +81,48 @@ The ideas are very much the same as the prior example.
 
 And there we have it: a self-contained component consisting of non-trivial resources, that can be safely used, reused, and torn down.
 
+If you want to define a reusable component with parameters, you can refer to the following example.
+
+```scala mdoc:js
+import calico.*
+import calico.html.io.{*, given}
+import calico.unsafe.given
+import calico.syntax.*
+import calico.html.Modifier
+import cats.effect.*
+import cats.syntax.all.*
+import fs2.*
+import fs2.concurrent.*
+import fs2.dom.*
+
+object CustomerComponent:
+  def apply[M](mods: M,str : String)(using Modifier[IO, HtmlButtonElement[IO], M]) =
+    button(
+      styleAttr := """display: inline-block;
+        padding: 10px 20px;
+        cursor: pointer;
+        border: 2px solid #3498db;
+        color: #3498db;
+        border-radius: 5px;
+        transition: background-color 0.3s, color 0.3s;""",
+      span(
+        styleAttr := """font-size: 16px;
+        font-weight: bold;
+        text-align: center;
+        text-decoration: none;""",
+        str
+      )
+    ).flatTap(_.modify(mods))
+
+val root: Resource[IO, HtmlButtonElement[IO]] = CustomerComponent(
+  (
+    onClick --> (_.foreach(_ => IO(org.scalajs.dom.window.alert("world"))))
+  ),
+  str = "hello")
+    
+root.renderInto(node.asInstanceOf[fs2.dom.Node[IO]]).useForever.unsafeRunAndForget()
+```
+
 ## Signals
 
 In the Hello World demo above, we glossed over the `SignallingRef` used to hold the component’s state. A `SignallingRef` is a Cats Effect `Ref` (i.e. a mutable variable) that is also an FS2 `Signal`.
