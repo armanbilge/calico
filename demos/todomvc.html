@@ -284,8 +284,7 @@
           </span><span class="identifier">li</span><span>(
             </span><span class="identifier">a</span><span>(
               </span><span class="identifier">cls</span><span> &lt;-- </span><span class="identifier">filter</span><span>.</span><span class="identifier">map</span><span>(</span><span class="identifier">_</span><span> == </span><span class="identifier">f</span><span>).</span><span class="identifier">map</span><span>(</span><span class="type-name">Option</span><span>.</span><span class="identifier">when</span><span>(</span><span class="identifier">_</span><span>)(</span><span class="string-literal">&quot;selected&quot;</span><span>).</span><span class="identifier">toList</span><span>),
-              </span><span class="identifier">onClick</span><span>(</span><span class="identifier">router</span><span>.</span><span class="identifier">navigate</span><span>(</span><span class="type-name">Uri</span><span>(</span><span class="identifier">fragment</span><span> = </span><span class="identifier">f</span><span>.</span><span class="identifier">fragment</span><span>.</span><span class="identifier">some</span><span>))),
-              </span><span class="identifier">href</span><span> := </span><span class="string-literal">s&quot;/#</span><span class="substitution">${f.fragment}</span><span class="string-literal">&quot;</span><span>,
+              </span><span class="identifier">href</span><span> := </span><span class="string-literal">s&quot;#</span><span class="substitution">${f.fragment}</span><span class="string-literal">&quot;</span><span>,
               </span><span class="identifier">f</span><span>.</span><span class="identifier">toString</span><span>
             )
           )
