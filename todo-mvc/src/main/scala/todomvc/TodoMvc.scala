@@ -164,8 +164,7 @@ object TodoMvc extends IOWebApp:
           li(
             a(
               cls <-- filter.map(_ == f).map(Option.when(_)("selected").toList),
-              onClick(router.navigate(Uri(fragment = f.fragment.some))),
-              href := s"/#${f.fragment}",
+              href := s"#${f.fragment}",
               f.toString
             )
           )
