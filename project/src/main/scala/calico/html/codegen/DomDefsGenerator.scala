@@ -22,7 +22,7 @@ import com.raquo.domtypes.codegen.{
   CanonicalDefGroups,
   CanonicalGenerator,
   CodeFormatting,
-  SourceRepr,
+  SourceRepr
 }
 import cats.effect.IO
 import cats.syntax.all._
@@ -126,9 +126,9 @@ object DomDefsGenerator {
 
       val fileContent = generator.generateAttrsTrait(
         defGroups = defGroups.htmlAttrDefGroups.toList.map {
-        case (key, vals) =>
-          (key, vals.toList.map(attr => attr.copy(scalaValueType = "F, " + attr.scalaValueType)))
-},
+          case (key, vals) =>
+            (key, vals.toList.map(attr => attr.copy(scalaValueType = "F, " + attr.scalaValueType)))
+        },
         printDefGroupComments = false,
         traitCommentLines = Nil,
         traitModifiers = List("private"),
