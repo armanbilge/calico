@@ -17,11 +17,12 @@
 package calico.html.codegen
 
 import com.raquo.domtypes.codegen.DefType.LazyVal
+import calico.html.codegen.CustomCanonicalDefGroups
 import com.raquo.domtypes.codegen.{
   CanonicalDefGroups,
   CanonicalGenerator,
   CodeFormatting,
-  SourceRepr
+  SourceRepr,
 }
 import cats.effect.IO
 import cats.syntax.all._
@@ -34,12 +35,13 @@ import com.raquo.domtypes.common
 import com.raquo.domtypes.common.TagType
 import com.raquo.domtypes.common.{HtmlTagType, SvgTagType}
 import com.raquo.domtypes.defs.styles.StyleTraitDefs
+import com.raquo.domtypes.common.{AttrDef, HtmlTagType}
 import java.io.File
 
 object DomDefsGenerator {
 
   def generate(srcManaged: File): IO[List[File]] = {
-    val defGroups = new CanonicalDefGroups()
+    val defGroups = CustomCanonicalDefGroups
     val generator = new CalicoGenerator(srcManaged)
 
     def writeToFile(packagePath: String, fileName: String, fileContent: String): IO[File] =
@@ -123,10 +125,10 @@ object DomDefsGenerator {
       val traitNameWithParams = s"$traitName[F[_]]"
 
       val fileContent = generator.generateAttrsTrait(
-        defGroups = defGroups.htmlAttrDefGroups.map {
-          case (key, vals) =>
-            (key, vals.map(attr => attr.copy(scalaValueType = "F, " + attr.scalaValueType)))
-        },
+        defGroups = defGroups.htmlAttrDefGroups.toList.map {
+        case (key, vals) =>
+          (key, vals.toList.map(attr => attr.copy(scalaValueType = "F, " + attr.scalaValueType)))
+},
         printDefGroupComments = false,
         traitCommentLines = Nil,
         traitModifiers = List("private"),
