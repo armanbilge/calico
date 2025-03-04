@@ -54,7 +54,7 @@ lazy val calico = project
     name := "calico",
     libraryDependencies ++= Seq(
       "com.armanbilge" %%% "fs2-dom" % Fs2DomVersion,
-      "org.typelevel" %%% "shapeless3-deriving" % "3.4.3",
+      "org.typelevel" %%% "shapeless3-deriving" % "3.5.0",
       "dev.optics" %%% "monocle-core" % MonocleVersion,
       "org.scala-js" %%% "scalajs-dom" % "2.8.0"
     ),
