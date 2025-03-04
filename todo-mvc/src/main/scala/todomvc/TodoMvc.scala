@@ -89,6 +89,8 @@ object TodoMvc extends IOWebApp:
   def TodoItem(todo: SignallingRef[IO, Option[Todo]]): Resource[IO, HtmlLiElement[IO]] =
     SignallingRef[IO].of(false).toResource.flatMap { editing =>
       li(
+        // note: the tupling below seems to require explicit type signatures
+        // for `todo` and `editing` so that the scala compiler can help us along with `mapN`
         cls <-- (todo: Signal[IO, Option[Todo]], editing: Signal[IO, Boolean]).mapN { (t, e) =>
           val completed = Option.when(t.exists(_.completed))("completed")
           val editing = Option.when(e)("editing")
