@@ -193,3 +193,4 @@ lazy val docs = project
     },
     laikaSite := laikaSite.dependsOn(todoMvc / Compile / fullOptJS).value
   )
+  

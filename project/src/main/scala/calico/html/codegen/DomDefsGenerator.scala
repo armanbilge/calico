@@ -17,7 +17,6 @@
 package calico.html.codegen
 
 import com.raquo.domtypes.codegen.DefType.LazyVal
-// import calico.html.codegen.CustomCanonicalDefGroups
 import com.raquo.domtypes.codegen.{
   CanonicalDefGroups,
   CanonicalGenerator,
@@ -35,7 +34,6 @@ import com.raquo.domtypes.common
 import com.raquo.domtypes.common.TagType
 import com.raquo.domtypes.common.{HtmlTagType, SvgTagType}
 import com.raquo.domtypes.defs.styles.StyleTraitDefs
-import com.raquo.domtypes.common.{AttrDef, HtmlTagType}
 import java.io.File
 
 object DomDefsGenerator {
@@ -120,62 +118,38 @@ object DomDefsGenerator {
 
     // -- HTML attributes --
 
-val htmlAttrs = {
-  val traitName = "HtmlAttrs"
-  val traitNameWithParams = s"$traitName[F[_]]"
-  
-  // Get the default definitions as a Map
-  val base: Map[String, Seq[AttrDef]] = defGroups.htmlAttrDefGroups.toMap
-  
-  // Define the custom "value" attribute
-  val custom: Map[String, Seq[AttrDef]] = Map(
-    "value" -> Seq(
-      AttrDef(
-        tagType = HtmlTagType,
-        scalaName = "value",
-        scalaAliases = List("value"),
-        domName = "value",
-        namespace = None,
-        scalaValueType = "String",
-      
-        codec = "StringAsIsCodec",
-        commentLines = Nil,
-        docUrls = Nil
+    val htmlAttrs = {
+      val traitName = "HtmlAttrs"
+      val traitNameWithParams = s"$traitName[F[_]]"
+
+      val fileContent = generator.generateAttrsTrait(
+        defGroups = defGroups.htmlAttrDefGroups.map {
+          case (key, vals) =>
+            (key, vals.map(attr => attr.copy(scalaValueType = "F, " + attr.scalaValueType)))
+        },
+        printDefGroupComments = false,
+        traitCommentLines = Nil,
+        traitModifiers = List("private"),
+        traitName = traitNameWithParams,
+        keyKind = "HtmlAttr",
+        implNameSuffix = "HtmlAttr",
+        baseImplDefComments = List(
+          "Create HTML attribute (Note: for SVG attrs, use L.svg.svgAttr)",
+          "",
+          "@param key   - name of the attribute, e.g. \"value\"",
+          "@param codec - used to encode V into String, e.g. StringAsIsCodec",
+          "",
+          "@tparam V    - value type for this attr in Scala"
+        ),
+        baseImplName = "htmlAttr",
+        namespaceImports = Nil,
+        namespaceImpl = _ => ???,
+        transformAttrDomName = identity,
+        defType = LazyVal
       )
-    )
-  )
-  
-  // Merge the default definitions with your custom entry (custom wins if duplicate)
-  val updated = base ++ custom
-  
-  val fileContent = generator.generateAttrsTrait(
-    defGroups = updated.toList.map {
-      case (key, vals) =>
-        (key, vals.toList.map(attr => attr.copy(scalaValueType = "F, " + attr.scalaValueType)))
-    },
-    printDefGroupComments = false,
-    traitCommentLines = Nil,
-    traitModifiers = List("private"),
-    traitName = traitNameWithParams,
-    keyKind = "HtmlAttr",
-    implNameSuffix = "HtmlAttr",
-    baseImplDefComments = List(
-      "Create HTML attribute (Note: for SVG attrs, use L.svg.svgAttr)",
-      "",
-      "@param key   - name of the attribute, e.g. \"value\"",
-      "@param codec - used to encode V into String, e.g. StringAsIsCodec",
-      "",
-      "@tparam V    - value type for this attr in Scala"
-    ),
-    baseImplName = "htmlAttr",
-    namespaceImports = Nil,
-    namespaceImpl = _ => ???,
-    transformAttrDomName = identity,
-    defType = LazyVal
-  )
-  
-  writeToFile(generator.attrDefsPackagePath, traitName, fileContent)
-}
+
+      writeToFile(generator.attrDefsPackagePath, traitName, fileContent)
+    }
 
     // -- SVG attributes --
 
