@@ -61,3 +61,82 @@ val app: Resource[IO, HtmlDivElement[IO]] = (
 
 app.renderInto(node.asInstanceOf[fs2.dom.Node[IO]]).useForever.unsafeRunAndForget()
 ```
+
+## background
+
+```scala mdoc:js
+import calico.html.io.{*, given}
+import calico.syntax.*
+import calico.unsafe.given
+import cats.effect.*
+import cats.syntax.all.*
+import fs2.Stream
+import fs2.concurrent.*
+import fs2.dom.*
+import io.circe.*
+import org.http4s.*
+import org.http4s.circe.*
+import org.http4s.dom.*
+import scala.concurrent.duration.*
+
+case class Repo(name: String) derives Decoder
+
+object Repo:
+  given EntityDecoder[IO, Repo] = jsonOf
+
+val client = FetchClientBuilder[IO].create
+
+def app: Resource[IO, HtmlElement[IO]] = (
+  SignallingRef[IO]
+    .of(false)
+    .toResource
+  )
+  .flatMap(c => {
+    div(
+      c.map(i =>
+        i.match
+          case false => previousPage(c)
+          case true  => nextPage(c)
+      )
+    )
+  })
+
+def previousPage(c: SignallingRef[IO, Boolean]): Resource[IO, HtmlElement[IO]] =
+  (
+    SignallingRef[IO]
+      .of("")
+      .toResource,
+    SignallingRef[IO]
+      .of(false)
+      .toResource
+  )
+    .flatMapN((data, show) => {
+      val fetchData = (IO.sleep(3.seconds) >> client
+        .expect[Repo]("https://api.github.com/repos/armanbilge/calico")
+        .attempt
+        .flatMap {
+          case Right(Repo(name)) =>
+            data.set(name) >> show.set(true)
+          case Left(error) => IO(println(s"Error is ${error}"))
+        }).background // transfer fetch requests to background fibers to avoid blocking page rendering
+
+      div(
+        show
+          .map(i =>
+            i.match
+              case false => fetchData *> div("loading...")
+              case true =>
+                div(
+                  styleAttr := "display: flex; flex-direction: row;",
+                  div("Get repo name: ", data, styleAttr := "margin-right: 1em;"),
+                  button("next", onClick --> (_.foreach(_ => c.set(true))))
+                )
+          )
+      )
+    })
+
+def nextPage(c: SignallingRef[IO, Boolean]): Resource[IO, HtmlElement[IO]] =
+  button("back", onClick --> (_.foreach(_ => c.set(false))))
+
+app.renderInto(node.asInstanceOf[fs2.dom.Node[IO]]).useForever.unsafeRunAndForget()
+```
