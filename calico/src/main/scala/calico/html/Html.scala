@@ -62,3 +62,6 @@ sealed class Html[F[_]](using F: Async[F])
 
   def styleAttr: HtmlAttr[F, String] =
     HtmlAttr("style", encoders.identity)
+
+  def valueAttr: HtmlAttr[F, String] =
+  HtmlAttr("value", encoders.identity)
