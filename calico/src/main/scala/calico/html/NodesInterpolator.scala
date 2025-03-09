@@ -44,11 +44,11 @@ class NodesInterpolator[F[_]](private val sc: StringContext) extends AnyVal {
     // Create text nodes from static parts
     val textParts = sc.parts.map(part => textNode[F, El](part))
 
-    // Convert arguments to modifiers
-    val argMods = args.map(processArgument[F, El](_))
+    // Convert arguments to modifiers - explicitly specify the type parameter El
+    val argMods = args.map(arg => processArgument[F, El](arg))
 
     // Interleave text parts and arguments
-    val combined = interleavePartsAndArgs(textParts, argMods.toList)
+    val combined = interleavePartsAndArgs[El](textParts, argMods.toList)
 
     // Combine all modifiers by chaining them
     combined.reduce { (mod1, mod2) =>
@@ -66,104 +66,123 @@ class NodesInterpolator[F[_]](private val sc: StringContext) extends AnyVal {
   // Process an argument and convert it to a modifier
   private def processArgument[F[_], El <: HtmlElement[F]](arg: Any)(
       using F: Concurrent[F]): Modifier[F, El, Any] = {
+    // Return null text node immediately
     arg match {
       case null => textNode[F, El]("null")
-      case _ => 
-        val result = List(
-          trySignalString[F, El](arg),
-          trySignalAny[F, El](arg),
-          tryModifier[F, El](arg),
-          tryProduct[F, El](arg),
-          tryEffect[F, El](arg)
-        ).flatten.headOption
-        
-        result.getOrElse(textNode[F, El](arg.toString))
+      case _ =>
+        // Try all possible transformations in order
+        val options = List[Option[Modifier[F, El, Any]]](
+          processSignal[F, El](arg),
+          processModifier[F, El](arg),
+          processProduct[F, El](arg),
+          processEffect[F, El](arg)
+        )
+
+        // Take the first successful transformation, or use toString as fallback
+        options.collectFirst { case Some(mod) => mod }.getOrElse(textNode[F, El](arg.toString))
     }
   }
-  
-  // Try to process as a Signal[F, String]
-  private def trySignalString[F[_], El <: HtmlElement[F]](arg: Any)(
+
+  // Process Signal types
+  private def processSignal[F[_], El <: HtmlElement[F]](arg: Any)(
       using F: Concurrent[F]): Option[Modifier[F, El, Any]] = {
-    arg match {
-      case _: Signal[?, ?] =>
+    // Avoid pattern matching on Any by using the class's canonical name
+    val isSignal = arg.getClass.getName.contains("fs2.concurrent.Signal")
+
+    isSignal match {
+      case true =>
+        // First try to process as Signal[F, String]
         Try {
           val signal = arg.asInstanceOf[Signal[F, String]]
           signal.map(textNode[F, El](_)).asInstanceOf[Modifier[F, El, Any]]
+        }.orElse {
+          // If that fails, try as Signal[F, Any]
+          Try {
+            val signal = arg.asInstanceOf[Signal[F, Any]]
+            signal
+              .map(value => textNode[F, El](value.toString))
+              .asInstanceOf[Modifier[F, El, Any]]
+          }
         }.toOption
-      case _ => None
+      case false => None
     }
   }
-  
-  // Try to process as a Signal[F, Any]
-  private def trySignalAny[F[_], El <: HtmlElement[F]](arg: Any)(
+
+  // Process Modifier types
+  private def processModifier[F[_], El <: HtmlElement[F]](
+      arg: Any): Option[Modifier[F, El, Any]] = {
+    // Avoid pattern matching on Any by using the class's canonical name
+    val isModifier = arg.getClass.getName.contains("calico.html.Modifier")
+
+    isModifier match {
+      case true =>
+        Try(arg.asInstanceOf[Modifier[F, El, Any]]).toOption
+      case false => None
+    }
+  }
+
+  // Process Product types (tuples, case classes)
+  private def processProduct[F[_], El <: HtmlElement[F]](arg: Any)(
       using F: Concurrent[F]): Option[Modifier[F, El, Any]] = {
-    arg match {
-      case _: Signal[?, ?] =>
-        Try {
-          val signal = arg.asInstanceOf[Signal[F, Any]]
-          signal.map(value => textNode[F, El](value.toString)).asInstanceOf[Modifier[F, El, Any]]
-        }.toOption
-      case _ => None
+    // Use isInstance with specific matching against Product.class
+    val isProduct = classOf[Product].isAssignableFrom(arg.getClass)
+
+    isProduct match {
+      case true =>
+        val product = arg.asInstanceOf[Product]
+        Some(textNode[F, El](formatProduct(product)))
+      case false => None
     }
   }
-  
-  // Try to process as a Modifier
-  private def tryModifier[F[_], El <: HtmlElement[F]](arg: Any)(
-      using F: Concurrent[F]): Option[Modifier[F, El, Any]] = {
-    arg match {
-      case _: Modifier[?, ?, ?] =>
-        Try {
-          arg.asInstanceOf[Modifier[F, El, Any]]
-        }.toOption
-      case _ => None
+
+  // Format products without pattern matching on Any
+  private def formatProduct(product: Product): String = {
+    val elements = new scala.collection.mutable.ArrayBuffer[String]()
+
+    for (i <- 0 until product.productArity) {
+      val elem = product.productElement(i)
+      val formatted = elem match {
+        case null => "null"
+        case _ =>
+          // Check if it's a Signal without pattern matching
+          val isSignal = elem.getClass.getName.contains("fs2.concurrent.Signal")
+          // Use match instead of if/else for -new-syntax compliance
+          isSignal match {
+            case true => s"Signal(${elem.hashCode})"
+            case false =>
+              // Check if it's a Product without pattern matching
+              val isNestedProduct = classOf[Product].isAssignableFrom(elem.getClass)
+              val hasElements = isNestedProduct && elem.asInstanceOf[Product].productArity > 0
+
+              // Use match instead of if/else for -new-syntax compliance
+              hasElements match {
+                case true => formatProduct(elem.asInstanceOf[Product])
+                case false => elem.toString
+              }
+          }
+      }
+      elements += formatted
     }
+
+    elements.mkString("(", ", ", ")")
   }
-  
-  // Try to process as a Product (tuple)
-  private def tryProduct[F[_], El <: HtmlElement[F]](arg: Any)(
-      using F: Concurrent[F]): Option[Modifier[F, El, Any]] = {
-    arg match {
-      case p: Product =>
-        Try {
-          textNode[F, El](formatTuple(p))
-        }.toOption
-      case _ => None
-    }
-  }
-  
-  // Try to process as an effect type F[_]
-  private def tryEffect[F[_], El <: HtmlElement[F]](arg: Any)(
+
+  // Process Effect types (IO, F[_])
+  private def processEffect[F[_], El <: HtmlElement[F]](arg: Any)(
       using F: Concurrent[F]): Option[Modifier[F, El, Any]] = {
     val className = arg.getClass.getName
-    
-    className match {
-      case name if name.contains("cats.effect") || name.contains("IO") =>
+
+    // Check if className contains relevant patterns that suggest it's an effect type
+    val mightBeEffect = className.contains("cats.effect") || className.contains("IO")
+
+    mightBeEffect match {
+      case true =>
         Try {
           F.map(arg.asInstanceOf[F[Any]])(x => textNode[F, El](x.toString))
             .asInstanceOf[Modifier[F, El, Any]]
         }.toOption
-      case _ => None
+      case false => None
     }
-  }
-  
-  // Format tuples using match expressions for Scala 3 compliance
-  private def formatTuple(tuple: Product): String = {
-    val elementsList = (0 until tuple.productArity).map { i =>
-      val elem = tuple.productElement(i)
-      
-      elem match {
-        case null => "null"
-        case signal: Signal[?, ?] => s"Signal(${signal.hashCode})"
-        case p: Product => 
-          p.productArity match {
-            case n if n > 0 => formatTuple(p)
-            case _ => p.toString
-          }
-        case other => other.toString
-      }
-    }
-    
-    elementsList.mkString("(", ", ", ")")
   }
 
   // Interleave text parts and arguments
