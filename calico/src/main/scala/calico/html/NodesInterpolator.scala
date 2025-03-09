@@ -44,36 +44,28 @@ class NodesInterpolator[F[_]](private val sc: StringContext) extends AnyVal {
 
     // Convert arguments to modifiers based on their actual type
     val argMods = args.map {
-      case null => textNode[F, El]("null")
-
-      // Using type test pattern instead of isInstanceOf
-      case arg: Signal[F, String] =>
-        arg.map(textNode[F, El](_)).asInstanceOf[Modifier[F, El, Any]]
-
-      case arg: Signal[F, ?] =>
-        arg.map(value => textNode[F, El](value.toString)).asInstanceOf[Modifier[F, El, Any]]
-
-      case arg: F[?] =>
-        // For F[] types, we need to map to a text node
-        F.map(arg.asInstanceOf[F[Any]])(v => textNode[F, El](v.toString))
-          .asInstanceOf[Modifier[F, El, Any]]
-
-      case arg: Modifier[?, ?, ?] =>
-        arg.asInstanceOf[Modifier[F, El, Any]]
-
-      case arg: Product =>
-        textNode[F, El](formatTuple(arg))
-
+      case s: Signal[F, String] @unchecked =>
+        s.map(textNode[F, El](_)).asInstanceOf[Modifier[F, El, Any]]
+      case s: Signal[F, ?] @unchecked =>
+        s.map(value => textNode[F, El](value.toString)).asInstanceOf[Modifier[F, El, Any]]
+      case f: F[String] @unchecked =>
+        F.map(f)(str => textNode[F, El](str)).asInstanceOf[Modifier[F, El, Any]]
+      case m: Modifier[F, El, ?] @unchecked =>
+        m.asInstanceOf[Modifier[F, El, Any]]
+      // Special case for tuples - convert to string representation directly
+      case tuple: Product @unchecked =>
+        textNode[F, El](formatTuple(tuple)).asInstanceOf[Modifier[F, El, Any]]
       case other =>
-        textNode[F, El](other.toString)
-    }.toList
+        textNode[F, El](other.toString).asInstanceOf[Modifier[F, El, Any]]
+    }
 
     // Interleave text parts and arguments
-    val combined = interleavePartsAndArgs(textParts, argMods)
+    val combined = interleavePartsAndArgs(textParts, argMods.toList)
 
     // Combine all modifiers by chaining them with andThen
     combined.reduce { (mod1, mod2) =>
       new Modifier[F, El, Any] {
+        // Match the exact signature from the error message
         def modify(a: Any, e: El): Resource[F, Unit] = {
           for {
             _ <- mod1.modify(a, e)
@@ -87,11 +79,13 @@ class NodesInterpolator[F[_]](private val sc: StringContext) extends AnyVal {
   // Format tuples in a more readable way
   private def formatTuple(tuple: Product): String = {
     val elements = for (i <- 0 until tuple.productArity) yield {
-      tuple.productElement(i) match {
-        case null => "null"
-        case elem: Signal[?, ?] => s"Signal(${elem.hashCode})"
-        case elem: Product if elem.productArity > 0 => formatTuple(elem)
-        case elem => elem.toString
+      val elem = tuple.productElement(i)
+      elem match {
+        case signal: Signal[?, ?] @unchecked =>
+          s"Signal(${signal.hashCode})" // Don't try to toString signals
+        case p: Product @unchecked if p.productArity > 0 =>
+          formatTuple(p) // Recursively format nested tuples
+        case other => other.toString
       }
     }
 
@@ -121,6 +115,7 @@ class NodesInterpolator[F[_]](private val sc: StringContext) extends AnyVal {
   private def textNode[F[_], El <: HtmlElement[F]](content: String)(
       using F: Concurrent[F]): Modifier[F, El, Any] = {
     new Modifier[F, El, Any] {
+      // Match the exact signature from the error message
       def modify(a: Any, e: El): Resource[F, Unit] = {
         // Create a text node and append it directly to the element
         Resource.eval(
