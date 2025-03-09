@@ -22,6 +22,8 @@ import fs2.concurrent.Signal
 import fs2.dom.HtmlElement
 import org.scalajs.dom
 
+import scala.util.Try
+
 extension (sc: StringContext) {
   def nodes[F[_]]: NodesInterpolator[F] = new NodesInterpolator(sc)
 
@@ -39,33 +41,18 @@ class NodesInterpolator[F[_]](private val sc: StringContext) extends AnyVal {
       s"wrong number of arguments (${args.length}) for interpolated string with ${sc.parts.length} parts"
     )
 
-    // Create text nodes from static parts - directly create textNode modifiers
+    // Create text nodes from static parts
     val textParts = sc.parts.map(part => textNode[F, El](part))
 
-    // Convert arguments to modifiers based on their actual type
-    val argMods = args.map {
-      case s: Signal[F, String] @unchecked =>
-        s.map(textNode[F, El](_)).asInstanceOf[Modifier[F, El, Any]]
-      case s: Signal[F, ?] @unchecked =>
-        s.map(value => textNode[F, El](value.toString)).asInstanceOf[Modifier[F, El, Any]]
-      case f: F[String] @unchecked =>
-        F.map(f)(str => textNode[F, El](str)).asInstanceOf[Modifier[F, El, Any]]
-      case m: Modifier[F, El, ?] @unchecked =>
-        m.asInstanceOf[Modifier[F, El, Any]]
-      // Special case for tuples - convert to string representation directly
-      case tuple: Product @unchecked =>
-        textNode[F, El](formatTuple(tuple)).asInstanceOf[Modifier[F, El, Any]]
-      case other =>
-        textNode[F, El](other.toString).asInstanceOf[Modifier[F, El, Any]]
-    }
+    // Convert arguments to modifiers
+    val argMods = args.map(processArgument[F, El](_))
 
     // Interleave text parts and arguments
     val combined = interleavePartsAndArgs(textParts, argMods.toList)
 
-    // Combine all modifiers by chaining them with andThen
+    // Combine all modifiers by chaining them
     combined.reduce { (mod1, mod2) =>
       new Modifier[F, El, Any] {
-        // Match the exact signature from the error message
         def modify(a: Any, e: El): Resource[F, Unit] = {
           for {
             _ <- mod1.modify(a, e)
@@ -76,23 +63,110 @@ class NodesInterpolator[F[_]](private val sc: StringContext) extends AnyVal {
     }
   }
 
-  // Format tuples in a more readable way
+  // Process an argument and convert it to a modifier
+  private def processArgument[F[_], El <: HtmlElement[F]](arg: Any)(
+      using F: Concurrent[F]): Modifier[F, El, Any] = {
+    arg match {
+      case null => textNode[F, El]("null")
+      case _ => 
+        val result = List(
+          trySignalString[F, El](arg),
+          trySignalAny[F, El](arg),
+          tryModifier[F, El](arg),
+          tryProduct[F, El](arg),
+          tryEffect[F, El](arg)
+        ).flatten.headOption
+        
+        result.getOrElse(textNode[F, El](arg.toString))
+    }
+  }
+  
+  // Try to process as a Signal[F, String]
+  private def trySignalString[F[_], El <: HtmlElement[F]](arg: Any)(
+      using F: Concurrent[F]): Option[Modifier[F, El, Any]] = {
+    arg match {
+      case _: Signal[?, ?] =>
+        Try {
+          val signal = arg.asInstanceOf[Signal[F, String]]
+          signal.map(textNode[F, El](_)).asInstanceOf[Modifier[F, El, Any]]
+        }.toOption
+      case _ => None
+    }
+  }
+  
+  // Try to process as a Signal[F, Any]
+  private def trySignalAny[F[_], El <: HtmlElement[F]](arg: Any)(
+      using F: Concurrent[F]): Option[Modifier[F, El, Any]] = {
+    arg match {
+      case _: Signal[?, ?] =>
+        Try {
+          val signal = arg.asInstanceOf[Signal[F, Any]]
+          signal.map(value => textNode[F, El](value.toString)).asInstanceOf[Modifier[F, El, Any]]
+        }.toOption
+      case _ => None
+    }
+  }
+  
+  // Try to process as a Modifier
+  private def tryModifier[F[_], El <: HtmlElement[F]](arg: Any)(
+      using F: Concurrent[F]): Option[Modifier[F, El, Any]] = {
+    arg match {
+      case _: Modifier[?, ?, ?] =>
+        Try {
+          arg.asInstanceOf[Modifier[F, El, Any]]
+        }.toOption
+      case _ => None
+    }
+  }
+  
+  // Try to process as a Product (tuple)
+  private def tryProduct[F[_], El <: HtmlElement[F]](arg: Any)(
+      using F: Concurrent[F]): Option[Modifier[F, El, Any]] = {
+    arg match {
+      case p: Product =>
+        Try {
+          textNode[F, El](formatTuple(p))
+        }.toOption
+      case _ => None
+    }
+  }
+  
+  // Try to process as an effect type F[_]
+  private def tryEffect[F[_], El <: HtmlElement[F]](arg: Any)(
+      using F: Concurrent[F]): Option[Modifier[F, El, Any]] = {
+    val className = arg.getClass.getName
+    
+    className match {
+      case name if name.contains("cats.effect") || name.contains("IO") =>
+        Try {
+          F.map(arg.asInstanceOf[F[Any]])(x => textNode[F, El](x.toString))
+            .asInstanceOf[Modifier[F, El, Any]]
+        }.toOption
+      case _ => None
+    }
+  }
+  
+  // Format tuples using match expressions for Scala 3 compliance
   private def formatTuple(tuple: Product): String = {
-    val elements = for (i <- 0 until tuple.productArity) yield {
+    val elementsList = (0 until tuple.productArity).map { i =>
       val elem = tuple.productElement(i)
+      
       elem match {
-        case signal: Signal[?, ?] @unchecked =>
-          s"Signal(${signal.hashCode})" // Don't try to toString signals
-        case p: Product @unchecked if p.productArity > 0 =>
-          formatTuple(p) // Recursively format nested tuples
+        case null => "null"
+        case signal: Signal[?, ?] => s"Signal(${signal.hashCode})"
+        case p: Product => 
+          p.productArity match {
+            case n if n > 0 => formatTuple(p)
+            case _ => p.toString
+          }
         case other => other.toString
       }
     }
-
-    // Format as (elem1, elem2, ...)
-    elements.mkString("(", ", ", ")")
+    
+    elementsList.mkString("(", ", ", ")")
   }
 
+  // Interleave text parts and arguments
   private def interleavePartsAndArgs[El <: HtmlElement[F]](
       parts: Seq[Modifier[F, El, Any]],
       args: List[Modifier[F, El, Any]]
@@ -103,7 +177,7 @@ class NodesInterpolator[F[_]](private val sc: StringContext) extends AnyVal {
     result += parts.head
 
     // Add interleaved parts and args
-    for (i <- 0 until args.length) {
+    (0 until args.length).foreach { i =>
       result += args(i)
       result += parts(i + 1)
     }
@@ -111,13 +185,11 @@ class NodesInterpolator[F[_]](private val sc: StringContext) extends AnyVal {
     result.toList
   }
 
-  // Helper method to create text nodes using the appropriate methods for your Calico version
+  // Helper method to create text nodes
   private def textNode[F[_], El <: HtmlElement[F]](content: String)(
       using F: Concurrent[F]): Modifier[F, El, Any] = {
     new Modifier[F, El, Any] {
-      // Match the exact signature from the error message
       def modify(a: Any, e: El): Resource[F, Unit] = {
-        // Create a text node and append it directly to the element
         Resource.eval(
           F.pure {
             val textNode = dom.document.createTextNode(content)

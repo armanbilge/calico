@@ -12,12 +12,7 @@ ThisBuild / tlSitePublishBranch := Some("main")
 ThisBuild / tlSonatypeUseLegacyHost := false
 
 ThisBuild / crossScalaVersions := Seq("3.3.5")
-ThisBuild / scalacOptions ++= Seq(
-  "-new-syntax",
-  "-indent",
-  "-source:future",
-  "-Wconf:msg=pattern selector should be an instance of Matchable:warning"
-) // Corrected flag
+ThisBuild / scalacOptions ++= Seq("-new-syntax", "-indent", "-source:future")
 
 ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("21"))
 
