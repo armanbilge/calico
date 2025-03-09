@@ -18,8 +18,8 @@ package calico.html
 
 import cats.effect.Concurrent
 import cats.effect.kernel.Resource
-import fs2.dom.HtmlElement
 import fs2.concurrent.Signal
+import fs2.dom.HtmlElement
 import org.scalajs.dom
 
 extension (sc: StringContext) {
