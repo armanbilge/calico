@@ -1,4 +1,3 @@
-// FILE: src/main/scala/calico/html/NodesInterpolator.scala
 package calico.html
 
 import cats.effect.Concurrent
@@ -93,12 +92,12 @@ class NodesInterpolator[F[_]](private val sc: StringContext) extends AnyVal {
     result.toList
   }
   
-  // Helper method to create text nodes using the appropriate methods for your Calico version
+  
   private def textNode[F[_], El <: HtmlElement[F]](content: String)(using F: Concurrent[F]): Modifier[F, El, Any] = {
     new Modifier[F, El, Any] {
-      // Match the exact signature from the error message
+
       def modify(a: Any, e: El): Resource[F, Unit] = {
-        // Create a text node and append it directly to the element
+
         Resource.eval(
           F.pure {
             val textNode = dom.document.createTextNode(content)
