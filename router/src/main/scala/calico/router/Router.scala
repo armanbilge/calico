@@ -29,55 +29,92 @@ import fs2.dom.Dom
 import fs2.dom.Window
 import org.http4s.Uri
 
+/**
+ * The `Router` class provides navigation and routing capabilities for a web application.
+ * It allows moving forward and backward in the session history, navigating to specific URIs,
+ * and dispatching routes to renderable HTML elements.
+ *
+ * @tparam F The effect type, typically `IO` or another effect type from `cats-effect`.
+ */
 abstract class Router[F[_]] private ():
 
   /**
-   * move forward in the session history
+   * Move forward in the session history.
+   *
+   * @return An effect that completes when the operation is done.
    */
   def forward: F[Unit]
 
   /**
-   * move backward in the session history
+   * Move backward in the session history.
+   *
+   * @return An effect that completes when the operation is done.
    */
   def back: F[Unit]
 
   /**
-   * move forward (positive) or backward (negative) `delta` entries in the session history
+   * Move forward (positive) or backward (negative) `delta` entries in the session history.
+   *
+   * @param delta The number of entries to move in the session history.
+   * @return An effect that completes when the operation is done.
    */
   def go(delta: Int): F[Unit]
 
   /**
-   * set the location to a [[Uri]] and add an entry to the history
+   * Set the location to a [[Uri]] and add an entry to the history.
+   *
+   * @param uri The URI to navigate to.
+   * @return An effect that completes when the operation is done.
    */
   def navigate(uri: Uri): F[Unit]
 
   /**
-   * set the location a [[Uri]] and replace the current history entry
+   * Set the location to a [[Uri]] and replace the current history entry.
+   *
+   * @param uri The URI to teleport to.
+   * @return An effect that completes when the operation is done.
    */
   def teleport(uri: Uri): F[Unit]
 
   /**
-   * the current location
+   * Get the current location as a signal.
+   *
+   * @return A signal representing the current location.
    */
   def location: Signal[F, Uri]
 
   /**
-   * the number of entries in the history
+   * Get the number of entries in the history as a signal.
+   *
+   * @return A signal representing the number of entries in the history.
    */
   def length: Signal[F, Int]
 
   /**
-   * Compile [[Routes]] into a renderable [[fs2.dom.HtmlElement]]
+   * Compile [[Routes]] into a renderable [[fs2.dom.HtmlElement]].
+   *
+   * @param routes The routes to compile.
+   * @return A resource that yields the compiled HTML element.
    */
   def dispatch(routes: Routes[F]): Resource[F, fs2.dom.HtmlElement[F]]
 
   /**
-   * Compile [[Routes]] into a renderable [[fs2.dom.HtmlElement]]
+   * Compile [[Routes]] into a renderable [[fs2.dom.HtmlElement]].
+   *
+   * @param routes The routes to compile.
+   * @return A resource that yields the compiled HTML element.
    */
   def dispatch(routes: F[Routes[F]]): Resource[F, fs2.dom.HtmlElement[F]] =
     Resource.eval(routes).flatMap(dispatch)
 
 object Router:
+  /**
+   * Create a new `Router` instance.
+   *
+   * @param window The window object representing the browser window.
+   * @param F The concurrent effect type.
+   * @return An effect that yields a new `Router` instance.
+   */
   def apply[F[_]: Dom](window: Window[F])(using F: Concurrent[F]): F[Router[F]] =
     Topic[F, Uri].map { gps =>
       val history = window.history[Unit]
