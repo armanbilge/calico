@@ -19,6 +19,7 @@ package todomvc
 import calico.*
 import calico.frp.{*, given}
 import calico.html.io.{*, given}
+import calico.html.nodes
 import calico.router.*
 import cats.data.*
 import cats.effect.*
@@ -136,7 +137,7 @@ object TodoMvc extends IOWebApp:
                   }
                 )
               },
-              label(todo.map(_.map(_.text))),
+              label(todo.map(_.map(_.text).getOrElse(""))),
               button(cls := "destroy", onClick(todo.set(None)))
             ))
         }
