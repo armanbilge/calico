@@ -72,7 +72,7 @@ class NodesInterpolator[F[_]](private val sc: StringContext) extends AnyVal {
       using F: Concurrent[F]): Modifier[F, El, Any] = {
     arg match {
       case null => textNode[F, El]("null")
-      case _ => 
+      case _ =>
         getArgumentType(arg) match {
           case ArgumentType.Signal => processSignalByReflection[F, El](arg)
           case ArgumentType.Modifier => safeModifierCastByReflection[F, El](arg)
@@ -82,7 +82,7 @@ class NodesInterpolator[F[_]](private val sc: StringContext) extends AnyVal {
         }
     }
   }
-  
+
   // Determine the type of argument
   private def getArgumentType(arg: Any): ArgumentType = {
     arg match {
@@ -90,13 +90,13 @@ class NodesInterpolator[F[_]](private val sc: StringContext) extends AnyVal {
       case _ =>
         isSignalType(arg) match {
           case true => ArgumentType.Signal
-          case false => 
+          case false =>
             isModifierType(arg) match {
               case true => ArgumentType.Modifier
-              case false => 
+              case false =>
                 arg.isInstanceOf[Product] match {
                   case true => ArgumentType.Product
-                  case false => 
+                  case false =>
                     isEffect(arg) match {
                       case true => ArgumentType.Effect
                       case false => ArgumentType.Other
@@ -108,23 +108,25 @@ class NodesInterpolator[F[_]](private val sc: StringContext) extends AnyVal {
   }
 
   // Check if an object is a Signal by checking its class name
-  private def isSignalType(obj: Any): Boolean = 
+  private def isSignalType(obj: Any): Boolean =
     obj != null && obj.getClass.getName.contains("fs2.concurrent.Signal")
-    
+
   // Check if an object is a Modifier by checking its class name
-  private def isModifierType(obj: Any): Boolean = 
+  private def isModifierType(obj: Any): Boolean =
     obj != null && obj.getClass.getName.contains("calico.html.Modifier")
 
   // Process a signal using reflection to avoid type pattern matching warnings
   private def processSignalByReflection[F[_], El <: HtmlElement[F]](signal: Any)(
       using F: Concurrent[F]): Modifier[F, El, Any] = {
     val typedSignal = signal.asInstanceOf[Signal[F, Any]]
-    typedSignal.map { value =>
-      value.isInstanceOf[String] match {
-        case true => textNode[F, El](value.asInstanceOf[String])
-        case false => textNode[F, El](String.valueOf(value))
+    typedSignal
+      .map { value =>
+        value.isInstanceOf[String] match {
+          case true => textNode[F, El](value.asInstanceOf[String])
+          case false => textNode[F, El](String.valueOf(value))
+        }
       }
-    }.asInstanceOf[Modifier[F, El, Any]]
+      .asInstanceOf[Modifier[F, El, Any]]
   }
 
   // Safely cast a modifier using reflection to avoid type pattern matching warnings
@@ -150,7 +152,7 @@ class NodesInterpolator[F[_]](private val sc: StringContext) extends AnyVal {
   private def isEffect(obj: Any): Boolean = {
     obj != null && {
       val className = obj.getClass.getName
-      className.contains("cats.effect") || 
+      className.contains("cats.effect") ||
       className.contains("IO") ||
       className.contains("monix") ||
       className.contains("zio")
@@ -163,22 +165,22 @@ class NodesInterpolator[F[_]](private val sc: StringContext) extends AnyVal {
 
     for (i <- 0 until product.productArity) {
       val elem = product.productElement(i)
-      
+
       val formatted = processProductElement(elem)
       elements += formatted
     }
 
     elements.mkString("(", ", ", ")")
   }
-  
+
   // Process a product element
   private def processProductElement(elem: Any): String = {
     elem match {
       case null => "null"
-      case _ => 
+      case _ =>
         (elem != null && elem.getClass.getName.contains("Signal")) match {
           case true => s"Signal(${elem.hashCode})"
-          case false => 
+          case false =>
             elem.isInstanceOf[Product] match {
               case true =>
                 val nestedProduct = elem.asInstanceOf[Product]
@@ -206,12 +208,13 @@ class NodesInterpolator[F[_]](private val sc: StringContext) extends AnyVal {
     }
 
     // Add interleaved parts and args
-    args.zipWithIndex.foreach { case (arg, i) =>
-      result += arg
-      (i + 1 < parts.length) match {
-        case true => result += parts(i + 1)
-        case false => () // Do nothing
-      }
+    args.zipWithIndex.foreach {
+      case (arg, i) =>
+        result += arg
+        (i + 1 < parts.length) match {
+          case true => result += parts(i + 1)
+          case false => () // Do nothing
+        }
     }
 
     result.toList

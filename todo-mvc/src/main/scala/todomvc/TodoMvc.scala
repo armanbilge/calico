@@ -123,23 +123,24 @@ object TodoMvc extends IOWebApp:
               }
             )
           case false =>
-            List(div(
-              cls := "view",
-              input.withSelf { self =>
-                (
-                  cls := "toggle",
-                  typ := "checkbox",
-                  checked <-- todo.map(_.fold(false)(_.completed)),
-                  onInput {
-                    self.checked.get.flatMap { checked =>
-                      todo.update(_.map(_.copy(completed = checked)))
+            List(
+              div(
+                cls := "view",
+                input.withSelf { self =>
+                  (
+                    cls := "toggle",
+                    typ := "checkbox",
+                    checked <-- todo.map(_.fold(false)(_.completed)),
+                    onInput {
+                      self.checked.get.flatMap { checked =>
+                        todo.update(_.map(_.copy(completed = checked)))
+                      }
                     }
-                  }
-                )
-              },
-              label(todo.map(_.map(_.text).getOrElse(""))),
-              button(cls := "destroy", onClick(todo.set(None)))
-            ))
+                  )
+                },
+                label(todo.map(_.map(_.text).getOrElse(""))),
+                button(cls := "destroy", onClick(todo.set(None)))
+              ))
         }
       )
     }
