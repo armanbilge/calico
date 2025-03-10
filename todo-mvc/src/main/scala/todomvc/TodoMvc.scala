@@ -19,7 +19,6 @@ package todomvc
 import calico.*
 import calico.frp.{*, given}
 import calico.html.io.{*, given}
-import calico.html.nodes
 import calico.router.*
 import cats.data.*
 import cats.effect.*
@@ -123,24 +122,23 @@ object TodoMvc extends IOWebApp:
               }
             )
           case false =>
-            List(
-              div(
-                cls := "view",
-                input.withSelf { self =>
-                  (
-                    cls := "toggle",
-                    typ := "checkbox",
-                    checked <-- todo.map(_.fold(false)(_.completed)),
-                    onInput {
-                      self.checked.get.flatMap { checked =>
-                        todo.update(_.map(_.copy(completed = checked)))
-                      }
+            List(div(
+              cls := "view",
+              input.withSelf { self =>
+                (
+                  cls := "toggle",
+                  typ := "checkbox",
+                  checked <-- todo.map(_.fold(false)(_.completed)),
+                  onInput {
+                    self.checked.get.flatMap { checked =>
+                      todo.update(_.map(_.copy(completed = checked)))
                     }
-                  )
-                },
-                label(todo.map(_.map(_.text).getOrElse(""))),
-                button(cls := "destroy", onClick(todo.set(None)))
-              ))
+                  }
+                )
+              },
+              label(todo.map(_.map(_.text))),
+              button(cls := "destroy", onClick(todo.set(None)))
+            ))
         }
       )
     }
@@ -277,3 +275,4 @@ enum Filter(val fragment: String, val pred: Todo => Boolean):
   case All extends Filter("/", _ => true)
   case Active extends Filter("/active", !_.completed)
   case Completed extends Filter("/completed", _.completed)
+  
