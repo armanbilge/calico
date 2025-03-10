@@ -31,7 +31,7 @@ import io.circe.Decoder.Result
 import io.circe.syntax.*
 import org.http4s.*
 import org.scalajs.dom.KeyValue
-
+import calico.html.nodes
 import scala.collection.immutable.SortedMap
 
 object TodoMvc extends IOWebApp:
@@ -138,7 +138,7 @@ object TodoMvc extends IOWebApp:
                     }
                   )
                 },
-                label(todo.map(_.map(_.text).getOrElse(""))),
+                label(nodes"${todo.map(_.map(_.text).getOrElse(""))}"),
                 button(cls := "destroy", onClick(todo.set(None)))
               )
             )
