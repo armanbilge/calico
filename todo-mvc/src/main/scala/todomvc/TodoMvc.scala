@@ -19,6 +19,7 @@ package todomvc
 import calico.*
 import calico.frp.{*, given}
 import calico.html.io.{*, given}
+import calico.html.nodes
 import calico.router.*
 import cats.data.*
 import cats.effect.*
@@ -48,24 +49,24 @@ object TodoMvc extends IOWebApp:
           headerTag(cls := "header", h1("todos"), TodoInput(store)),
           sectionTag(
             cls := "main",
-            input.withSelf(self =>
+            input.withSelf { self =>
               (
                 idAttr := "toggle-all",
                 cls := "toggle-all",
                 typ := "checkbox",
                 checked <-- store.allCompleted,
-                onInput(self.checked.get.flatMap(store.toggleAll)))),
+                onInput(self.checked.get.flatMap(store.toggleAll))
+              )
+            },
             label(forId := "toggle-all", "Mark all as complete"),
             ul(
               cls := "todo-list",
               children[Long](id => TodoItem(store.entry(id))) <-- filter.flatMap(store.ids(_))
             )
           ),
-          store
-            .size
-            .map(_ > 0)
-            .changes
-            .map(if _ then StatusBar(store, filter, router).some else None)
+          store.size.map(_ > 0).changes.map { b =>
+            if b then StatusBar(store, filter, router).some else None
+          }
         )
       }
     }
@@ -100,11 +101,12 @@ object TodoMvc extends IOWebApp:
             List(
               input.withSelf { self =>
                 val endEdit = self.value.get.map(_.trim).flatMap { text =>
-                  todo.update(t =>
+                  todo.update { t =>
                     text match {
                       case "" => None
                       case _ => t.map(_.copy(text = text))
-                    })
+                    }
+                  }
                 } *> editing.set(false)
                 (
                   cls := "edit",
@@ -122,23 +124,25 @@ object TodoMvc extends IOWebApp:
               }
             )
           case false =>
-            List(div(
-              cls := "view",
-              input.withSelf { self =>
-                (
-                  cls := "toggle",
-                  typ := "checkbox",
-                  checked <-- todo.map(_.fold(false)(_.completed)),
-                  onInput {
-                    self.checked.get.flatMap { checked =>
-                      todo.update(_.map(_.copy(completed = checked)))
+            List(
+              div(
+                cls := "view",
+                input.withSelf { self =>
+                  (
+                    cls := "toggle",
+                    typ := "checkbox",
+                    checked <-- todo.map(_.fold(false)(_.completed)),
+                    onInput {
+                      self.checked.get.flatMap { checked =>
+                        todo.update(_.map(_.copy(completed = checked)))
+                      }
                     }
-                  }
-                )
-              },
-              label(todo.map(_.map(_.text))),
-              button(cls := "destroy", onClick(todo.set(None)))
-            ))
+                  )
+                },
+                label(todo.map(_.map(_.text).getOrElse(""))),
+                button(cls := "destroy", onClick(todo.set(None)))
+              )
+            )
         }
       )
     }
@@ -170,15 +174,15 @@ object TodoMvc extends IOWebApp:
           )
         }
       ),
-      store
-        .hasCompleted
-        .map(
-          Option.when(_)(
-            button(
-              cls := "clear-completed",
-              onClick(store.clearCompleted),
-              "Clear completed"
-            )))
+      store.hasCompleted.map { hasCompleted =>
+        Option.when(hasCompleted)(
+          button(
+            cls := "clear-completed",
+            onClick(store.clearCompleted),
+            "Clear completed"
+          )
+        )
+      }
     )
 
 class TodoStore(entries: SignallingSortedMapRef[IO, Long, Todo], nextId: IO[Long]):
@@ -257,13 +261,14 @@ object TodoStore:
 
       _ <- mapRef
         .discrete
-        .foreach((todos: Map[Long, Todo]) =>
+        .foreach { todos =>
           IO.cede *> window
             .localStorage
             .setItem(
               key,
               todos.toList.asJson.noSpaces
-            ))
+            )
+        }
         .compile
         .drain
         .background
@@ -275,4 +280,3 @@ enum Filter(val fragment: String, val pred: Todo => Boolean):
   case All extends Filter("/", _ => true)
   case Active extends Filter("/active", !_.completed)
   case Completed extends Filter("/completed", _.completed)
-  
