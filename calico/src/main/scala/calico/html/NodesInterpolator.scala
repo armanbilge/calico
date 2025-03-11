@@ -17,33 +17,42 @@
 package calico.html
 
 import cats.effect.{IO, Resource}
-import cats.syntax.all.* // Import cats syntax for *> operator
+import cats.syntax.all.*
 import fs2.concurrent.Signal
 import fs2.dom.HtmlElement
-import scala.annotation.nowarn
 
 // A simplified wrapper that can hold either a static String or a Signal
 sealed trait NodeContent
 case class StaticContent(text: String) extends NodeContent
 case class DynamicContent(signal: Signal[IO, Any]) extends NodeContent
 
+// Helper function for safe Signal detection
+private def tryAsSignal(arg: Any): Option[Signal[IO, Any]] =
+  try {
+    Some(arg.asInstanceOf[Signal[IO, Any]])
+  } catch {
+    case _: ClassCastException => None
+  }
+
 extension (sc: StringContext) {
   // String interpolator for nodes - returns a list of NodeContent items
-  @nowarn("msg=pattern selector should be an instance of Matchable")
   def nodes(args: Any*): List[NodeContent] = {
     val parts = sc.parts.map(StringContext.processEscapes)
-    
+
     // Create a list of alternating static and dynamic content
-    val initialStatic = List[NodeContent](StaticContent(parts.head)) // Explicitly type as NodeContent
-    
-    args.zip(parts.tail).foldLeft(initialStatic) { case (acc, (arg, part)) =>
-      arg match {
-        case signal: Signal[IO, ?] => 
-          // Fix: Use ++ instead of :+ to concatenate lists
-          acc ++ List[NodeContent](DynamicContent(signal.asInstanceOf[Signal[IO, Any]]), StaticContent(part))
-        case other => 
-          acc ++ List[NodeContent](StaticContent(other.toString + part))
-      }
+    val initialStatic = List[NodeContent](StaticContent(parts.head))
+
+    args.zip(parts.tail).foldLeft(initialStatic) {
+      case (acc, (arg, part)) =>
+        // Use the helper function for Signal detection
+        tryAsSignal(arg) match {
+          case Some(signal) =>
+            // If it's a Signal, handle as dynamic content
+            acc ++ List[NodeContent](DynamicContent(signal), StaticContent(part))
+          case None =>
+            // Otherwise handle as static content
+            acc ++ List[NodeContent](StaticContent(arg.toString + part))
+        }
     }
   }
 }
@@ -54,62 +63,61 @@ given nodeContentListModifier[El <: HtmlElement[IO]]: Modifier[IO, El, List[Node
     // First, create all DOM elements with placeholders for dynamic content
     val setupResource = Resource.eval(IO {
       val idMap = scala.collection.mutable.Map.empty[String, org.scalajs.dom.Element]
-      
+
       contents.foreach {
-        case StaticContent(text) => 
+        case StaticContent(text) =>
           val textNode = org.scalajs.dom.document.createTextNode(text)
           el.asInstanceOf[org.scalajs.dom.Element].appendChild(textNode)
-          
-        case DynamicContent(signal) => 
+
+        case DynamicContent(signal) =>
           val spanId = s"nodes-${System.identityHashCode(signal)}"
           val span = org.scalajs.dom.document.createElement("span")
           span.setAttribute("id", spanId)
           el.asInstanceOf[org.scalajs.dom.Element].appendChild(span)
           idMap(spanId) = span
       }
-      
+
       idMap.toMap
     })
-    
+
     // Then, set up reactive updates for all dynamic content
     setupResource.flatMap { idMap =>
-      contents.collect { case DynamicContent(signal) => signal }.foldLeft(Resource.pure[IO, Unit](())) { 
-        (resource, signal) => 
+      contents
+        .collect { case DynamicContent(signal) => signal }
+        .foldLeft(Resource.pure[IO, Unit](())) { (resource, signal) =>
           val spanId = s"nodes-${System.identityHashCode(signal)}"
-            
+
           // Get initial value and set up reactive updates
           resource.flatMap { _ =>
             // Combine the initial value setting and the background process into one resource
-            Resource.eval(signal.get.flatMap { initialValue =>
-              IO {
-                idMap.get(spanId).foreach { span =>
-                  span.textContent = initialValue.toString
+            Resource
+              .eval(signal.get.flatMap { initialValue =>
+                IO {
+                  idMap.get(spanId).foreach { span => span.textContent = initialValue.toString }
                 }
-              }
-            }).flatMap { _ =>
-              // Create a permanent resource for monitoring changes
-              Resource.make(
-                IO.pure(()) // Acquisition - nothing to do
-              )(_ => 
-                // Release - cancel the subscription
-                signal.discrete
-                  .map(_.toString)
-                  .changes
-                  .evalMap { textValue =>
-                    IO {
-                      idMap.get(spanId).foreach { span =>
-                        span.textContent = textValue
+              })
+              .flatMap { _ =>
+                // Create a permanent resource for monitoring changes
+                Resource.make(
+                  IO.pure(()) // Acquisition - nothing to do
+                )(_ =>
+                  // Release - cancel the subscription
+                  signal
+                    .discrete
+                    .map(_.toString)
+                    .changes
+                    .evalMap { textValue =>
+                      IO {
+                        idMap.get(spanId).foreach { span => span.textContent = textValue }
                       }
                     }
-                  }
-                  .compile
-                  .drain
-                  .start
-                  .flatMap(_.cancel)
-              )
-            }
+                    .compile
+                    .drain
+                    .start
+                    .flatMap(_.cancel))
+              }
           }
-      }
+        }
     }
   }
 }

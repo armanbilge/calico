@@ -32,7 +32,7 @@ import io.circe.syntax.*
 import org.http4s.*
 import org.scalajs.dom.KeyValue
 import calico.html.nodes
-import calico.html.nodeContentListModifier  // Replace the previous imports with this one
+import calico.html.nodeContentListModifier // Replace the previous imports with this one
 import scala.collection.immutable.SortedMap
 
 object TodoMvc extends IOWebApp:
@@ -160,9 +160,9 @@ object TodoMvc extends IOWebApp:
         cls := "todo-count",
         // Replace with nodes interpolator
         nodes"${strong(store.activeCount.map(_.toString))} ${store.activeCount.map {
-          case 1 => "item left"
-          case n => "items left"
-        }}"
+            case 1 => "item left"
+            case n => "items left"
+          }}"
       ),
       ul(
         cls := "filters",
