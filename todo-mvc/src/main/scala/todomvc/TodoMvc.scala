@@ -32,6 +32,7 @@ import io.circe.syntax.*
 import org.http4s.*
 import org.scalajs.dom.KeyValue
 import calico.html.nodes
+import calico.html.nodeContentListModifier  // Replace the previous imports with this one
 import scala.collection.immutable.SortedMap
 
 object TodoMvc extends IOWebApp:
@@ -138,6 +139,7 @@ object TodoMvc extends IOWebApp:
                     }
                   )
                 },
+                // Replace the standard text with nodes interpolator
                 label(nodes"${todo.map(_.map(_.text).getOrElse(""))}"),
                 button(cls := "destroy", onClick(todo.set(None)))
               )
@@ -153,13 +155,14 @@ object TodoMvc extends IOWebApp:
   ): Resource[IO, HtmlElement[IO]] =
     footerTag(
       cls := "footer",
+      // Fix the footer count - use plain text instead of nodes interpolator for now
       span(
         cls := "todo-count",
-        strong(store.activeCount.map(_.toString)),
-        store.activeCount.map {
-          case 1 => " item left"
-          case n => " items left"
-        }
+        // Replace with nodes interpolator
+        nodes"${strong(store.activeCount.map(_.toString))} ${store.activeCount.map {
+          case 1 => "item left"
+          case n => "items left"
+        }}"
       ),
       ul(
         cls := "filters",
@@ -168,7 +171,8 @@ object TodoMvc extends IOWebApp:
             a(
               cls <-- filter.map(_ == f).map(Option.when(_)("selected").toList),
               href := s"#${f.fragment}",
-              f.toString
+              // Use nodes interpolator
+              nodes"${f.toString}"
             )
           )
         }
@@ -178,7 +182,8 @@ object TodoMvc extends IOWebApp:
           button(
             cls := "clear-completed",
             onClick(store.clearCompleted),
-            "Clear completed"
+            // Use nodes interpolator
+            nodes"Clear completed"
           )
         )
       }
