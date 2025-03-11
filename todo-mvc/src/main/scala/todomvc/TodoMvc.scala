@@ -19,9 +19,13 @@ package todomvc
 import calico.*
 import calico.frp.{*, given}
 import calico.html.io.{*, given}
+import calico.html.nodeContentListModifier
+import calico.html.nodes
 import calico.router.*
 import cats.data.*
 import cats.effect.*
+import cats.effect.IO
+import cats.effect.Resource
 import cats.syntax.all.*
 import fs2.concurrent.*
 import fs2.dom.*
@@ -31,8 +35,7 @@ import io.circe.Decoder.Result
 import io.circe.syntax.*
 import org.http4s.*
 import org.scalajs.dom.KeyValue
-import calico.html.nodes
-import calico.html.nodeContentListModifier // Replace the previous imports with this one
+
 import scala.collection.immutable.SortedMap
 
 object TodoMvc extends IOWebApp:

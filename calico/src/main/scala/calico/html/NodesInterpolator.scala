@@ -16,7 +16,8 @@
 
 package calico.html
 
-import cats.effect.{IO, Resource}
+import cats.effect.IO
+import cats.effect.Resource
 import cats.syntax.all.*
 import fs2.concurrent.Signal
 import fs2.dom.HtmlElement
