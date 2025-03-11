@@ -18,107 +18,129 @@ package calico.html
 
 import cats.effect.IO
 import cats.effect.Resource
-import cats.syntax.all.*
+import cats.syntax.functor.*
 import fs2.concurrent.Signal
 import fs2.dom.HtmlElement
 
-// A simplified wrapper that can hold either a static String or a Signal
-sealed trait NodeContent
-case class StaticContent(text: String) extends NodeContent
-case class DynamicContent(signal: Signal[IO, Any]) extends NodeContent
+import scala.annotation.nowarn
 
-// Helper function for safe Signal detection
-private def tryAsSignal(arg: Any): Option[Signal[IO, Any]] =
-  try {
-    Some(arg.asInstanceOf[Signal[IO, Any]])
-  } catch {
-    case _: ClassCastException => None
+// Type-level function for interspersing strings between tuple elements
+type IntersperseStrings[T <: Tuple] <: Tuple =
+  T match {
+    case EmptyTuple => String *: EmptyTuple
+    case (t *: ts) => String *: t *: IntersperseStrings[ts]
   }
 
+// Value-level function for interspersing strings between tuple elements
+inline def intersperseStrings[T <: Tuple](t: T, strings: Seq[String]): IntersperseStrings[T] =
+  inline scala.compiletime.erasedValue[T] match {
+    case _: EmptyTuple => strings.head *: EmptyTuple
+    case _: (head *: tail) =>
+      inline t match {
+        case v: (`head` *: `tail`) =>
+          val (h *: t) = v
+          strings.head *: h *: intersperseStrings(t, strings.tail)
+      }
+  }
+
+// Add this helper method
+private def isSignal(obj: Any): Boolean =
+  obj != null && obj.getClass.getName.contains("fs2.concurrent.Signal")
+
 extension (sc: StringContext) {
-  // String interpolator for nodes - returns a list of NodeContent items
+  // String interpolator with variadic arguments (standard string interpolator style)
+  @nowarn("msg=pattern selector should be an instance of Matchable")
   def nodes(args: Any*): List[NodeContent] = {
     val parts = sc.parts.map(StringContext.processEscapes)
+    val result = List.newBuilder[NodeContent]
 
-    // Create a list of alternating static and dynamic content
-    val initialStatic = List[NodeContent](StaticContent(parts.head))
+    // Add first static part if non-empty
+    parts.head match
+      case p if p.nonEmpty => result += StaticContent(p)
+      case _ => ()
 
-    args.zip(parts.tail).foldLeft(initialStatic) {
-      case (acc, (arg, part)) =>
-        // Use the helper function for Signal detection
-        tryAsSignal(arg) match {
-          case Some(signal) =>
-            // If it's a Signal, handle as dynamic content
-            acc ++ List[NodeContent](DynamicContent(signal), StaticContent(part))
-          case None =>
-            // Otherwise handle as static content
-            acc ++ List[NodeContent](StaticContent(arg.toString + part))
-        }
+    // Add alternating dynamic and static parts
+    for (i <- 0 until args.length) {
+      val arg = args(i)
+      val nextPart = parts.applyOrElse(i + 1, (_: Int) => "")
+
+      // Use match instead of if
+      arg match
+        case a if isSignal(a) =>
+          result += DynamicContent(a.asInstanceOf[Signal[IO, Any]])
+        case other =>
+          result += StaticContent(other.toString)
+
+      // Add static content if non-empty
+      nextPart match
+        case p if p.nonEmpty => result += StaticContent(p)
+        case _ => ()
     }
+
+    result.result()
+  }
+
+  // Keep the tuple-based version for future use
+  inline def nodesT[M <: Tuple, E <: HtmlElement[IO]](
+      arg: M
+  )(
+      using Modifier[IO, E, M]
+  ): IntersperseStrings[M] = {
+    StringContext.checkLengths(arg.toList, sc.parts)
+    intersperseStrings(arg, sc.parts.map(StringContext.processEscapes))
   }
 }
 
-// Generic modifier for the NodeContent list - works with any HTML element
-given nodeContentListModifier[El <: HtmlElement[IO]]: Modifier[IO, El, List[NodeContent]] with {
-  def modify(contents: List[NodeContent], el: El): Resource[IO, Unit] = {
-    // First, create all DOM elements with placeholders for dynamic content
-    val setupResource = Resource.eval(IO {
-      val idMap = scala.collection.mutable.Map.empty[String, org.scalajs.dom.Element]
+// Define the NodeContent trait and implementations
+sealed trait NodeContent
+case class StaticContent(text: String) extends NodeContent
+case class DynamicContent[A](signal: Signal[IO, A]) extends NodeContent
 
-      contents.foreach {
-        case StaticContent(text) =>
-          val textNode = org.scalajs.dom.document.createTextNode(text)
-          el.asInstanceOf[org.scalajs.dom.Element].appendChild(textNode)
+// Add a counter for generating unique IDs
+object NodeCounter {
+  private var counter: Int = 0
+  def nextId(): String = {
+    counter += 1
+    s"nodes-$counter"
+  }
+}
 
-        case DynamicContent(signal) =>
-          val spanId = s"nodes-${System.identityHashCode(signal)}"
-          val span = org.scalajs.dom.document.createElement("span")
-          span.setAttribute("id", spanId)
-          el.asInstanceOf[org.scalajs.dom.Element].appendChild(span)
-          idMap(spanId) = span
-      }
+// Implicit conversion for DOM elements
+given nodeContentListModifier[E <: HtmlElement[IO]]: Modifier[IO, E, List[NodeContent]] =
+  new Modifier[IO, E, List[NodeContent]] {
+    def modify(contents: List[NodeContent], element: E) = {
+      contents.foldLeft(Resource.pure[IO, Unit](())) { (res, content) =>
+        res.flatMap { _ =>
+          content match {
+            case StaticContent(text) =>
+              val textNode = org.scalajs.dom.document.createTextNode(text)
+              element.asInstanceOf[org.scalajs.dom.Element].appendChild(textNode)
+              Resource.pure[IO, Unit](())
 
-      idMap.toMap
-    })
+            case DynamicContent(signal) =>
+              // Use the counter instead of UUID
+              val spanId = NodeCounter.nextId()
+              val span = org.scalajs.dom.document.createElement("span")
+              span.setAttribute("id", spanId)
+              element.asInstanceOf[org.scalajs.dom.Element].appendChild(span)
 
-    // Then, set up reactive updates for all dynamic content
-    setupResource.flatMap { idMap =>
-      contents
-        .collect { case DynamicContent(signal) => signal }
-        .foldLeft(Resource.pure[IO, Unit](())) { (resource, signal) =>
-          val spanId = s"nodes-${System.identityHashCode(signal)}"
-
-          // Get initial value and set up reactive updates
-          resource.flatMap { _ =>
-            // Combine the initial value setting and the background process into one resource
-            Resource
-              .eval(signal.get.flatMap { initialValue =>
-                IO {
-                  idMap.get(spanId).foreach { span => span.textContent = initialValue.toString }
-                }
-              })
-              .flatMap { _ =>
-                // Create a permanent resource for monitoring changes
-                Resource.make(
-                  IO.pure(()) // Acquisition - nothing to do
-                )(_ =>
-                  // Release - cancel the subscription
+              // Create a cleanup resource for the subscription
+              Resource
+                .make(
                   signal
                     .discrete
-                    .map(_.toString)
-                    .changes
-                    .evalMap { textValue =>
+                    .foreach { value =>
                       IO {
-                        idMap.get(spanId).foreach { span => span.textContent = textValue }
+                        span.textContent = value.toString
                       }
                     }
                     .compile
                     .drain
                     .start
-                    .flatMap(_.cancel))
-              }
+                )(fiber => fiber.cancel)
+                .void // Explicitly void the result to get Resource[IO, Unit]
           }
         }
+      }
     }
   }
-}
