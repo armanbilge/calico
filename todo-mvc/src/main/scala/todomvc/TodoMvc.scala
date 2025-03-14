@@ -19,8 +19,8 @@ package todomvc
 import calico.*
 import calico.frp.{*, given}
 import calico.html.io.{*, given}
-import calico.html.nodesInterpolatorModifier
 import calico.html.nodes
+import calico.html.nodesInterpolatorModifier
 import calico.router.*
 import cats.data.*
 import cats.effect.*
