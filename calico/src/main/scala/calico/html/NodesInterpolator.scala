@@ -122,20 +122,17 @@ given nodesInterpolatorModifier[E <: HtmlElement[IO]]: Modifier[IO, E, NodesInte
                   span
                 })
                 .flatMap { span =>
-                  Resource
-                    .make(
-                      signal
-                        .discrete
-                        .foreach { value =>
-                          IO {
-                            span.textContent = value.toString
-                          }
-                        }
-                        .compile
-                        .drain
-                        .start
-                    )(fiber => fiber.cancel)
-                    .void
+                  val stream = signal
+                    .discrete
+                    .foreach { value =>
+                      IO {
+                        span.textContent = value.toString
+                      }
+                    }
+                    .compile
+                    .drain
+
+                  stream.background.as(())
                 }
           }
         }
