@@ -43,14 +43,17 @@ inline def intersperseStrings[T <: Tuple](t: T, strings: Seq[String]): Intersper
       }
   }
 
-// Add this helper method
+// Helper method to detect any Signal implementation
 private def isSignal(obj: Any): Boolean =
-  obj != null && obj.getClass.getName.contains("fs2.concurrent.Signal")
+  obj != null && obj.isInstanceOf[Signal[?, ?]]
+
+// Define a wrapper class to hide implementation details
+final case class NodesInterpolator(contents: List[NodeContent])
 
 extension (sc: StringContext) {
   // String interpolator with variadic arguments (standard string interpolator style)
   @nowarn("msg=pattern selector should be an instance of Matchable")
-  def nodes(args: Any*): List[NodeContent] = {
+  def nodes(args: Any*): NodesInterpolator = {
     val parts = sc.parts.map(StringContext.processEscapes)
     val result = List.newBuilder[NodeContent]
 
@@ -77,7 +80,7 @@ extension (sc: StringContext) {
         case _ => ()
     }
 
-    result.result()
+    NodesInterpolator(result.result())
   }
 
   // Keep the tuple-based version for future use
@@ -96,37 +99,28 @@ sealed trait NodeContent
 case class StaticContent(text: String) extends NodeContent
 case class DynamicContent[A](signal: Signal[IO, A]) extends NodeContent
 
-// Add a counter for generating unique IDs
-object NodeCounter {
-  private var counter: Int = 0
-  def nextId(): String = {
-    counter += 1
-    s"nodes-$counter"
-  }
-}
-
-// Implicit conversion for DOM elements
-given nodeContentListModifier[E <: HtmlElement[IO]]: Modifier[IO, E, List[NodeContent]] =
-  new Modifier[IO, E, List[NodeContent]] {
-    def modify(contents: List[NodeContent], element: E) = {
-      contents.foldLeft(Resource.pure[IO, Unit](())) { (res, content) =>
+// Use this modifier for NodesInterpolator
+given nodesInterpolatorModifier[E <: HtmlElement[IO]]: Modifier[IO, E, NodesInterpolator] =
+  new Modifier[IO, E, NodesInterpolator] {
+    def modify(interpolator: NodesInterpolator, element: E) = {
+      interpolator.contents.foldLeft(Resource.pure[IO, Unit](())) { (res, content) =>
         res.flatMap { _ =>
           content match {
             case StaticContent(text) =>
-              val textNode = org.scalajs.dom.document.createTextNode(text)
-              element.asInstanceOf[org.scalajs.dom.Element].appendChild(textNode)
-              Resource.pure[IO, Unit](())
+              Resource.eval(IO {
+                val textNode = org.scalajs.dom.document.createTextNode(text)
+                element.asInstanceOf[org.scalajs.dom.Element].appendChild(textNode)
+                ()
+              })
 
             case DynamicContent(signal) =>
-              // Use the counter instead of UUID
-              val spanId = NodeCounter.nextId()
-              val span = org.scalajs.dom.document.createElement("span")
-              span.setAttribute("id", spanId)
-              element.asInstanceOf[org.scalajs.dom.Element].appendChild(span)
-
-              // Create a cleanup resource for the subscription
-              Resource
-                .make(
+              // Properly suspend side effects in a single Resource.eval
+              Resource.eval(IO {
+                val span = org.scalajs.dom.document.createElement("span")
+                element.asInstanceOf[org.scalajs.dom.Element].appendChild(span)
+                span
+              }).flatMap { span =>
+                Resource.make(
                   signal
                     .discrete
                     .foreach { value =>
@@ -137,8 +131,8 @@ given nodeContentListModifier[E <: HtmlElement[IO]]: Modifier[IO, E, List[NodeCo
                     .compile
                     .drain
                     .start
-                )(fiber => fiber.cancel)
-                .void // Explicitly void the result to get Resource[IO, Unit]
+                )(fiber => fiber.cancel).void
+              }
           }
         }
       }
