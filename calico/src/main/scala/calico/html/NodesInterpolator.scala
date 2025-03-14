@@ -115,24 +115,28 @@ given nodesInterpolatorModifier[E <: HtmlElement[IO]]: Modifier[IO, E, NodesInte
 
             case DynamicContent(signal) =>
               // Properly suspend side effects in a single Resource.eval
-              Resource.eval(IO {
-                val span = org.scalajs.dom.document.createElement("span")
-                element.asInstanceOf[org.scalajs.dom.Element].appendChild(span)
-                span
-              }).flatMap { span =>
-                Resource.make(
-                  signal
-                    .discrete
-                    .foreach { value =>
-                      IO {
-                        span.textContent = value.toString
-                      }
-                    }
-                    .compile
-                    .drain
-                    .start
-                )(fiber => fiber.cancel).void
-              }
+              Resource
+                .eval(IO {
+                  val span = org.scalajs.dom.document.createElement("span")
+                  element.asInstanceOf[org.scalajs.dom.Element].appendChild(span)
+                  span
+                })
+                .flatMap { span =>
+                  Resource
+                    .make(
+                      signal
+                        .discrete
+                        .foreach { value =>
+                          IO {
+                            span.textContent = value.toString
+                          }
+                        }
+                        .compile
+                        .drain
+                        .start
+                    )(fiber => fiber.cancel)
+                    .void
+                }
           }
         }
       }
