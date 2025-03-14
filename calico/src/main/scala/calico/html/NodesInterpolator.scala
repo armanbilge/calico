@@ -132,7 +132,7 @@ given nodesInterpolatorModifier[E <: HtmlElement[IO]]: Modifier[IO, E, NodesInte
                     .compile
                     .drain
 
-                  stream.background.as(())
+                  stream.background.void
                 }
           }
         }
