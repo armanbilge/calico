@@ -22,8 +22,11 @@ import cats.syntax.functor.*
 import fs2.concurrent.Signal
 import fs2.dom.HtmlElement
 
+import scala.compiletime.constValue
+import scala.compiletime.erasedValue
+import scala.compiletime.error
+import scala.compiletime.summonFrom
 import scala.quoted.*
-import scala.compiletime.{constValue, erasedValue, error, summonFrom}
 
 // Type-level function for interspersing strings between tuple elements
 type IntersperseStrings[T <: Tuple] <: Tuple = T match
