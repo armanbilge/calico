@@ -24,7 +24,6 @@ import fs2.dom.HtmlElement
 
 import scala.compiletime.constValue
 import scala.compiletime.erasedValue
-import scala.compiletime.error
 import scala.compiletime.summonFrom
 import scala.quoted.*
 
