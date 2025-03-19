@@ -53,31 +53,33 @@ private def isSignal(obj: Any): Boolean =
   obj != null && obj.isInstanceOf[Signal[?, ?]]
 
 // Macro implementation for nodes string interpolator
-inline def processNodes(sc: StringContext, args: Any*): NodesInterpolator = ${ 
-  processNodesImpl('sc, 'args) 
+inline def processNodes(sc: StringContext, args: Any*): NodesInterpolator = ${
+  processNodesImpl('sc, 'args)
 }
 
-private def processNodesImpl(sc: Expr[StringContext], args: Expr[Seq[Any]])(using Quotes): Expr[NodesInterpolator] =
+private def processNodesImpl(sc: Expr[StringContext], args: Expr[Seq[Any]])(
+    using Quotes): Expr[NodesInterpolator] =
   import quotes.reflect.*
 
   // Try to do compile-time processing when possible
   try
     sc match
-      case '{ StringContext(${Varargs(literalParts)}*) } if literalParts.forall(_.value.isDefined) =>
+      case '{ StringContext(${ Varargs(literalParts) }*) }
+          if literalParts.forall(_.value.isDefined) =>
         // Extract string parts if they are all literal strings
         val stringParts = literalParts.map(_.valueOrAbort).toList
-        
+
         args match
-          case '{ Seq(${Varargs(argList)}*) } =>
+          case '{ Seq(${ Varargs(argList) }*) } =>
             // We have both literal strings and extractable arguments
             val argExprs = argList.toList
             val contentExprs = buildContentExpressions(stringParts, argExprs)
-            '{ NodesInterpolator(${Expr.ofList(contentExprs)}) }
-          
+            '{ NodesInterpolator(${ Expr.ofList(contentExprs) }) }
+
           case _ =>
             // Arguments aren't extractable at compile time
             fallbackToRuntime(sc, args)
-      
+
       case _ =>
         // String context isn't all literals
         fallbackToRuntime(sc, args)
@@ -87,8 +89,9 @@ private def processNodesImpl(sc: Expr[StringContext], args: Expr[Seq[Any]])(usin
       fallbackToRuntime(sc, args)
 
 // Runtime fallback implementation
-private def fallbackToRuntime(sc: Expr[StringContext], args: Expr[Seq[Any]])(using Quotes): Expr[NodesInterpolator] =
-  '{ 
+private def fallbackToRuntime(sc: Expr[StringContext], args: Expr[Seq[Any]])(
+    using Quotes): Expr[NodesInterpolator] =
+  '{
     val parts = $sc.parts.map(StringContext.processEscapes)
     val arguments = $args
     val result = List.newBuilder[NodeContent]
@@ -99,7 +102,7 @@ private def fallbackToRuntime(sc: Expr[StringContext], args: Expr[Seq[Any]])(usi
       case _ => ()
 
     // Add alternating dynamic and static parts
-    for (i <- 0 until arguments.length) 
+    for (i <- 0 until arguments.length)
       val arg = arguments(i)
       val nextPart = parts.applyOrElse(i + 1, (_: Int) => "")
 
@@ -120,26 +123,26 @@ private def fallbackToRuntime(sc: Expr[StringContext], args: Expr[Seq[Any]])(usi
 
 // Helper method to build content expressions at compile time
 private def buildContentExpressions(
-  stringParts: List[String],
-  argExprs: List[Expr[Any]]
+    stringParts: List[String],
+    argExprs: List[Expr[Any]]
 )(using Quotes): List[Expr[NodeContent]] =
   import quotes.reflect.*
 
   val result = scala.collection.mutable.ListBuffer.empty[Expr[NodeContent]]
-  
+
   // Add first string part if non-empty
   stringParts.head match
-    case p if p.nonEmpty => result += '{ StaticContent(${Expr(p)}) }
+    case p if p.nonEmpty => result += '{ StaticContent(${ Expr(p) }) }
     case _ => ()
-  
+
   // Process arguments and remaining string parts
   for i <- 0 until argExprs.length do
     val argExpr = argExprs(i)
     val nextPart = stringParts.applyOrElse(i + 1, (_: Int) => "")
-    
+
     // Check if the argument is a Signal at compile time
     val argType = argExpr.asTerm.tpe.widen.dealias
-    
+
     // Use match instead of if for Scala 3 new syntax
     argType <:< TypeRepr.of[Signal[IO, ?]] match
       case true =>
@@ -148,17 +151,17 @@ private def buildContentExpressions(
       case false =>
         // Any other type - convert to string
         result += '{ StaticContent($argExpr.toString) }
-    
+
     // Add next string part if non-empty
     nextPart match
-      case p if p.nonEmpty => result += '{ StaticContent(${Expr(p)}) }
+      case p if p.nonEmpty => result += '{ StaticContent(${ Expr(p) }) }
       case _ => ()
-  
+
   result.toList
 
 extension (sc: StringContext)
   // New compile-time string interpolator
-  inline def nodes(inline args: Any*): NodesInterpolator = 
+  inline def nodes(inline args: Any*): NodesInterpolator =
     processNodes(sc, args*)
 
   // Keep the tuple-based version for future use
@@ -174,32 +177,34 @@ extension (sc: StringContext)
 given nodesInterpolatorModifier[E <: HtmlElement[IO]]: Modifier[IO, E, NodesInterpolator] =
   new Modifier[IO, E, NodesInterpolator]:
     def modify(interpolator: NodesInterpolator, element: E) =
-      interpolator.contents.foldLeft(Resource.pure[IO, Unit](())): (res, content) =>
-        res.flatMap: _ =>
-          content match
-            case StaticContent(text) =>
-              Resource.eval(IO {
-                val textNode = org.scalajs.dom.document.createTextNode(text)
-                element.asInstanceOf[org.scalajs.dom.Element].appendChild(textNode)
-                ()
-              })
-
-            case DynamicContent(signal) =>
-              // Properly suspend side effects in a single Resource.eval
-              Resource
-                .eval(IO {
-                  val span = org.scalajs.dom.document.createElement("span")
-                  element.asInstanceOf[org.scalajs.dom.Element].appendChild(span)
-                  span
+      interpolator
+        .contents
+        .foldLeft(Resource.pure[IO, Unit](())): (res, content) =>
+          res.flatMap: _ =>
+            content match
+              case StaticContent(text) =>
+                Resource.eval(IO {
+                  val textNode = org.scalajs.dom.document.createTextNode(text)
+                  element.asInstanceOf[org.scalajs.dom.Element].appendChild(textNode)
+                  ()
                 })
-                .flatMap: span =>
-                  signal
-                    .discrete
-                    .foreach: value =>
-                      IO {
-                        span.textContent = value.toString
-                      }
-                    .compile
-                    .drain
-                    .background
-                    .void
+
+              case DynamicContent(signal) =>
+                // Properly suspend side effects in a single Resource.eval
+                Resource
+                  .eval(IO {
+                    val span = org.scalajs.dom.document.createElement("span")
+                    element.asInstanceOf[org.scalajs.dom.Element].appendChild(span)
+                    span
+                  })
+                  .flatMap: span =>
+                    signal
+                      .discrete
+                      .foreach: value =>
+                        IO {
+                          span.textContent = value.toString
+                        }
+                      .compile
+                      .drain
+                      .background
+                      .void
