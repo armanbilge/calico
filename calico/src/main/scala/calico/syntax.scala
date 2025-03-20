@@ -16,9 +16,9 @@
 
 package calico
 package syntax
-
 import calico.html.Modifier
 import cats.Functor
+import cats.effect.IO
 import cats.effect.kernel.Resource
 import fs2.concurrent.SignallingRef
 import fs2.dom.Dom
@@ -35,3 +35,7 @@ extension [F[_], A](sigRef: SignallingRef[F, A])
 extension [E](e: E)
   inline def modify[F[_], A](a: A)(using m: Modifier[F, E, A]): Resource[F, Unit] =
     m.modify(a, e)
+
+extension (io: IO.type)
+  def state[A](initial: A): Resource[IO, SignallingRef[IO, A]] =
+    SignallingRef[IO].of[A](initial).toResource

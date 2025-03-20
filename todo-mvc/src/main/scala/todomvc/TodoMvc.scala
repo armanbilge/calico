@@ -20,6 +20,7 @@ import calico.*
 import calico.frp.{*, given}
 import calico.html.io.{*, given}
 import calico.router.*
+import calico.syntax.*
 import cats.data.*
 import cats.effect.*
 import cats.syntax.all.*
@@ -87,60 +88,61 @@ object TodoMvc extends IOWebApp:
     }
 
   def TodoItem(todo: SignallingRef[IO, Option[Todo]]): Resource[IO, HtmlLiElement[IO]] =
-    SignallingRef[IO].of(false).toResource.flatMap { editing =>
-      li(
-        cls <-- (todo: Signal[IO, Option[Todo]], editing: Signal[IO, Boolean]).mapN { (t, e) =>
-          val completed = Option.when(t.exists(_.completed))("completed")
-          val editing = Option.when(e)("editing")
-          completed.toList ++ editing.toList
-        },
-        onDblClick(editing.set(true)),
-        children <-- editing.map {
-          case true =>
-            List(
-              input.withSelf { self =>
-                val endEdit = self.value.get.map(_.trim).flatMap { text =>
-                  todo.update(t =>
-                    text match {
-                      case "" => None
-                      case _ => t.map(_.copy(text = text))
-                    })
-                } *> editing.set(false)
-                (
-                  cls := "edit",
-                  defaultValue <-- todo.map(_.foldMap(_.text)),
-                  onKeyDown {
-                    case e if e.key == KeyValue.Enter => endEdit
-                    case e if e.key == KeyValue.Escape => editing.set(false)
-                    case _ => IO.unit
-                  },
-                  onBlur {
-                    // do not endEdit when blur is triggered after Escape
-                    editing.get.ifM(endEdit, IO.unit)
-                  }
-                )
-              }
-            )
-          case false =>
-            List(div(
-              cls := "view",
-              input.withSelf { self =>
-                (
-                  cls := "toggle",
-                  typ := "checkbox",
-                  checked <-- todo.map(_.fold(false)(_.completed)),
-                  onInput {
-                    self.checked.get.flatMap { checked =>
-                      todo.update(_.map(_.copy(completed = checked)))
+    IO.state(false).flatMap {
+      editing => // Using IO.state(...) instead of SignallingRef[IO].of(...)
+        li(
+          cls <-- (todo: Signal[IO, Option[Todo]], editing: Signal[IO, Boolean]).mapN {
+            (t, e) =>
+              val completed = Option.when(t.exists(_.completed))("completed")
+              val editing = Option.when(e)("editing")
+              completed.toList ++ editing.toList
+          },
+          onDblClick(editing.set(true)),
+          children <-- editing.map {
+            case true =>
+              List(
+                input.withSelf { self =>
+                  val endEdit = self.value.get.map(_.trim).flatMap { text =>
+                    todo.update(t =>
+                      text match {
+                        case "" => None
+                        case _ => t.map(_.copy(text = text))
+                      })
+                  } *> editing.set(false)
+                  (
+                    cls := "edit",
+                    defaultValue <-- todo.map(_.foldMap(_.text)),
+                    onKeyDown {
+                      case e if e.key == KeyValue.Enter => endEdit
+                      case e if e.key == KeyValue.Escape => editing.set(false)
+                      case _ => IO.unit
+                    },
+                    onBlur {
+                      editing.get.ifM(endEdit, IO.unit)
                     }
-                  }
-                )
-              },
-              label(todo.map(_.map(_.text))),
-              button(cls := "destroy", onClick(todo.set(None)))
-            ))
-        }
-      )
+                  )
+                }
+              )
+            case false =>
+              List(div(
+                cls := "view",
+                input.withSelf { self =>
+                  (
+                    cls := "toggle",
+                    typ := "checkbox",
+                    checked <-- todo.map(_.fold(false)(_.completed)),
+                    onInput {
+                      self.checked.get.flatMap { checked =>
+                        todo.update(_.map(_.copy(completed = checked)))
+                      }
+                    }
+                  )
+                },
+                label(todo.map(_.map(_.text))),
+                button(cls := "destroy", onClick(todo.set(None)))
+              ))
+          }
+        )
     }
 
   def StatusBar(
