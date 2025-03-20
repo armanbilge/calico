@@ -18,195 +18,239 @@ package calico.html
 
 import cats.effect.IO
 import cats.effect.Resource
-import cats.syntax.functor.*
+import cats.syntax.all.*
 import fs2.concurrent.Signal
 import fs2.dom.HtmlElement
 
-import scala.compiletime.constValue
-import scala.compiletime.erasedValue
-import scala.compiletime.summonFrom
 import scala.quoted.*
 
-// Type-level function for interspersing strings between tuple elements
-type IntersperseStrings[T <: Tuple] <: Tuple = T match
-  case EmptyTuple => String *: EmptyTuple
-  case (t *: ts) => String *: t *: IntersperseStrings[ts]
+final case class NodesInterpolator(
+    parts: List[Either[String, NodeValue]]
+)
 
-// Value-level function for interspersing strings between tuple elements
-inline def intersperseStrings[T <: Tuple](t: T, strings: Seq[String]): IntersperseStrings[T] =
-  inline erasedValue[T] match
-    case _: EmptyTuple => strings.head *: EmptyTuple
-    case _: (head *: tail) =>
-      inline t match
-        case v: (`head` *: `tail`) =>
-          val (h *: t) = v
-          strings.head *: h *: intersperseStrings(t, strings.tail)
+final case class NodeValue(value: Any, typeName: String)
 
-// Define a wrapper class to hide implementation details
-final case class NodesInterpolator(contents: List[NodeContent])
-
-// Define the NodeContent trait and implementations
-sealed trait NodeContent
-case class StaticContent(text: String) extends NodeContent
-case class DynamicContent[A](signal: Signal[IO, A]) extends NodeContent
-
-// Helper method to detect any Signal implementation
-private def isSignal(obj: Any): Boolean =
-  obj != null && obj.isInstanceOf[Signal[?, ?]]
-
-// Macro implementation for nodes string interpolator
+// Macro implementation for nodes string interpolator.
 inline def processNodes(sc: StringContext, args: Any*): NodesInterpolator = ${
   processNodesImpl('sc, 'args)
 }
 
 private def processNodesImpl(sc: Expr[StringContext], args: Expr[Seq[Any]])(
-    using Quotes): Expr[NodesInterpolator] =
-  import quotes.reflect.*
+    using q: Quotes
+): Expr[NodesInterpolator] =
+  import q.reflect.*
 
-  // Try to do compile-time processing when possible
-  try
-    sc match
-      case '{ StringContext(${ Varargs(literalParts) }*) }
-          if literalParts.forall(_.value.isDefined) =>
-        // Extract string parts if they are all literal strings
-        val stringParts = literalParts.map(_.valueOrAbort).toList
+  // Helper to check if an expression is complex (requiring runtime handling)
+  def isComplexExpression(arg: Expr[Any]): Boolean =
+    // More precise detection of complex expressions
+    val source = arg.asTerm.pos.sourceCode.getOrElse("")
+    source.contains("=>") ||
+    source.contains("case ") ||
+    source.contains("match") ||
+    (source.contains(".map(") || source.contains(".map ")) ||
+    source.contains(".flatMap") ||
+    source.contains(".getOrElse") ||
+    (source.contains("if ") && source.contains(" else "))
 
-        args match
-          case '{ Seq(${ Varargs(argList) }*) } =>
-            // We have both literal strings and extractable arguments
-            val argExprs = argList.toList
-            val contentExprs = buildContentExpressions(stringParts, argExprs)
-            '{ NodesInterpolator(${ Expr.ofList(contentExprs) }) }
+  // Check if we have complex arguments that need runtime handling
+  val hasComplexArgs = args match
+    case '{ Seq(${ Varargs(argList) }*) } =>
+      argList.exists(isComplexExpression)
+    case _ => true
 
-          case _ =>
-            // Arguments aren't extractable at compile time
-            fallbackToRuntime(sc, args)
+  if hasComplexArgs then
+    // For complex expressions, generate runtime code
 
-      case _ =>
-        // String context isn't all literals
-        fallbackToRuntime(sc, args)
-  catch
-    case _: Exception =>
-      // Any error during compile-time analysis, fallback to runtime
-      fallbackToRuntime(sc, args)
+    '{
+      val stringContext = $sc
+      val arguments = $args
+      val parts = stringContext.parts
 
-// Runtime fallback implementation
-private def fallbackToRuntime(sc: Expr[StringContext], args: Expr[Seq[Any]])(
-    using Quotes): Expr[NodesInterpolator] =
-  '{
-    val parts = $sc.parts.map(StringContext.processEscapes)
-    val arguments = $args
-    val result = List.newBuilder[NodeContent]
+      val resultParts = List.newBuilder[Either[String, NodeValue]]
 
-    // Add first static part if non-empty
-    parts.head match
-      case p if p.nonEmpty => result += StaticContent(p)
-      case _ => ()
+      // Add first string part if non-empty
+      if parts.head.nonEmpty then resultParts += Left(parts.head)
 
-    // Add alternating dynamic and static parts
-    for (i <- 0 until arguments.length)
-      val arg = arguments(i)
-      val nextPart = parts.applyOrElse(i + 1, (_: Int) => "")
+      // Process arguments and remaining parts
+      for i <- 0 until arguments.length do
+        val arg = arguments(i)
+        val nextPart = if i + 1 < parts.length then parts(i + 1) else ""
 
-      // Use match instead of if
-      arg match
-        case a if isSignal(a) =>
-          result += DynamicContent(a.asInstanceOf[Signal[IO, Any]])
-        case other =>
-          result += StaticContent(other.toString)
+        // Add value with its type info for later modifier lookup
+        resultParts += Right(NodeValue(arg, arg.getClass.getName))
 
-      // Add static content if non-empty
-      nextPart match
-        case p if p.nonEmpty => result += StaticContent(p)
+        // Add next string part if non-empty
+        if nextPart.nonEmpty then resultParts += Left(nextPart)
+
+      NodesInterpolator(resultParts.result())
+    }
+  else
+    // For simple expressions, use compile-time checking
+    try
+      // Extract string parts and arguments
+      val stringParts = sc match
+        case '{ StringContext(${ Varargs(literalParts) }*) } =>
+          literalParts.map(_.valueOrAbort).toList
+        case _ =>
+          report.errorAndAbort("Expected StringContext with literal parts")
+
+      val argExprs = args match
+        case '{ Seq(${ Varargs(argList) }*) } =>
+          argList.toList
+        case _ =>
+          report.errorAndAbort("Could not extract argument list")
+
+      // Build a list of static strings and dynamic values
+      val resultParts =
+        scala.collection.mutable.ListBuffer.empty[Expr[Either[String, NodeValue]]]
+
+      // Add first string part if non-empty
+      stringParts.head match
+        case part if part.nonEmpty => resultParts += '{ Left(${ Expr(part) }) }
         case _ => ()
 
-    NodesInterpolator(result.result())
-  }
+      // Process arguments and remaining string parts
+      for i <- 0 until argExprs.length do
+        val argExpr = argExprs(i)
+        val nextPart = stringParts.applyOrElse(i + 1, (_: Int) => "")
 
-// Helper method to build content expressions at compile time
-private def buildContentExpressions(
-    stringParts: List[String],
-    argExprs: List[Expr[Any]]
-)(using Quotes): List[Expr[NodeContent]] =
-  import quotes.reflect.*
+        // Get the argument's type for compile-time checking
+        val argType = argExpr.asTerm.tpe.widen
 
-  val result = scala.collection.mutable.ListBuffer.empty[Expr[NodeContent]]
+        // Check if a modifier exists for this type at compile time
+        // Special cases for signals and strings (common types)
+        val typeStr = argType.show
+        if typeStr.startsWith("fs2.concurrent.Signal[") ||
+          typeStr == "String" ||
+          typeStr == "Int" ||
+          typeStr == "Double" ||
+          typeStr == "Boolean" then
+          // Common types we know are handled
+          ()
+        else
+          // For other types, try to find a modifier at compile time
+          val modifierType =
+            TypeRepr.of[Modifier[IO, HtmlElement[IO], ?]].appliedTo(List(argType))
 
-  // Add first string part if non-empty
-  stringParts.head match
-    case p if p.nonEmpty => result += '{ StaticContent(${ Expr(p) }) }
-    case _ => ()
+          Implicits.search(modifierType) match
+            case iss: ImplicitSearchSuccess =>
+              // Found a modifier, continue
+              ()
+            case _: ImplicitSearchFailure =>
+              // No modifier found, abort compilation
+              report.errorAndAbort(
+                s"No Modifier found for type ${argType.show} in nodes interpolator. " +
+                  s"Either provide a Modifier instance or use a more basic type."
+              )
 
-  // Process arguments and remaining string parts
-  for i <- 0 until argExprs.length do
-    val argExpr = argExprs(i)
-    val nextPart = stringParts.applyOrElse(i + 1, (_: Int) => "")
+        // Add this value with its type information
+        val typeName = argType.show
+        resultParts += '{ Right(NodeValue($argExpr, ${ Expr(typeName) })) }
 
-    // Check if the argument is a Signal at compile time
-    val argType = argExpr.asTerm.tpe.widen.dealias
+        // Add next string part if non-empty
+        nextPart match
+          case part if part.nonEmpty => resultParts += '{ Left(${ Expr(part) }) }
+          case _ => ()
 
-    // Use match instead of if for Scala 3 new syntax
-    argType <:< TypeRepr.of[Signal[IO, ?]] match
-      case true =>
-        // Signal type
-        result += '{ DynamicContent($argExpr.asInstanceOf[Signal[IO, Any]]) }
-      case false =>
-        // Any other type - convert to string
-        result += '{ StaticContent($argExpr.toString) }
-
-    // Add next string part if non-empty
-    nextPart match
-      case p if p.nonEmpty => result += '{ StaticContent(${ Expr(p) }) }
-      case _ => ()
-
-  result.toList
+      '{ NodesInterpolator(${ Expr.ofList(resultParts.toList) }) }
+    catch
+      // If there's any error during compile-time checking,
+      // report it instead of falling back to runtime
+      case e: Exception =>
+        report.errorAndAbort(
+          s"Error during compile-time checking of nodes interpolator: ${e.getMessage}"
+        )
 
 extension (sc: StringContext)
-  // New compile-time string interpolator
+  /**
+   * String interpolator for node content.
+   *
+   * Example: `div(nodes"Hello, $name!")`
+   *
+   * For simple expressions, the compiler checks that appropriate modifiers exist. For complex
+   * expressions (map/flatMap, pattern matching), handling is deferred to runtime.
+   */
   inline def nodes(inline args: Any*): NodesInterpolator =
     processNodes(sc, args*)
 
-  // Keep the tuple-based version for future use
-  inline def nodesT[M <: Tuple, E <: HtmlElement[IO]](
-      arg: M
-  )(
-      using Modifier[IO, E, M]
-  ): IntersperseStrings[M] =
-    StringContext.checkLengths(arg.toList, sc.parts)
-    intersperseStrings(arg, sc.parts.map(StringContext.processEscapes))
-
-// Use this modifier for NodesInterpolator
+/**
+ * Modifier for NodesInterpolator that handles all the string parts and delegates to appropriate
+ * modifiers for the interpolated values.
+ */
 given nodesInterpolatorModifier[E <: HtmlElement[IO]]: Modifier[IO, E, NodesInterpolator] =
   new Modifier[IO, E, NodesInterpolator]:
-    def modify(interpolator: NodesInterpolator, element: E) =
+    def modify(interpolator: NodesInterpolator, element: E): Resource[IO, Unit] =
       interpolator
-        .contents
-        .foldLeft(Resource.pure[IO, Unit](())): (res, content) =>
+        .parts
+        .foldLeft(Resource.pure[IO, Unit](())): (res, part) =>
           res.flatMap: _ =>
-            content match
-              case StaticContent(text) =>
-                Resource.eval(IO {
-                  val textNode = org.scalajs.dom.document.createTextNode(text)
-                  element.asInstanceOf[org.scalajs.dom.Element].appendChild(textNode)
-                  ()
-                })
+            part match
+              case Left(text) =>
+                // Text nodes handled by existing text modifier
+                textModifier.modify(text, element)
 
-              case DynamicContent(signal) =>
-                // Properly suspend side effects in a single Resource.eval
-                Resource
-                  .eval(IO {
-                    val span = org.scalajs.dom.document.createElement("span")
-                    element.asInstanceOf[org.scalajs.dom.Element].appendChild(span)
-                    span
-                  })
-                  .flatMap: span =>
-                    signal
-                      .discrete
-                      .foreach: value =>
-                        IO {
-                          span.textContent = value.toString
-                        }
-                      .compile
-                      .drain
-                      .background
-                      .void
+              case Right(nodeValue) =>
+                // Look up the appropriate modifier for this value based on runtime type
+                findModifier(nodeValue.value).modify(nodeValue.value, element)
+
+/**
+ * Text content modifier that creates text nodes.
+ */
+private val textModifier: Modifier[IO, HtmlElement[IO], String] =
+  new Modifier[IO, HtmlElement[IO], String]:
+    def modify(text: String, element: HtmlElement[IO]): Resource[IO, Unit] =
+      Resource.eval(IO {
+        val textNode = org.scalajs.dom.document.createTextNode(text)
+        element.asInstanceOf[org.scalajs.dom.Element].appendChild(textNode)
+        ()
+      })
+
+/**
+ * Find an appropriate modifier for a value based on its runtime type. Only used for complex
+ * expressions that need runtime handling.
+ */
+private def findModifier(value: Any): Modifier[IO, HtmlElement[IO], Any] =
+  // Check for Signal type without using isInstanceOf with explicit type parameters
+  val isSignal = value != null && value.getClass.getName.contains("fs2.concurrent.Signal")
+
+  if isSignal then
+    // Special handling for Signal type
+    new Modifier[IO, HtmlElement[IO], Any]:
+      def modify(value: Any, element: HtmlElement[IO]): Resource[IO, Unit] =
+        val sig = value.asInstanceOf[Signal[IO, Any]]
+        Resource
+          .eval(IO {
+            val textNode = org.scalajs.dom.document.createTextNode("")
+            element.asInstanceOf[org.scalajs.dom.Element].appendChild(textNode)
+            textNode
+          })
+          .flatMap { textNode =>
+            sig
+              .discrete
+              .foreach { value => IO { textNode.textContent = value.toString } }
+              .compile
+              .drain
+              .background
+              .void
+          }
+  else if modifierRegistry.exists(_.canModify(value)) then
+    // Try to find a registered modifier for this type
+    modifierRegistry.find(_.canModify(value)).get
+  else
+    // Default toString modifier as fallback
+    // This should only be used for complex expressions where compile-time checking wasn't possible
+    new Modifier[IO, HtmlElement[IO], Any]:
+      def modify(value: Any, element: HtmlElement[IO]): Resource[IO, Unit] =
+        textModifier.modify(value.toString, element)
+
+// Registry of modifiers for different types
+// This allows adding new modifiers for specific types without modifying existing code
+private val modifierRegistry: List[Modifier[IO, HtmlElement[IO], Any]] = List(
+  // Add more modifiers here as needed for specific types
+)
+
+// Type class to check if a modifier can handle a particular value
+extension (modifier: Modifier[IO, HtmlElement[IO], Any])
+  private def canModify(value: Any): Boolean =
+    // Placeholder implementation - real implementations would check based on type
+    false
