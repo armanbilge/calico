@@ -19,6 +19,8 @@ package todomvc
 import calico.*
 import calico.frp.{*, given}
 import calico.html.io.{*, given}
+import calico.html.nodes
+import calico.html.nodesInterpolatorModifier
 import calico.router.*
 import cats.data.*
 import cats.effect.*
@@ -122,23 +124,27 @@ object TodoMvc extends IOWebApp:
               }
             )
           case false =>
-            List(div(
-              cls := "view",
-              input.withSelf { self =>
-                (
-                  cls := "toggle",
-                  typ := "checkbox",
-                  checked <-- todo.map(_.fold(false)(_.completed)),
-                  onInput {
-                    self.checked.get.flatMap { checked =>
-                      todo.update(_.map(_.copy(completed = checked)))
+            List(
+              div(
+                cls := "view",
+                input.withSelf { self =>
+                  (
+                    cls := "toggle",
+                    typ := "checkbox",
+                    checked <-- todo.map(_.fold(false)(_.completed)),
+                    onInput {
+                      self.checked.get.flatMap { checked =>
+                        todo.update(_.map(_.copy(completed = checked)))
+                      }
                     }
-                  }
-                )
-              },
-              label(todo.map(_.map(_.text))),
-              button(cls := "destroy", onClick(todo.set(None)))
-            ))
+                  )
+                },
+                label(
+                  // Use the nodes interpolator for todo text
+                  nodes"${todo.map(_.map(_.text).getOrElse(""))}"
+                ),
+                button(cls := "destroy", onClick(todo.set(None)))
+              ))
         }
       )
     }
@@ -153,10 +159,11 @@ object TodoMvc extends IOWebApp:
       span(
         cls := "todo-count",
         strong(store.activeCount.map(_.toString)),
-        store.activeCount.map {
-          case 1 => " item left"
-          case n => " items left"
-        }
+        // Use nodes interpolator for dynamic text
+        nodes"${store.activeCount.map {
+            case 1 => " item left"
+            case n => " items left"
+          }}"
       ),
       ul(
         cls := "filters",
@@ -165,7 +172,8 @@ object TodoMvc extends IOWebApp:
             a(
               cls <-- filter.map(_ == f).map(Option.when(_)("selected").toList),
               href := s"#${f.fragment}",
-              f.toString
+              // Use nodes for filter name
+              nodes"${f.toString}"
             )
           )
         }
