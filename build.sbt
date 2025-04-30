@@ -21,7 +21,7 @@ val CatsEffectVersion = "3.5.7"
 val Fs2Version = "3.11.0"
 val Fs2DomVersion = "0.2.1"
 val Http4sVersion = "0.23.30"
-val Http4sDomVersion = "0.2.11"
+val Http4sDomVersion = "0.2.12"
 val MonocleVersion = "3.3.0"
 
 lazy val root =
