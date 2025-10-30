@@ -38,12 +38,54 @@ trait Modifier[F[_], E, A]:
   inline final def contramap[B](inline f: B => A): Modifier[F, E, B] =
     (b: B, e: E) => outer.modify(f(b), e)
 
+/**
+ * A trait that makes it easier to implement custom modifiers.
+ *
+ * Instead of implementing the `Modifier[F, E, A]` typeclass directly, you can extend this trait
+ * and implement the `apply` method. The typeclass instance will be automatically derived.
+ *
+ * Example:
+ * ```scala
+ * case class DataAttribute(value: String) extends CustomModifier[IO, dom.Element]:
+ *   def apply(element: dom.Element): Resource[IO, Unit] =
+ *     Resource.eval(IO.delay(element.setAttribute("data-custom", value)))
+ *
+ * // Usage in HTML DSL:
+ * div(DataAttribute("hello"), "Content")
+ * ```
+ *
+ * This is much simpler than the previous approach which required:
+ * ```scala
+ * given Modifier[IO, dom.Element, DataAttribute] = (attr, elem) =>
+ *   Resource.eval(IO.delay(elem.setAttribute("data-custom", attr.value)))
+ * ```
+ */
+trait CustomModifier[F[_], E]:
+  def apply(element: E): Resource[F, Unit]
+
+  /**
+   * Helper method for simple synchronous operations that don't need cleanup. This is a
+   * convenience method for common cases where you just want to perform a side effect on the
+   * element.
+   */
+  protected def sync[A](element: E)(f: E => A)(
+      using F: cats.effect.kernel.Sync[F]
+  ): Resource[F, Unit] =
+    Resource.eval(F.delay(f(element)).void)
+
 object Modifier:
   inline given forUnit[F[_], E]: Modifier[F, E, Unit] =
     _forUnit.asInstanceOf[Modifier[F, E, Unit]]
 
   private val _forUnit: Modifier[Id, Any, Unit] =
     (_, _) => Resource.unit
+
+  /**
+   * Automatically derives a `Modifier[F, E, CustomModifier[F, E]]` instance for any type that
+   * extends `CustomModifier[F, E]`.
+   */
+  given forCustomModifier[F[_], E, M <: CustomModifier[F, E]]: Modifier[F, E, M] =
+    (customModifier, element) => customModifier.apply(element)
 
   given forTuple[F[_], E, M <: Tuple](
       using inst: K0.ProductInstances[Modifier[F, E, _], M]
@@ -68,15 +110,17 @@ object Modifier:
       fa.contramap(f)
 
   private[html] def forSignal[F[_], E, M, V](signal: M => Signal[F, V])(
-      mkModify: (M, E) => V => F[Unit])(using F: Async[F]): Modifier[F, E, M] = (m, e) =>
+      mkModify: (M, E) => V => F[Unit]
+  )(using F: Async[F]): Modifier[F, E, M] = (m, e) =>
     signal(m).getAndDiscreteUpdates.flatMap { (head, tail) =>
       val modify = mkModify(m, e)
       Resource.eval(modify(head)) *>
         (F.cede *> tail.foreach(modify(_)).compile.drain).background.void
     }
 
-  private[html] def forSignalResource[F[_], E, M, V](signal: M => Resource[F, Signal[F, V]])(
-      mkModify: (M, E) => V => F[Unit])(using F: Async[F]): Modifier[F, E, M] = (m, e) =>
+  private[html] def forSignalResource[F[_], E, M, V](
+      signal: M => Resource[F, Signal[F, V]]
+  )(mkModify: (M, E) => V => F[Unit])(using F: Async[F]): Modifier[F, E, M] = (m, e) =>
     signal(m).flatMap { sig =>
       sig.getAndDiscreteUpdates.flatMap { (head, tail) =>
         val modify = mkModify(m, e)
@@ -155,8 +199,11 @@ private trait Modifiers[F[_]](using F: Async[F]):
       S <: Signal[F, Option[Resource[F, N2]]]
   ]: Modifier[F, N, S] = _forNodeOptionSignal.asInstanceOf[Modifier[F, N, S]]
 
-  private val _forNodeOptionSignal
-      : Modifier[F, dom.Node, Signal[F, Option[Resource[F, dom.Node]]]] = (n2s, n) =>
+  private val _forNodeOptionSignal: Modifier[
+    F,
+    dom.Node,
+    Signal[F, Option[Resource[F, dom.Node]]]
+  ] = (n2s, n) =>
     Resource.eval(F.delay(Resource.pure[F, dom.Node](dom.document.createComment("")))).flatMap {
       sentinel => _forNodeSignal.modify(n2s.map(_.getOrElse(sentinel)), n)
     }
