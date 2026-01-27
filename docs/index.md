@@ -24,3 +24,7 @@ Please open issues (and PRs!) for anything and everything :)
 - [calico-smithy4s-demo](https://github.com/kubukoz/calico-smithy4s-demo/) showcases a fullstack app and integration with [smithy4s](https://github.com/disneystreaming/smithy4s/). Thank you [@kubukoz](https://github.com/kubukoz/)!
 
 [@yurique]: https://github.com/yurique/
+
+### Other Resources
+
+The [Calico/Electron tutorial](https://github.com/benhutchison/calico_electron_tutorial) is a case-study tutorial that shows how to develop a desktop file browser using Calico, developed by @benhutchison.
