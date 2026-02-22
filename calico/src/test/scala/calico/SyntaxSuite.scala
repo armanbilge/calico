@@ -16,10 +16,12 @@
 
 package not.calico
 
+import calico.html.Html
 import calico.html.io.*
 import calico.html.io.given
 import calico.syntax.*
 import cats.effect.*
+import cats.effect.kernel.Async
 import cats.syntax.all.*
 import fs2.concurrent.*
 
@@ -45,3 +47,15 @@ class SyntaxSuite:
       onClick(_ => IO.unit),
       onClick(IO.unit)
     )
+
+  // verify fix for issue #461: Html DSL works for parametric F[_] without per-scope import
+  // of an Html instance.
+  // Previously users had to write:
+  // def foo[F[_]: Async](using h: Html[F]) = { import h.{*, given}; div(...) }
+  // Now, given Html[F] is automatically derived from Async[F], so users can write
+  // [F[_]: Async: Html] and import from the summon'd instance once at the method level.
+  def parametricComponent[F[_]: Async: Html](
+      text: String): Resource[F, fs2.dom.HtmlElement[F]] =
+    val h = summon[Html[F]]
+    import h.{*, given}
+    div(span(text))

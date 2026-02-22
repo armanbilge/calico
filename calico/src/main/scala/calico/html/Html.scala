@@ -27,6 +27,16 @@ object io extends Html[IO]
 object Html:
   def apply[F[_]: Async]: Html[F] = new Html[F]
 
+  /**
+   * Automatically derives an [[Html]] capability for any effect type with an [[Async]]
+   * instance.
+   *
+   * This allows parametric components to request the HTML DSL via a context bound:
+   * {{{[F[_]: Async: Html]}}} or a using clause: {{{(using Html[F])}}} rather than threading an
+   * explicit `Html[F]` instance through every call.
+   */
+  given [F[_]: Async]: Html[F] = new Html[F]
+
 sealed class Html[F[_]](using F: Async[F])
     extends HtmlTags[F],
       Props[F],

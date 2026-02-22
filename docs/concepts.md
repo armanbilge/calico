@@ -14,8 +14,25 @@ import fs2.dom.*
 val component: Resource[IO, HtmlElement[IO]] = ???
 
 // or more generally:
-def component[F[_]: Dom]: Resource[F, HtmlElement[F]] = ???
+def component[F[_]: Async: Html]: Resource[F, HtmlElement[F]] =
+  div("Hello from a parametric component!")
 ```
+
+The `Async` capability is required to run effects, while `Html` provides the DSL for describing elements. By requesting `Html` as a context bound, you can access all standard HTML tags and attributes within your component.
+
+Previously, using Calico with parametric effect types required manually threading and importing an `Html[F]` instance. Now, an `Html[F]` capability is automatically derived for any effect type with an `Async` instance.
+
+```scala
+import calico.html.*
+import cats.effect.kernel.Async
+
+def myParametricComponent[F[_]: Async: Html]: Resource[F, HtmlElement[F]] =
+  div(
+    "This is a parametric component",
+    cls := "my-class"
+  )
+```
+
 
 This `Resource` completely manages the lifecycle of that element and its children. When the `Resource` is allocated, it will create an instance of the `HtmlElement` and any supporting resources, such as background `Fiber`s or WebSocket connections. In kind, when the `Resource` is closed, these `Fiber`s and connections are canceled and released.
 
