@@ -122,6 +122,150 @@ private[codegen] class CalicoGenerator(srcManaged: File)
     ).printTrait().getOutput()
   }
 
+  def generatePhantomHtmlAttrsTrait(
+      defGroups: List[(String, List[AttrDef])],
+      traitName: String
+  ): String = {
+    val defs = defGroups.flatMap(_._2)
+    val sb = new StringBuilder
+
+    sb.append(s"package $attrDefsPackagePath\n\n")
+    standardTraitCommentLines.foreach(c => sb.append(s"// $c\n"))
+    sb.append(s"\nprivate trait $traitName:\n\n")
+    sb.append(
+      s"  @inline private[calico] def htmlAttr[V](key: String, encode: V => String): HtmlAttr[F, key.type, V] =\n")
+    sb.append(s"    new HtmlAttr(key, encode)\n\n")
+
+    for (d <- defs) {
+      val codecExpr = transformCodecName(d.codec)
+      val domName = d.domName
+      val scalaName = d.scalaName
+      val valueType = d.scalaValueType
+      sb.append(
+        s"""  lazy val $scalaName: HtmlAttr[F, "$domName", $valueType] = htmlAttr("$domName", $codecExpr)\n""")
+      val aliases = d.scalaAliases
+      aliases.foreach { alias =>
+        sb.append(s"""  lazy val $alias: HtmlAttr[F, "$domName", $valueType] = $scalaName\n""")
+      }
+      sb.append("\n")
+    }
+
+    sb.toString
+  }
+
+  def generatePhantomAriaAttrsTrait(
+      defGroups: List[(String, List[AttrDef])],
+      traitName: String
+  ): String = {
+    val defs = defGroups.flatMap(_._2)
+    val sb = new StringBuilder
+
+    sb.append(s"package $attrDefsPackagePath\n\n")
+    standardTraitCommentLines.foreach(c => sb.append(s"// $c\n"))
+    sb.append(s"\nprivate trait $traitName:\n\n")
+    sb.append(
+      s"  @inline private[calico] def ariaAttr[V](key: String, encode: V => String): HtmlAttr[F, key.type, V] =\n")
+    sb.append(s"    new AriaAttr(key, encode)\n\n")
+
+    for (d <- defs) {
+      val codecExpr = transformCodecName(d.codec)
+      val suffix = d.domName
+      val scalaName = d.scalaName
+      val valueType = d.scalaValueType
+      val fullName = "aria-" + suffix
+      sb.append(
+        s"""  lazy val $scalaName: HtmlAttr[F, "$fullName", $valueType] = ariaAttr("$fullName", $codecExpr)\n\n""")
+    }
+
+    sb.toString
+  }
+
+  def generatePhantomPropsTrait(
+      defGroups: List[(String, List[PropDef])],
+      traitName: String
+  ): String = {
+    val defs = defGroups.flatMap(_._2)
+    val sb = new StringBuilder
+
+    sb.append(s"package $propDefsPackagePath\n\n")
+    standardTraitCommentLines.foreach(c => sb.append(s"// $c\n"))
+    sb.append(s"\nprivate trait $traitName:\n\n")
+    sb.append(
+      s"  @inline private[calico] def prop[V, DomV](key: String, encode: V => DomV): Prop[F, key.type, V, DomV] =\n")
+    sb.append(s"    new Prop(key, encode)\n\n")
+
+    for (d <- defs) {
+      val codecExpr = transformCodecName(d.codec)
+      val domName = d.domName
+      val scalaName = d.scalaName
+      val valueType = d.scalaValueType
+      val domValueType = d.domValueType
+      sb.append(
+        s"""  lazy val $scalaName: Prop[F, "$domName", $valueType, $domValueType] = prop("$domName", $codecExpr)\n""")
+      val aliases = d.scalaAliases
+      aliases.foreach { alias =>
+        sb.append(
+          s"""  lazy val $alias: Prop[F, "$domName", $valueType, $domValueType] = $scalaName\n""")
+      }
+      sb.append("\n")
+    }
+
+    sb.toString
+  }
+
+  private def sanitizeName(scalaName: String): String =
+    scalaName.replace("`", "")
+
+  def generateValidInstances(
+      htmlAttrDefs: List[AttrDef],
+      ariaAttrDefs: List[AttrDef],
+      propDefs: List[PropDef]
+  ): String = {
+    val sb = new StringBuilder
+
+    sb.append(s"package $basePackagePath\n\n")
+    sb.append("import cats.effect.kernel.Async\n")
+    sb.append("import fs2.dom.*\n\n")
+    standardTraitCommentLines.foreach(c => sb.append(s"// $c\n"))
+    sb.append(s"\nprivate trait GeneratedValidInstances[F[_]](using Async[F]):\n\n")
+
+    for (d <- htmlAttrDefs) {
+      val domName = d.domName
+      val safeName = sanitizeName(d.scalaName)
+      val bounds = ElementScopes.elementBoundsForAttr(safeName)
+      for (bound <- bounds) {
+        val givenName = s"validAttr_${safeName}_${bound.replace("[", "").replace("]", "")}"
+        sb.append(
+          s"""  inline given $givenName: ValidAttr["$domName", $bound[F]] = ValidAttr.instance\n""")
+      }
+    }
+
+    sb.append("\n")
+
+    for (d <- ariaAttrDefs) {
+      val suffix = d.domName
+      val fullName = "aria-" + suffix
+      val safeName = sanitizeName(d.scalaName)
+      sb.append(
+        s"""  inline given validAttr_aria_$safeName: ValidAttr["$fullName", HtmlElement[F]] = ValidAttr.instance\n""")
+    }
+
+    sb.append("\n")
+
+    for (d <- propDefs) {
+      val domName = d.domName
+      val safeName = sanitizeName(d.scalaName)
+      val bounds = ElementScopes.elementBoundsForProp(safeName)
+      for (bound <- bounds) {
+        val givenName = s"validProp_${safeName}_${bound.replace("[", "").replace("]", "")}"
+        sb.append(
+          s"""  inline given $givenName: ValidProp["$domName", $bound[F]] = ValidProp.instance\n""")
+      }
+    }
+
+    sb.toString
+  }
+
   override def generateAttrsTrait(
       defGroups: List[(String, List[AttrDef])],
       printDefGroupComments: Boolean,

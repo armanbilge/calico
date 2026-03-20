@@ -51,8 +51,6 @@ object DomDefsGenerator {
         )
       }
 
-    // -- HTML tags --
-
     val htmlTags = {
       val traitName = "HtmlTags"
       val traitNameWithParams = s"$traitName[F[_]](using Async[F])"
@@ -83,185 +81,70 @@ object DomDefsGenerator {
       writeToFile(generator.tagDefsPackagePath, traitName, fileContent)
     }
 
-    // -- SVG tags --
-
-    // {
-    // val traitName = "SvgTags"
-
-    // val fileContent = generator.generateTagsTrait(
-    // tagType = SvgTagType,
-    // defGroups = defGroups.svgTagsDefGroups,
-    // printDefGroupComments = false,
-    // traitCommentLines = Nil,
-    // traitName = traitName,
-    // keyKind = "SvgTag",
-    // baseImplDefComments = List(
-    // "Create SVG tag",
-    // "",
-    // "Note: this simply creates an instance of HtmlTag.",
-    // " - This does not create the element (to do that, call .apply() on the returned tag instance)",
-    // "",
-    // "@param tagName - e.g. \"circle\"",
-    // "",
-    // "@tparam Ref    - type of elements with this tag, e.g. dom.svg.Circle for \"circle\" tag"
-    // ),
-    // keyImplName = "svgTag",
-    // defType = LazyVal
-    // )
-
-    // generator.writeToFile(
-    // packagePath = generator.tagDefsPackagePath,
-    // fileName = traitName,
-    // fileContent = fileContent
-    // )
-    // }
-
-    // -- HTML attributes --
+    val htmlAttrDefsList = defGroups.htmlAttrDefGroups.flatMap(_._2)
 
     val htmlAttrs = {
       val traitName = "HtmlAttrs"
-      val traitNameWithParams = s"$traitName[F[_]]"
 
-      val fileContent = generator.generateAttrsTrait(
-        defGroups = defGroups.htmlAttrDefGroups.map {
-          case (key, vals) =>
-            (key, vals.map(attr => attr.copy(scalaValueType = "F, " + attr.scalaValueType)))
-        },
-        printDefGroupComments = false,
-        traitCommentLines = Nil,
-        traitModifiers = List("private"),
-        traitName = traitNameWithParams,
-        keyKind = "HtmlAttr",
-        implNameSuffix = "HtmlAttr",
-        baseImplDefComments = List(
-          "Create HTML attribute (Note: for SVG attrs, use L.svg.svgAttr)",
-          "",
-          "@param key   - name of the attribute, e.g. \"value\"",
-          "@param codec - used to encode V into String, e.g. StringAsIsCodec",
-          "",
-          "@tparam V    - value type for this attr in Scala"
-        ),
-        baseImplName = "htmlAttr",
-        namespaceImports = Nil,
-        namespaceImpl = _ => ???,
-        transformAttrDomName = identity,
-        defType = LazyVal
+      val fileContent = generator.generatePhantomHtmlAttrsTrait(
+        defGroups = defGroups.htmlAttrDefGroups,
+        traitName = s"$traitName[F[_]]"
       )
 
       writeToFile(generator.attrDefsPackagePath, traitName, fileContent)
     }
 
-    // -- SVG attributes --
+    def transformAriaAttrDomName(ariaAttrName: String): String = {
+      if (ariaAttrName.startsWith("aria-")) {
+        ariaAttrName.substring(5)
+      } else {
+        throw new Exception(s"Aria attribute does not start with `aria-`: $ariaAttrName")
+      }
+    }
 
-    // {
-    // val traitName = "SvgAttrs"
-
-    // val fileContent = generator.generateAttrsTrait(
-    // defGroups = defGroups.svgAttrDefGroups,
-    // printDefGroupComments = false,
-    // traitName = traitName,
-    // traitCommentLines = Nil,
-    // keyKind = "SvgAttr",
-    // baseImplDefComments = List(
-    // "Create SVG attribute (Note: for HTML attrs, use L.htmlAttr)",
-    // "",
-    // "@param key   - name of the attribute, e.g. \"value\"",
-    // "@param codec - used to encode V into String, e.g. StringAsIsCodec",
-    // "",
-    // "@tparam V    - value type for this attr in Scala"
-    // ),
-    // implNameSuffix = "SvgAttr",
-    // baseImplName = "svgAttr",
-    // namespaceImports = Nil,
-    // namespaceImpl = SourceRepr(_),
-    // transformAttrDomName = identity,
-    // defType = LazyVal
-    // )
-
-    // generator.writeToFile(
-    // packagePath = generator.attrDefsPackagePath,
-    // fileName = traitName,
-    // fileContent = fileContent
-    // )
-    // }
-
-    // -- ARIA attributes --
+    val ariaAttrDefsList = defGroups
+      .ariaAttrDefGroups
+      .flatMap(_._2)
+      .map(d => d.copy(domName = transformAriaAttrDomName(d.domName)))
 
     val ariaAttrs = {
       val traitName = "AriaAttrs"
-      val traitNameWithParams = s"$traitName[F[_]]"
 
-      def transformAttrDomName(ariaAttrName: String): String = {
-        if (ariaAttrName.startsWith("aria-")) {
-          ariaAttrName.substring(5)
-        } else {
-          throw new Exception(s"Aria attribute does not start with `aria-`: $ariaAttrName")
-        }
-      }
-
-      val fileContent = generator.generateAttrsTrait(
+      val fileContent = generator.generatePhantomAriaAttrsTrait(
         defGroups = defGroups.ariaAttrDefGroups.map {
           case (key, vals) =>
-            (key, vals.map(attr => attr.copy(scalaValueType = "F, " + attr.scalaValueType)))
+            (key, vals.map(d => d.copy(domName = transformAriaAttrDomName(d.domName))))
         },
-        printDefGroupComments = false,
-        traitModifiers = List("private"),
-        traitName = traitNameWithParams,
-        traitCommentLines = Nil,
-        keyKind = "AriaAttr",
-        implNameSuffix = "AriaAttr",
-        baseImplDefComments = List(
-          "Create ARIA attribute (Note: for HTML attrs, use L.htmlAttr)",
-          "",
-          "@param key   - suffix of the attribute, without \"aria-\" prefix, e.g. \"labelledby\"",
-          "@param codec - used to encode V into String, e.g. StringAsIsCodec",
-          "",
-          "@tparam V    - value type for this attr in Scala"
-        ),
-        baseImplName = "ariaAttr",
-        namespaceImports = Nil,
-        namespaceImpl = _ => ???,
-        transformAttrDomName = transformAttrDomName,
-        defType = LazyVal
+        traitName = s"$traitName[F[_]]"
       )
 
       writeToFile(generator.attrDefsPackagePath, traitName, fileContent)
     }
 
-    // -- HTML props --
+    val propDefsList = defGroups.propDefGroups.flatMap(_._2)
 
     val htmlProps = {
       val traitName = "Props"
-      val traitNameWithParams = s"$traitName[F[_]]"
 
-      val fileContent = generator.generatePropsTrait(
-        defGroups = defGroups.propDefGroups.map {
-          case (key, vals) =>
-            (key, vals.map(attr => attr.copy(scalaValueType = "F, " + attr.scalaValueType)))
-        },
-        printDefGroupComments = true,
-        traitCommentLines = Nil,
-        traitModifiers = List("private"),
-        traitName = traitNameWithParams,
-        keyKind = "Prop",
-        implNameSuffix = "Prop",
-        baseImplDefComments = List(
-          "Create custom HTML element property",
-          "",
-          "@param key   - name of the prop in JS, e.g. \"value\"",
-          "@param codec - used to encode V into DomV, e.g. StringAsIsCodec,",
-          "",
-          "@tparam V    - value type for this prop in Scala",
-          "@tparam DomV - value type for this prop in the underlying JS DOM."
-        ),
-        baseImplName = "prop",
-        defType = LazyVal
+      val fileContent = generator.generatePhantomPropsTrait(
+        defGroups = defGroups.propDefGroups,
+        traitName = s"$traitName[F[_]]"
       )
 
       writeToFile(generator.propDefsPackagePath, traitName, fileContent)
     }
 
-    // -- Event props --
+    val validInstances = {
+      val traitName = "GeneratedValidInstances"
+
+      val fileContent = generator.generateValidInstances(
+        htmlAttrDefs = htmlAttrDefsList,
+        ariaAttrDefs = ariaAttrDefsList,
+        propDefs = propDefsList
+      )
+
+      writeToFile(generator.keysPackagePath, traitName, fileContent)
+    }
 
     val eventProps = {
       val baseTraitName = "GlobalEventProps"
@@ -332,71 +215,8 @@ object DomDefsGenerator {
       ).parFlatSequence
     }
 
-    // -- Style props --
-
-    // {
-    // val traitName = "StyleProps"
-
-    // val fileContent = generator.generateStylePropsTrait(
-    // defSources = defGroups.stylePropDefGroups,
-    // printDefGroupComments = true,
-    // traitCommentLines = Nil,
-    // traitName = traitName,
-    // keyKind = "StyleProp",
-    // keyKindAlias = "StyleProp",
-    // setterType = "StyleSetter",
-    // setterTypeAlias = "SS",
-    // derivedKeyKind = "DerivedStyleProp",
-    // derivedKeyKindAlias = "DSP",
-    // baseImplDefComments = List(
-    // "Create custom CSS property",
-    // "",
-    // "@param key - name of CSS property, e.g. \"font-weight\"",
-    // "",
-    // "@tparam V  - type of values recognized by JS for this property, e.g. Int",
-    // "             Note: String is always allowed regardless of the type you put here.",
-    // "             If unsure, use String type as V."
-    // ),
-    // baseImplName = "styleProp",
-    // defType = LazyVal,
-    // lengthUnitsNumType = "Int",
-    // outputUnitTraits = true
-    // )
-
-    // generator.writeToFile(
-    // packagePath = generator.stylePropDefsPackagePath,
-    // fileName = traitName,
-    // fileContent = fileContent
-    // )
-    // }
-
-    // -- Style keyword traits
-
-    // {
-    // StyleTraitDefs.defs.foreach { styleTrait =>
-    // val fileContent = generator.generateStyleKeywordsTrait(
-    // defSources = styleTrait.keywordDefGroups,
-    // printDefGroupComments = styleTrait.keywordDefGroups.length > 1,
-    // traitCommentLines = Nil,
-    // traitName = styleTrait.scalaName.replace("[_]", ""),
-    // extendsTraits = styleTrait.extendsTraits.map(_.replace("[_]", "")),
-    // extendsUnitTraits = styleTrait.extendsUnits,
-    // propKind = "StyleProp",
-    // keywordType = "StyleSetter",
-    // derivedKeyKind = "DerivedStyleProp",
-    // lengthUnitsNumType = "Int",
-    // defType = LazyVal,
-    // outputUnitTypes = true,
-    // allowSuperCallInOverride = false // can't access lazy val from `super`
-    // )
-
-    // generator.writeToFile(
-    // packagePath = generator.styleTraitsPackagePath(),
-    // fileName = styleTrait.scalaName.replace("[_]", ""),
-    // fileContent = fileContent
-    // )
-    // }
-    // }
-    List(List(htmlTags, htmlAttrs, ariaAttrs, htmlProps).sequence, eventProps).parFlatSequence
+    List(
+      List(htmlTags, htmlAttrs, ariaAttrs, htmlProps, validInstances).sequence,
+      eventProps).parFlatSequence
   }
 }

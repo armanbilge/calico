@@ -27,10 +27,10 @@ object Repo:
   given EntityDecoder[IO, Repo] = jsonOf
 
 val client = FetchClientBuilder[IO].create
-
+  
 val app: Resource[IO, HtmlDivElement[IO]] = (
   input(size := 36, typ := "text", value := "armanbilge/calico"),
-  SignallingRef[IO].of("").toResource
+  SignallingRef[IO].of  ("").toResource
 ).flatMapN { (repoInput, starsResult) =>
 
   val countStars: IO[Unit] =

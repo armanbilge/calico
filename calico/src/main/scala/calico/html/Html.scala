@@ -34,6 +34,7 @@ sealed class Html[F[_]](using F: Async[F])
       DocumentEventProps[F],
       WindowEventProps[F],
       HtmlAttrs[F],
+      GeneratedValidInstances[F],
       PropModifiers[F],
       EventPropModifiers[F],
       ClassPropModifiers[F],
@@ -44,24 +45,34 @@ sealed class Html[F[_]](using F: Async[F])
 
   given Dom[F] = Dom.forAsync
 
+  inline given validAttr_rel: ValidAttr["rel", fs2.dom.HtmlElement[F]] = ValidAttr.instance
+  inline given validAttr_role: ValidAttr["role", fs2.dom.HtmlElement[F]] = ValidAttr.instance
+  inline given validAttr_style: ValidAttr["style", fs2.dom.HtmlElement[F]] = ValidAttr.instance
+  inline given validAttr_value: ValidAttr["value", fs2.dom.HtmlElement[F]] = ValidAttr.instance
+  inline given validAttr_data: ValidAttr[Any, fs2.dom.HtmlElement[F]] = ValidAttr.instance
+  inline given validProp_className: ValidProp["className", fs2.dom.HtmlElement[F]] =
+    ValidProp.instance
+
   def aria: Aria[F] = Aria[F]
 
   def cls: ClassProp[F] = ClassProp[F]
 
-  def rel: HtmlAttr[F, List[String]] = HtmlAttr("rel", encoders.whitespaceSeparatedStrings)
+  def rel: HtmlAttr[F, "rel", List[String]] =
+    new HtmlAttr("rel", encoders.whitespaceSeparatedStrings)
 
-  def role: HtmlAttr[F, List[String]] = HtmlAttr("role", encoders.whitespaceSeparatedStrings)
+  def role: HtmlAttr[F, "role", List[String]] =
+    new HtmlAttr("role", encoders.whitespaceSeparatedStrings)
 
-  def dataAttr(suffix: String): HtmlAttr[F, String] =
-    HtmlAttr("data-" + suffix, encoders.identity)
+  def dataAttr(suffix: String): HtmlAttr[F, Any, String] =
+    new HtmlAttr("data-" + suffix, encoders.identity)
 
   def children: Children[F] = Children[F]
 
   def children[K](f: K => Resource[F, fs2.dom.Node[F]]): KeyedChildren[F, K] =
     KeyedChildren[F, K](f)
 
-  def styleAttr: HtmlAttr[F, String] =
-    HtmlAttr("style", encoders.identity)
+  def styleAttr: HtmlAttr[F, "style", String] =
+    new HtmlAttr("style", encoders.identity)
 
-  def valueAttr: HtmlAttr[F, String] =
-    HtmlAttr("value", encoders.identity)
+  def valueAttr: HtmlAttr[F, "value", String] =
+    new HtmlAttr("value", encoders.identity)
