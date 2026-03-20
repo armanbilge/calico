@@ -22,6 +22,7 @@ import calico.syntax.*
 import cats.effect.*
 import cats.syntax.all.*
 import fs2.concurrent.*
+import org.scalajs.dom
 
 class SyntaxSuite:
 
@@ -45,3 +46,21 @@ class SyntaxSuite:
       onClick(_ => IO.unit),
       onClick(IO.unit)
     )
+
+  def typedInputReads(fileEl: fs2.dom.HtmlInputElement[IO]) =
+    val files: IO[dom.FileList] = fileEl.typedValue["file"]
+    val checked: IO[Boolean] = fileEl.typedValue["checkbox"]
+    val isRadio: IO[Boolean] = fileEl.typedValue["radio"]
+    val num: IO[Double] = fileEl.typedValue["number"]
+    val rng: IO[Double] = fileEl.typedValue["range"]
+    val str: IO[String] = fileEl.typedValue["text"]
+    val email: IO[String] = fileEl.typedValue["email"]
+    (files, checked, isRadio, num, rng, str, email)
+
+  def typedInputWithOnChange =
+    input.withSelf { self =>
+      (
+        typ := "file",
+        onChange --> { _.evalMap(_ => self.typedValue["file"]).foreach(_ => IO.unit) }
+      )
+    }

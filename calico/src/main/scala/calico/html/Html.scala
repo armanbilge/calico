@@ -65,3 +65,6 @@ sealed class Html[F[_]](using F: Async[F])
 
   def valueAttr: HtmlAttr[F, String] =
     HtmlAttr("value", encoders.identity)
+
+  extension (el: fs2.dom.HtmlInputElement[F])
+    def typedValue[T <: String](using r: InputReader[F, T]): F[r.Out] = r.read(el)
