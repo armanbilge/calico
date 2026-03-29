@@ -65,3 +65,12 @@ sealed class Html[F[_]](using F: Async[F])
 
   def valueAttr: HtmlAttr[F, String] =
     HtmlAttr("value", encoders.identity)
+
+  /**
+   * JavaScript property by name (custom elements, Material, etc.).
+   */
+  def wcProp[V](name: String): Prop[F, V, V] =
+    new Prop(name, encoders.identity)
+
+  def wcProp[V, J](name: String, encode: V => J): Prop[F, V, J] =
+    new Prop(name, encode)
